@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "./components/sidebar/Sidebar";
 import { TodoList } from "./components/todo/TodoList";
+import { Settings } from "./components/settings/Settings";
 import { startWindowMonitor } from "./lib/invoke";
 import type { TodoFilters } from "./types";
 
 export default function App() {
   const [filters, setFilters] = useState<TodoFilters>({});
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     startWindowMonitor().catch((e) =>
@@ -51,9 +53,14 @@ export default function App() {
         onSelectGroup={handleSelectGroup}
         selectedTagIds={selectedTagIds}
         onToggleTag={handleToggleTag}
+        onOpenSettings={() => setShowSettings(true)}
       />
       <main className="flex-1 overflow-auto">
-        <TodoList filters={filters} selectedTagIds={selectedTagIds} />
+        {showSettings ? (
+          <Settings onClose={() => setShowSettings(false)} />
+        ) : (
+          <TodoList filters={filters} selectedTagIds={selectedTagIds} />
+        )}
       </main>
     </div>
   );

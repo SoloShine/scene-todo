@@ -8,11 +8,12 @@ interface SidebarProps {
   onSelectGroup: (groupId: number | null) => void;
   selectedTagIds: number[];
   onToggleTag: (tagId: number) => void;
+  onOpenSettings: () => void;
 }
 
 export function Sidebar({
   onSmartView, selectedGroupId, onSelectGroup,
-  selectedTagIds, onToggleTag,
+  selectedTagIds, onToggleTag, onOpenSettings,
 }: SidebarProps) {
   return (
     <aside className="w-60 border-r border-gray-200 bg-white flex flex-col">
@@ -30,6 +31,15 @@ export function Sidebar({
           onToggleTag={onToggleTag}
         />
       </nav>
+      <div className="p-2 border-t border-gray-200">
+        <button
+          onClick={onOpenSettings}
+          className="w-full flex items-center gap-2 px-2 py-1.5 text-sm text-gray-600 rounded hover:bg-gray-100"
+        >
+          <span>⚙</span>
+          <span>设置</span>
+        </button>
+      </div>
     </aside>
   );
 }
