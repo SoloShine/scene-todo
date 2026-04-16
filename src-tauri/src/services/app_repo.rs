@@ -93,11 +93,17 @@ pub fn unbind_todo_from_app(db: &Database, todo_id: i64, app_id: i64) -> Result<
 
 pub fn find_app_by_process(db: &Database, process_name: &str) -> Option<App> {
     let conn = db.conn.lock().ok()?;
-    let apps: Vec<App> = conn.prepare(
-        "SELECT id, name, process_names, icon_path, display_name FROM apps"
-    ).ok()?
-    .query_map([], row_to_app).ok()?
-    .filter_map(|r| r.ok()).collect();
+    find_app_by_process_conn(&conn, process_name)
+}
+
+pub fn find_app_by_process_conn(conn: &rusqlite::Connection, process_name: &str) -> Option<App> {
+    let apps: Vec<App> = conn
+        .prepare("SELECT id, name, process_names, icon_path, display_name FROM apps")
+        .ok()?
+        .query_map([], row_to_app)
+        .ok()?
+        .filter_map(|r| r.ok())
+        .collect();
 
     for app in apps {
         if let Ok(names) = serde_json::from_str::<Vec<String>>(&app.process_names) {
