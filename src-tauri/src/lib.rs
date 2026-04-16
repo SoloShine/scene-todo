@@ -2,7 +2,11 @@ mod commands;
 mod models;
 mod services;
 
+use std::sync::Arc;
 use services::db::Database;
+use services::widget_manager::WidgetManager;
+use services::window_monitor::{ForegroundChanged, WindowMonitor};
+use tauri::Listener;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -15,7 +19,23 @@ pub fn run() {
         .setup(|app| {
             let db_path = Database::app_db_path(&app.handle())?;
             let database = Database::open(&db_path)?;
-            app.manage(database);
+            let db_arc = Arc::new(database);
+            app.manage(db_arc.clone());
+
+            let widget_mgr = WidgetManager::new();
+            app.manage(widget_mgr);
+
+            let monitor = WindowMonitor::new(app.handle().clone(), db_arc);
+            app.manage(monitor);
+
+            let app_handle = app.handle().clone();
+            app.listen("foreground-changed", move |event| {
+                if let Ok(fg_event) = serde_json::from_str::<ForegroundChanged>(event.payload()) {
+                    let widget_mgr = app_handle.state::<WidgetManager>();
+                    widget_mgr.handle_foreground_change(&app_handle, &fg_event);
+                }
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -42,6 +62,8 @@ pub fn run() {
             commands::app_cmd::delete_app,
             commands::app_cmd::bind_todo_to_app,
             commands::app_cmd::unbind_todo_from_app,
+            commands::app_cmd::start_window_monitor,
+            commands::app_cmd::stop_window_monitor,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

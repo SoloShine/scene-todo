@@ -8,7 +8,7 @@ use crate::services::app_repo;
 use crate::services::db::Database;
 use crate::services::process_matcher;
 
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ForegroundChanged {
     pub process_name: String,
     pub app_id: Option<i64>,
