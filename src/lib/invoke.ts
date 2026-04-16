@@ -73,3 +73,9 @@ export const bindTodoToApp = (todoId: number, appId: number) =>
 
 export const unbindTodoFromApp = (todoId: number, appId: number) =>
   invoke<void>("unbind_todo_from_app", { todoId, appId });
+
+export const startWindowMonitor = () =>
+  invoke<void>("start_window_monitor");
+
+export const stopWindowMonitor = () =>
+  invoke<void>("stop_window_monitor");

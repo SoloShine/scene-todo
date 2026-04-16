@@ -13,6 +13,14 @@ export default defineConfig({
     },
   },
   clearScreen: false,
+  build: {
+    rollupOptions: {
+      input: {
+        main: "./index.html",
+        widget: "./widget.html",
+      },
+    },
+  },
   server: {
     port: 1420,
     strictPort: true,

@@ -1,10 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "./components/sidebar/Sidebar";
 import { TodoList } from "./components/todo/TodoList";
+import { startWindowMonitor } from "./lib/invoke";
 import type { TodoFilters } from "./types";
 
 export default function App() {
   const [filters, setFilters] = useState<TodoFilters>({});
+
+  useEffect(() => {
+    startWindowMonitor().catch((e) =>
+      console.error("Failed to start window monitor:", e)
+    );
+  }, []);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
