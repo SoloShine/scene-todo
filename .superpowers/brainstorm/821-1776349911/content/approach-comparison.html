@@ -1,0 +1,100 @@
+<h2>技术方案对比</h2>
+<p class="subtitle">三种实现路径，各有取舍</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>方案 A：纯原生（C++ / Win32 API）</h3>
+      <p><strong>做法：</strong>用 C++ 直接调用 Win32 API 构建浮动窗口、窗口关联、系统托盘等所有功能。UI 用原生控件或 Direct2D 自绘。</p>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>✅ 方案 A 优势</h4>
+    <ul>
+      <li>性能最优，资源占用极低</li>
+      <li>对窗口操作 API 调用最直接、最灵活</li>
+      <li>单文件可执行，无需运行时依赖</li>
+      <li>最适合做窗口层级管理（always-on-top、owner window 等）</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>❌ 方案 A 劣势</h4>
+    <ul>
+      <li>UI 开发效率低，自绘成本高</li>
+      <li>跨平台到 macOS 基本要重写</li>
+      <li>数据存储、网络同步等需要手动实现</li>
+    </ul>
+  </div>
+</div>
+
+<hr style="margin: 24px 0; border-color: #333;">
+
+<div class="options">
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>方案 B：Tauri + Rust + Web 前端（推荐）</h3>
+      <p><strong>做法：</strong>Rust 后端处理窗口管理、系统 API 调用、数据持久化；Web 前端（React/Vue）负责 UI 渲染。Tauri 2.0 支持多窗口和原生 API 调用。</p>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>✅ 方案 B 优势</h4>
+    <ul>
+      <li>UI 开发效率高（HTML/CSS/JS）</li>
+      <li>Rust 后端性能好，系统调用能力强</li>
+      <li>Tauri 2.0 原生支持多窗口管理</li>
+      <li>天然支持 Windows + macOS，跨平台成本最低</li>
+      <li>社区活跃，插件生态丰富</li>
+      <li>打包体积小（~3-5MB vs Electron 的 ~150MB）</li>
+      <li><strong>你的原生开发经验 + Rust 学习曲线平缓</strong></li>
+      </ul>
+  </div>
+  <div class="cons">
+    <h4>❌ 方案 B 劣势</h4>
+    <ul>
+      <li>需要学习 Rust（如果你还没用过）</li>
+      <li>某些底层窗口操作可能需要写原生插件桥接</li>
+      <li>Tauri 对极端自定义窗口行为的支持不如纯原生灵活</li>
+    </ul>
+  </div>
+</div>
+
+<hr style="margin: 24px 0; border-color: #333;">
+
+<div class="options">
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>方案 C：Electron + Node.js</h3>
+      <p><strong>做法：</strong>Electron 主进程管理窗口，渲染进程做 UI。通过 Node.js 的 ffi-napi 或 edge-js 调用 Win32 API 实现窗口关联。</p>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>✅ 方案 C 优势</h4>
+    <ul>
+      <li>全 JavaScript 技术栈，生态最成熟</li>
+      <li>多窗口管理 Electron 原生支持</li>
+      <li>大量现成的 UI 组件库</li>
+      <li>跨平台成熟度高</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>❌ 方案 C 劣势</h4>
+    <ul>
+      <li>打包体积大（150MB+），对于一个小工具太重</li>
+      <li>内存占用高（每个窗口一个进程）</li>
+      <li>窗口层级管理需要原生模块，调用链较长</li>
+      <li>性能不如 Rust/C++ 方案</li>
+    </ul>
+  </div>
+</div>
