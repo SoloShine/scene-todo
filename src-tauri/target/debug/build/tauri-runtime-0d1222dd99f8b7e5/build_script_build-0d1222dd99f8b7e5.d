@@ -1,5 +1,0 @@
-D:\Project\overlay-todo\src-tauri\target\debug\build\tauri-runtime-0d1222dd99f8b7e5\build_script_build-0d1222dd99f8b7e5.d: C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-runtime-2.10.1\build.rs
-
-D:\Project\overlay-todo\src-tauri\target\debug\build\tauri-runtime-0d1222dd99f8b7e5\build_script_build-0d1222dd99f8b7e5.exe: C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-runtime-2.10.1\build.rs
-
-C:\Users\Administrator\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tauri-runtime-2.10.1\build.rs:
