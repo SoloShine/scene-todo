@@ -1,3 +1,4 @@
+pub mod models;
 pub mod services;
 
 pub fn run() {
