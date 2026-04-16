@@ -13,11 +13,12 @@
     "withGlobalTauri": true,
     "windows": [
       {
+        "label": "main",
         "title": "Overlay Todo",
-        "width": 800,
+        "width": 900,
         "height": 600,
-        "resizable": true,
-        "fullscreen": false
+        "visible": true,
+        "decorations": true
       }
     ],
     "security": {
