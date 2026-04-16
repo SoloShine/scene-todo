@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { Todo } from "../../types";
+import { BindingEditor } from "../binding/BindingEditor";
 
 interface TodoItemProps {
   todo: Todo;
@@ -17,6 +18,7 @@ const priorityColors: Record<string, string> = {
 export function TodoItem({ todo, onToggle, onDelete, onAddSubTask }: TodoItemProps) {
   const [showSubInput, setShowSubInput] = useState(false);
   const [subTitle, setSubTitle] = useState("");
+  const [showBinding, setShowBinding] = useState(false);
   const isCompleted = todo.status === "completed";
 
   const handleAddSub = (e: React.KeyboardEvent) => {
@@ -63,6 +65,13 @@ export function TodoItem({ todo, onToggle, onDelete, onAddSubTask }: TodoItemPro
           +子
         </button>
         <button
+          onClick={() => setShowBinding(true)}
+          className="text-xs text-gray-400 hover:text-gray-600"
+          title="关联软件"
+        >
+          &#128206;
+        </button>
+        <button
           onClick={() => onDelete(todo.id)}
           className="text-xs text-gray-400 hover:text-red-500"
         >
@@ -83,6 +92,8 @@ export function TodoItem({ todo, onToggle, onDelete, onAddSubTask }: TodoItemPro
           />
         </div>
       )}
+
+      {showBinding && <BindingEditor todoId={todo.id} boundAppIds={[]} onClose={() => setShowBinding(false)} onRefresh={() => {}} />}
     </div>
   );
 }

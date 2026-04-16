@@ -8,7 +8,7 @@ interface TodoListProps {
   selectedTagIds: number[];
 }
 
-export function TodoList({ filters, selectedTagIds }: TodoListProps) {
+export function TodoList({ filters, selectedTagIds: _selectedTagIds }: TodoListProps) {
   const { todos, loading, create, toggleStatus, remove } = useTodos(filters);
 
   const handleCreate = (title: string) => {
