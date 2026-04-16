@@ -1,1 +1,4 @@
-// Commands will be registered in Phase 2
+pub mod todo_cmd;
+pub mod group_cmd;
+pub mod tag_cmd;
+pub mod app_cmd;
