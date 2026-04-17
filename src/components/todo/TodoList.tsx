@@ -22,11 +22,15 @@ export function TodoList({ filters }: TodoListProps) {
     create({ title, parent_id: parentId });
   };
 
-  // Client-side filtering: search + priority
-  const filtered = todos.filter((todo) => {
-    if (searchText && !todo.title.toLowerCase().includes(searchText.toLowerCase()) && !(todo.description || "").toLowerCase().includes(searchText.toLowerCase())) return false;
-    if (filterPriority && todo.priority !== filterPriority) return false;
+  const matchesFilter = (t: { title: string; description?: string | null; priority: string }) => {
+    if (searchText && !t.title.toLowerCase().includes(searchText.toLowerCase()) && !(t.description || "").toLowerCase().includes(searchText.toLowerCase())) return false;
+    if (filterPriority && t.priority !== filterPriority) return false;
     return true;
+  };
+
+  const filtered = todos.filter((todo) => {
+    if (matchesFilter(todo)) return true;
+    return todo.sub_tasks.some((sub) => matchesFilter(sub));
   });
 
   if (loading) {
@@ -71,37 +75,42 @@ export function TodoList({ filters }: TodoListProps) {
             {todos.length === 0 ? "没有待办事项" : "没有匹配的待办"}
           </div>
         ) : (
-          filtered.map((todo) => (
-            <div key={todo.id}>
-              <TodoItem
-                todo={todo}
-                editing={editingId === todo.id}
-                onStartEdit={() => setEditingId(todo.id)}
-                onEndEdit={() => setEditingId(null)}
-                onToggle={toggleStatus}
-                onDelete={remove}
-                onAddSubTask={handleAddSubTask}
-                onRefresh={refresh}
-              />
-              {todo.sub_tasks.length > 0 && (
-                <div className="ml-6">
-                  {todo.sub_tasks.map((sub) => (
-                    <TodoItem
-                      key={sub.id}
-                      todo={sub}
-                      editing={editingId === sub.id}
-                      onStartEdit={() => setEditingId(sub.id)}
-                      onEndEdit={() => setEditingId(null)}
-                      onToggle={toggleStatus}
-                      onDelete={remove}
-                      onAddSubTask={handleAddSubTask}
-                      onRefresh={refresh}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          ))
+          filtered.map((todo) => {
+            const visibleSubs = filterPriority || searchText
+              ? todo.sub_tasks.filter((sub) => matchesFilter(sub))
+              : todo.sub_tasks;
+            return (
+              <div key={todo.id}>
+                <TodoItem
+                  todo={todo}
+                  editing={editingId === todo.id}
+                  onStartEdit={() => setEditingId(todo.id)}
+                  onEndEdit={() => setEditingId(null)}
+                  onToggle={toggleStatus}
+                  onDelete={remove}
+                  onAddSubTask={handleAddSubTask}
+                  onRefresh={refresh}
+                />
+                {visibleSubs.length > 0 && (
+                  <div className="ml-6">
+                    {visibleSubs.map((sub) => (
+                      <TodoItem
+                        key={sub.id}
+                        todo={sub}
+                        editing={editingId === sub.id}
+                        onStartEdit={() => setEditingId(sub.id)}
+                        onEndEdit={() => setEditingId(null)}
+                        onToggle={toggleStatus}
+                        onDelete={remove}
+                        onAddSubTask={handleAddSubTask}
+                        onRefresh={refresh}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
         )}
       </div>
     </div>
