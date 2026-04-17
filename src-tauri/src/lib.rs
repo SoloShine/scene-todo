@@ -140,6 +140,19 @@ pub fn run() {
             commands::app_cmd::save_widget_offset,
             commands::app_cmd::set_widget_default_size,
             commands::app_cmd::hide_widget,
+            commands::scene_cmd::create_scene,
+            commands::scene_cmd::list_scenes,
+            commands::scene_cmd::update_scene,
+            commands::scene_cmd::delete_scene,
+            commands::scene_cmd::add_app_to_scene,
+            commands::scene_cmd::remove_app_from_scene,
+            commands::scene_cmd::list_scene_apps,
+            commands::scene_cmd::bind_todo_to_scene,
+            commands::scene_cmd::unbind_todo_from_scene,
+            commands::scene_cmd::list_todos_by_scene,
+            commands::scene_cmd::get_time_summary,
+            commands::scene_cmd::get_time_detail,
+            commands::scene_cmd::get_time_sessions,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
