@@ -3,6 +3,7 @@ import { Sidebar } from "./components/sidebar/Sidebar";
 import { TodoList } from "./components/todo/TodoList";
 import { Settings } from "./components/settings/Settings";
 import { SceneEditor } from "./components/scene/SceneEditor";
+import { StatsView } from "./components/stats/StatsView";
 import { startWindowMonitor, setWidgetDefaultSize } from "./lib/invoke";
 import type { TodoFilters } from "./types";
 
@@ -104,10 +105,7 @@ export default function App() {
         {showSettings ? (
           <Settings onClose={() => setShowSettings(false)} />
         ) : showStats ? (
-          <div className="p-6">
-            <h2 className="text-xl font-bold mb-4">时间统计</h2>
-            <p className="text-gray-500">统计页面开发中...</p>
-          </div>
+          <StatsView />
         ) : (
           <TodoList filters={filters} selectedSceneId={selectedSceneId} />
         )}
