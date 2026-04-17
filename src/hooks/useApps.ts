@@ -18,8 +18,9 @@ export function useApps() {
   useEffect(() => { refresh(); }, [refresh]);
 
   const create = async (input: CreateApp) => {
-    await api.createApp(input);
+    const app = await api.createApp(input);
     await refresh();
+    return app;
   };
 
   const remove = async (id: number) => {

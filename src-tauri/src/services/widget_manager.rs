@@ -1,21 +1,25 @@
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow};
 use windows::Win32::Foundation::HWND;
 
 use crate::services::process_matcher;
+use crate::services::todo_repo;
 use crate::services::window_monitor::ForegroundChanged;
+use crate::services::db::Database;
 
 pub struct WidgetManager {
     active_widgets: Mutex<HashMap<i64, String>>,
     widget_offsets: Mutex<HashMap<i64, (i32, i32)>>,
+    db: Arc<Database>,
 }
 
 impl WidgetManager {
-    pub fn new() -> Self {
+    pub fn new(db: Arc<Database>) -> Self {
         Self {
             active_widgets: Mutex::new(HashMap::new()),
             widget_offsets: Mutex::new(HashMap::new()),
+            db,
         }
     }
 
@@ -25,9 +29,14 @@ impl WidgetManager {
         event: &ForegroundChanged,
     ) {
         let active = self.active_widgets.lock().unwrap();
+        let target_label = event.app_id.map(|id| format!("widget-{}", id));
+
+        // Hide widgets that are NOT the target (no flicker for the target)
         for (_, label) in active.iter() {
-            if let Some(win) = app_handle.get_webview_window(label) {
-                let _ = win.hide();
+            if target_label.as_ref() != Some(label) {
+                if let Some(win) = app_handle.get_webview_window(label) {
+                    let _ = win.hide();
+                }
             }
         }
         drop(active);
@@ -36,8 +45,15 @@ impl WidgetManager {
             (event.app_id, &event.app_name, event.hwnd)
         {
             let target_hwnd = HWND(hwnd_value as *mut _);
-            let label = format!("widget-{}", app_id);
 
+            // Check if there are pending todos for this app
+            match todo_repo::list_todos_by_app(&self.db, app_id) {
+                Ok(todos) if todos.is_empty() => return,
+                Err(_) => return,
+                _ => {}
+            }
+
+            let label = format!("widget-{}", app_id);
             let mut active = self.active_widgets.lock().unwrap();
 
             if !active.contains_key(&app_id) {
@@ -52,7 +68,7 @@ impl WidgetManager {
                     WebviewUrl::App(url.into()),
                 )
                 .title(&format!("{} - Widget", app_name))
-                .inner_size(280.0, 320.0)
+                .inner_size(260.0, 300.0)
                 .decorations(false)
                 .always_on_top(true)
                 .skip_taskbar(true)
@@ -66,7 +82,6 @@ impl WidgetManager {
                     }
                     Err(e) => {
                         eprintln!("Failed to create widget window: {}", e);
-                        return;
                     }
                 }
             } else {
@@ -79,19 +94,20 @@ impl WidgetManager {
     }
 
     fn position_widget(&self, widget: &WebviewWindow, target_hwnd: HWND, app_id: i64) {
-        if let Some((_x, _y, w, _h)) = process_matcher::get_window_rect(target_hwnd) {
-            let offset = self
+        if let Some((x, y, _w, _h)) = process_matcher::get_window_rect(target_hwnd) {
+            // Default: top-left corner of target window, just below the title bar
+            let title_bar_h = 32;
+            let padding = 8;
+            let (dx, dy) = self
                 .widget_offsets
                 .lock()
                 .unwrap()
                 .get(&app_id)
                 .copied()
-                .unwrap_or((-290, 10));
+                .unwrap_or((padding, title_bar_h));
 
-            let widget_x = w + offset.0;
-            let widget_y = offset.1;
             let _ = widget.set_position(tauri::Position::Physical(
-                tauri::PhysicalPosition::new(widget_x, widget_y),
+                tauri::PhysicalPosition::new(x + dx, y + dy),
             ));
         }
     }
@@ -110,7 +126,6 @@ impl WidgetManager {
     }
 }
 
-/// Simple URL percent-encoding for safe passage of app_name in query strings.
 fn urlencoding(s: &str) -> String {
     s.bytes()
         .flat_map(|b| match b {

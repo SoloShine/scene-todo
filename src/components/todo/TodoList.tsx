@@ -9,7 +9,7 @@ interface TodoListProps {
 }
 
 export function TodoList({ filters, selectedTagIds: _selectedTagIds }: TodoListProps) {
-  const { todos, loading, create, toggleStatus, remove } = useTodos(filters);
+  const { todos, loading, create, toggleStatus, remove, refresh } = useTodos(filters);
 
   const handleCreate = (title: string) => {
     create({ title });
@@ -39,6 +39,7 @@ export function TodoList({ filters, selectedTagIds: _selectedTagIds }: TodoListP
               onToggle={toggleStatus}
               onDelete={remove}
               onAddSubTask={handleAddSubTask}
+              onRefresh={refresh}
             />
           ))
         )}

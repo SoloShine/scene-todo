@@ -7,6 +7,7 @@ interface TodoItemProps {
   onToggle: (id: number, status: "pending" | "completed") => void;
   onDelete: (id: number) => void;
   onAddSubTask: (parentId: number, title: string) => void;
+  onRefresh?: () => void;
 }
 
 const priorityColors: Record<string, string> = {
@@ -15,7 +16,7 @@ const priorityColors: Record<string, string> = {
   low: "text-green-500",
 };
 
-export function TodoItem({ todo, onToggle, onDelete, onAddSubTask }: TodoItemProps) {
+export function TodoItem({ todo, onToggle, onDelete, onAddSubTask, onRefresh }: TodoItemProps) {
   const [showSubInput, setShowSubInput] = useState(false);
   const [subTitle, setSubTitle] = useState("");
   const [showBinding, setShowBinding] = useState(false);
@@ -93,7 +94,7 @@ export function TodoItem({ todo, onToggle, onDelete, onAddSubTask }: TodoItemPro
         </div>
       )}
 
-      {showBinding && <BindingEditor todoId={todo.id} boundAppIds={[]} onClose={() => setShowBinding(false)} onRefresh={() => {}} />}
+      {showBinding && <BindingEditor todoId={todo.id} onClose={() => setShowBinding(false)} onRefresh={() => { onRefresh?.(); }} />}
     </div>
   );
 }

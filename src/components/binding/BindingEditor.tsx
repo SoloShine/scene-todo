@@ -4,36 +4,79 @@ import * as api from "../../lib/invoke";
 
 interface BindingEditorProps {
   todoId: number;
-  boundAppIds: number[];
   onClose: () => void;
   onRefresh: () => void;
 }
 
-export function BindingEditor({ todoId, boundAppIds, onClose, onRefresh }: BindingEditorProps) {
-  const { apps, create } = useApps();
-  const [showCreate, setShowCreate] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newProcess, setNewProcess] = useState("");
+export function BindingEditor({ todoId, onClose, onRefresh }: BindingEditorProps) {
+  const { apps, create, refresh: refreshApps } = useApps();
+  const [capturing, setCapturing] = useState(false);
+  const [boundAppIds, setBoundAppIds] = useState<number[]>([]);
+
+  // Fetch real bound app IDs on mount
+  useState(() => {
+    api.getTodoWithDetails(todoId).then((details) => {
+      setBoundAppIds(details.bound_app_ids);
+    });
+  });
 
   const handleToggle = async (appId: number) => {
     if (boundAppIds.includes(appId)) {
       await api.unbindTodoFromApp(todoId, appId);
+      setBoundAppIds((prev) => prev.filter((id) => id !== appId));
     } else {
       await api.bindTodoToApp(todoId, appId);
+      setBoundAppIds((prev) => [...prev, appId]);
     }
     onRefresh();
   };
 
-  const handleCreate = async () => {
-    if (!newName.trim() || !newProcess.trim()) return;
-    await create({
-      name: newName.trim(),
-      process_names: [newProcess.trim()],
-    });
-    setNewName("");
-    setNewProcess("");
-    setShowCreate(false);
+  const handleStartCapture = async () => {
+    setCapturing(true);
+    try {
+      const result = await api.startWindowCapture();
+      const { process_name, window_title } = result;
+      if (!process_name) return;
+
+      const existing = apps.find((a) =>
+        a.process_names
+          .toLowerCase()
+          .split(",")
+          .some((p) => p.trim() === process_name.toLowerCase())
+      );
+
+      let appId: number;
+      if (existing) {
+        appId = existing.id;
+      } else {
+        const displayName = window_title || process_name.replace(/\.[^.]+$/, "");
+        const newApp = await create({
+          name: displayName,
+          process_names: [process_name],
+        });
+        appId = newApp.id;
+      }
+
+      if (!boundAppIds.includes(appId)) {
+        await api.bindTodoToApp(todoId, appId);
+        setBoundAppIds((prev) => [...prev, appId]);
+      }
+      await refreshApps();
+      onRefresh();
+    } catch (e) {
+      console.error("Window capture failed:", e);
+    } finally {
+      setCapturing(false);
+    }
   };
+
+  if (capturing) {
+    return (
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg text-sm animate-pulse z-50">
+        点击目标窗口以抓取...
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
@@ -42,6 +85,13 @@ export function BindingEditor({ todoId, boundAppIds, onClose, onRefresh }: Bindi
           <h3 className="font-semibold text-sm">关联软件</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
         </div>
+
+        <button
+          onClick={handleStartCapture}
+          className="w-full py-2 mb-3 text-sm rounded border bg-white border-gray-200 hover:border-blue-400 hover:text-blue-500 cursor-pointer transition-colors"
+        >
+          + 点击后选择目标窗口
+        </button>
 
         <div className="space-y-1 max-h-60 overflow-y-auto">
           {apps.map((app) => (
@@ -59,44 +109,6 @@ export function BindingEditor({ todoId, boundAppIds, onClose, onRefresh }: Bindi
             </label>
           ))}
         </div>
-
-        {showCreate ? (
-          <div className="mt-3 space-y-2 border-t pt-3">
-            <input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="软件名称 (如: Word)"
-              className="w-full px-2 py-1 text-sm border rounded"
-            />
-            <input
-              value={newProcess}
-              onChange={(e) => setNewProcess(e.target.value)}
-              placeholder="进程名 (如: WINWORD.EXE)"
-              className="w-full px-2 py-1 text-sm border rounded"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={handleCreate}
-                className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
-              >
-                添加
-              </button>
-              <button
-                onClick={() => setShowCreate(false)}
-                className="px-3 py-1 text-sm text-gray-500 hover:text-gray-700"
-              >
-                取消
-              </button>
-            </div>
-          </div>
-        ) : (
-          <button
-            onClick={() => setShowCreate(true)}
-            className="mt-3 w-full py-1 text-sm text-blue-500 hover:text-blue-600 border-t pt-3"
-          >
-            + 添加新软件
-          </button>
-        )}
       </div>
     </div>
   );

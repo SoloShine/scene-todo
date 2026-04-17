@@ -1,25 +1,32 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Todo, CreateTodo, UpdateTodo, TodoFilters } from "../types";
 import * as api from "../lib/invoke";
 
 export function useTodos(filters: TodoFilters = {}) {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [loading, setLoading] = useState(true);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
 
   const refresh = useCallback(async () => {
     try {
-      const data = await api.listTodos(filters);
+      const data = await api.listTodos(filtersRef.current);
       setTodos(data);
     } finally {
       setLoading(false);
     }
-  }, [JSON.stringify(filters)]);
+  }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+    const interval = setInterval(refresh, 3000);
+    return () => clearInterval(interval);
+  }, [refresh]);
 
   const create = async (input: CreateTodo) => {
-    await api.createTodo(input);
+    const todo = await api.createTodo(input);
     await refresh();
+    return todo;
   };
 
   const update = async (input: UpdateTodo) => {

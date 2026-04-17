@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { WidgetTodoItem } from "./WidgetTodoItem";
-import { listTodosByApp, updateTodo, createTodo } from "../../lib/invoke";
+import { listTodosByApp, updateTodo, createTodo, hideWidget } from "../../lib/invoke";
 import type { TodoWithDetails } from "../../types";
+import { WidgetTodoItem } from "./WidgetTodoItem";
 
 interface WidgetProps {
   appId: number;
@@ -12,19 +12,38 @@ export function Widget({ appId, appName }: WidgetProps) {
   const [todos, setTodos] = useState<TodoWithDetails[]>([]);
   const [collapsed, setCollapsed] = useState(false);
   const [quickAdd, setQuickAdd] = useState("");
+  const [opacity, setOpacity] = useState(85);
 
   const refresh = useCallback(async () => {
     try {
       const data = await listTodosByApp(appId);
       setTodos(data);
-    } catch (e) {
-      console.error("Failed to load widget todos:", e);
+      // Auto-hide when no pending todos
+      if (data.length === 0) {
+        await hideWidget(appId);
+      }
+    } catch {
+      // ignore
     }
   }, [appId]);
 
   useEffect(() => {
     refresh();
+    const interval = setInterval(refresh, 3000);
+    return () => clearInterval(interval);
   }, [refresh]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("overlay-todo-settings");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setOpacity(parsed.widgetOpacity ?? 85);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
 
   const handleToggle = async (id: number) => {
     await updateTodo({ id, status: "completed" });
@@ -39,19 +58,23 @@ export function Widget({ appId, appName }: WidgetProps) {
     }
   };
 
-  const pendingCount = todos.reduce((sum, t) => {
-    return sum + 1 + t.sub_tasks.filter((s) => s.status === "pending").length;
-  }, 0);
+  const pendingCount = todos.reduce(
+    (sum, t) => sum + 1 + t.sub_tasks.filter((s) => s.status === "pending").length,
+    0
+  );
+
+  const bg = `rgba(245, 245, 245, ${opacity / 100})`;
 
   return (
     <div
-      className="bg-gray-100/90 backdrop-blur rounded-lg shadow-lg overflow-hidden"
-      style={{ width: 260 }}
+      className="overflow-hidden"
+      style={{ width: "100%", height: "100%", background: bg }}
     >
       {/* Title bar */}
       <div
-        className="flex items-center justify-between px-3 py-2 bg-white/80 cursor-move"
+        className="flex items-center justify-between px-3 py-1.5 cursor-move"
         data-tauri-drag-region
+        style={{ background: `rgba(255, 255, 255, ${Math.min((opacity + 5) / 100, 1)})` }}
       >
         <div className="flex items-center gap-2">
           <button
@@ -67,7 +90,7 @@ export function Widget({ appId, appName }: WidgetProps) {
 
       {/* Todo list */}
       {!collapsed && (
-        <div className="p-2 space-y-0.5 max-h-60 overflow-y-auto">
+        <div className="px-2 pb-1 space-y-0.5 max-h-48 overflow-y-auto">
           {todos.map((todo) => (
             <div key={todo.id}>
               <WidgetTodoItem todo={todo} onToggle={handleToggle} />
@@ -94,7 +117,8 @@ export function Widget({ appId, appName }: WidgetProps) {
             onChange={(e) => setQuickAdd(e.target.value)}
             onKeyDown={handleQuickAdd}
             placeholder="Quick add..."
-            className="w-full px-2 py-1 text-xs bg-white/60 rounded border border-gray-200 outline-none focus:border-blue-400"
+            className="w-full px-2 py-1 text-xs rounded outline-none focus:ring-1 focus:ring-blue-300"
+            style={{ background: `rgba(255, 255, 255, 0.6)` }}
           />
         </div>
       )}

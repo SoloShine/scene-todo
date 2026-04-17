@@ -25,7 +25,7 @@ pub fn run() {
             let db_arc = Arc::new(database);
             app.manage(db_arc.clone());
 
-            let widget_mgr = WidgetManager::new();
+            let widget_mgr = WidgetManager::new(db_arc.clone());
             app.manage(widget_mgr);
 
             let monitor = WindowMonitor::new(app.handle().clone(), db_arc);
@@ -135,6 +135,9 @@ pub fn run() {
             commands::app_cmd::unbind_todo_from_app,
             commands::app_cmd::start_window_monitor,
             commands::app_cmd::stop_window_monitor,
+            commands::app_cmd::start_window_capture,
+            commands::app_cmd::save_widget_offset,
+            commands::app_cmd::hide_widget,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

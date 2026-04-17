@@ -79,3 +79,12 @@ export const startWindowMonitor = () =>
 
 export const stopWindowMonitor = () =>
   invoke<void>("stop_window_monitor");
+
+export const startWindowCapture = () =>
+  invoke<{ process_name: string; window_title: string }>("start_window_capture");
+
+export const saveWidgetOffset = (appId: number, offsetX: number, offsetY: number) =>
+  invoke<void>("save_widget_offset", { appId, offsetX, offsetY });
+
+export const hideWidget = (appId: number) =>
+  invoke<void>("hide_widget", { appId });

@@ -18,6 +18,7 @@ export default function App() {
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
   const handleSmartView = (view: string) => {
+    setShowSettings(false);
     setSelectedGroupId(null);
     setSelectedTagIds([]);
     switch (view) {
@@ -34,12 +35,14 @@ export default function App() {
   };
 
   const handleSelectGroup = (groupId: number | null) => {
+    setShowSettings(false);
     setSelectedGroupId(groupId);
     setSelectedTagIds([]);
     setFilters(groupId ? { group_id: groupId } : {});
   };
 
   const handleToggleTag = (tagId: number) => {
+    setShowSettings(false);
     setSelectedTagIds((prev) =>
       prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]
     );
@@ -53,7 +56,7 @@ export default function App() {
         onSelectGroup={handleSelectGroup}
         selectedTagIds={selectedTagIds}
         onToggleTag={handleToggleTag}
-        onOpenSettings={() => setShowSettings(true)}
+        onOpenSettings={() => setShowSettings((s) => !s)}
       />
       <main className="flex-1 overflow-auto">
         {showSettings ? (
