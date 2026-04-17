@@ -51,6 +51,7 @@ impl Database {
 
         let migrations: Vec<(i64, &str, &str)> = vec![
             (1, "001_init", include_str!("../../migrations/001_init.sql")),
+            (2, "002_scene_tracking", include_str!("../../migrations/002_scene_tracking.sql")),
         ];
 
         for (id, name, sql) in &migrations {
@@ -62,6 +63,21 @@ impl Database {
                 params![id, name],
             ).map_err(|e| format!("Record migration {}: {}", id, e))?;
         }
+
+        // Post-migration verification: ensure scene migration data integrity
+        let app_binding_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM todo_app_bindings", [], |row| row.get(0)
+        ).unwrap_or(0);
+        let scene_binding_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM todo_scene_bindings", [], |row| row.get(0)
+        ).unwrap_or(0);
+        if scene_binding_count < app_binding_count {
+            return Err(format!(
+                "Migration verification failed: todo_scene_bindings count ({}) < todo_app_bindings count ({})",
+                scene_binding_count, app_binding_count
+            ));
+        }
+
         Ok(())
     }
 }
@@ -90,6 +106,10 @@ mod tests {
         assert!(tables.contains(&"groups".to_string()));
         assert!(tables.contains(&"todos".to_string()));
         assert!(tables.contains(&"apps".to_string()));
+        assert!(tables.contains(&"scenes".to_string()));
+        assert!(tables.contains(&"scene_apps".to_string()));
+        assert!(tables.contains(&"todo_scene_bindings".to_string()));
+        assert!(tables.contains(&"time_sessions".to_string()));
     }
 
     #[test]
