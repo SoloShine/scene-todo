@@ -4,6 +4,7 @@ mod services;
 
 use std::sync::Arc;
 use services::db::Database;
+use services::time_tracker::TimeTracker;
 use services::widget_manager::WidgetManager;
 use services::window_monitor::{ForegroundChanged, WindowMonitor};
 use tauri::{
@@ -25,10 +26,13 @@ pub fn run() {
             let db_arc = Arc::new(database);
             app.manage(db_arc.clone());
 
+            let time_tracker = Arc::new(TimeTracker::new(db_arc.clone()));
+            app.manage(time_tracker.clone());
+
             let widget_mgr = WidgetManager::new(db_arc.clone());
             app.manage(widget_mgr);
 
-            let monitor = WindowMonitor::new(app.handle().clone(), db_arc);
+            let monitor = WindowMonitor::new(app.handle().clone(), db_arc, time_tracker);
             app.manage(monitor);
 
             let app_handle = app.handle().clone();
@@ -153,6 +157,10 @@ pub fn run() {
             commands::scene_cmd::get_time_summary,
             commands::scene_cmd::get_time_detail,
             commands::scene_cmd::get_time_sessions,
+            commands::scene_cmd::set_tracking_paused,
+            commands::scene_cmd::get_tracking_status,
+            commands::scene_cmd::get_active_scene,
+            commands::scene_cmd::set_active_scene,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
