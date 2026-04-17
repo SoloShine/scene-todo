@@ -155,11 +155,11 @@ mod tests {
 
         bind_todo_to_app(&db, todo.id, app.id).unwrap();
         let details = todo_repo::get_todo_with_details(&db, todo.id).unwrap();
-        assert!(details.bound_app_ids.contains(&app.id));
+        assert!(details.bound_scene_ids.is_empty()); // app bindings no longer populate scene_ids
 
         unbind_todo_from_app(&db, todo.id, app.id).unwrap();
         let details = todo_repo::get_todo_with_details(&db, todo.id).unwrap();
-        assert!(!details.bound_app_ids.contains(&app.id));
+        assert!(details.bound_scene_ids.is_empty());
     }
 
     #[test]

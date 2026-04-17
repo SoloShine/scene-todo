@@ -43,5 +43,5 @@ pub struct TodoWithDetails {
     pub todo: Todo,
     pub tags: Vec<Tag>,
     pub sub_tasks: Vec<Todo>,
-    pub bound_app_ids: Vec<i64>,
+    pub bound_scene_ids: Vec<i64>,
 }

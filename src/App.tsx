@@ -4,7 +4,7 @@ import { TodoList } from "./components/todo/TodoList";
 import { Settings } from "./components/settings/Settings";
 import { SceneEditor } from "./components/scene/SceneEditor";
 import { StatsView } from "./components/stats/StatsView";
-import { startWindowMonitor, setWidgetDefaultSize } from "./lib/invoke";
+import { startWindowMonitor, setWidgetDefaultSize, cleanupOldSessions } from "./lib/invoke";
 import type { TodoFilters } from "./types";
 
 export default function App() {
@@ -33,6 +33,12 @@ export default function App() {
         };
         const [w, h] = sizeMap[size] || sizeMap.medium;
         setWidgetDefaultSize(w, h);
+
+        // Cleanup old time sessions based on retention setting
+        const retentionDays = parsed.retentionDays ?? 90;
+        if (typeof retentionDays === "number" && retentionDays > 0) {
+          cleanupOldSessions(retentionDays).catch(() => {});
+        }
       }
     } catch {}
   }, []);

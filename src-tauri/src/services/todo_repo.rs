@@ -130,50 +130,57 @@ pub fn get_todo_with_details(db: &Database, id: i64) -> Result<TodoWithDetails, 
         .map_err(|e| format!("Query subtasks: {}", e))?.filter_map(|r| r.ok()).collect();
 
     let mut stmt = conn.prepare(
-        "SELECT app_id FROM todo_app_bindings WHERE todo_id = ?1"
+        "SELECT scene_id FROM todo_scene_bindings WHERE todo_id = ?1"
     ).map_err(|e| format!("Prepare bindings: {}", e))?;
-    let bound_app_ids: Vec<i64> = stmt.query_map(params![id], |row| row.get(0))
+    let bound_scene_ids: Vec<i64> = stmt.query_map(params![id], |row| row.get(0))
         .map_err(|e| format!("Query bindings: {}", e))?.filter_map(|r| r.ok()).collect();
 
-    let bound_app_ids: Vec<i64> = if bound_app_ids.is_empty() {
+    let bound_scene_ids: Vec<i64> = if bound_scene_ids.is_empty() {
         if let Some(parent_id) = todo.parent_id {
             let mut parent_stmt = conn.prepare(
-                "SELECT app_id FROM todo_app_bindings WHERE todo_id = ?1"
+                "SELECT scene_id FROM todo_scene_bindings WHERE todo_id = ?1"
             ).map_err(|e| format!("Prepare parent bindings: {}", e))?;
             let parent_ids: Vec<i64> = parent_stmt.query_map(params![parent_id], |row| row.get(0))
                 .map_err(|e| format!("Query parent bindings: {}", e))?.filter_map(|r| r.ok()).collect();
             drop(parent_stmt);
             parent_ids
         } else {
-            bound_app_ids
+            bound_scene_ids
         }
     } else {
-        bound_app_ids
+        bound_scene_ids
     };
 
-    Ok(TodoWithDetails { todo, tags, sub_tasks, bound_app_ids })
+    Ok(TodoWithDetails { todo, tags, sub_tasks, bound_scene_ids })
 }
 
 pub fn list_todos_by_app(db: &Database, app_id: i64) -> Result<Vec<TodoWithDetails>, String> {
     let ids: Vec<i64> = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
-        // Top-level todos directly bound to this app
+        // Top-level todos bound to scenes that contain this app
         let mut stmt = conn.prepare(
-            "SELECT t.id FROM todos t
-             JOIN todo_app_bindings b ON t.id = b.todo_id
-             WHERE b.app_id = ?1 AND t.status = 'pending' AND t.parent_id IS NULL
+            "SELECT DISTINCT t.id FROM todos t
+             JOIN todo_scene_bindings b ON t.id = b.todo_id
+             JOIN scene_apps sa ON b.scene_id = sa.scene_id
+             WHERE sa.app_id = ?1 AND t.status = 'pending' AND t.parent_id IS NULL
              ORDER BY t.sort_order"
         ).map_err(|e| format!("Prepare: {}", e))?;
         let mut result: Vec<i64> = stmt.query_map(params![app_id], |row| row.get(0))
             .map_err(|e| format!("Query: {}", e))?.filter_map(|r| r.ok()).collect();
 
-        // Also include top-level todos whose sub-tasks are bound to this app
+        // Also include top-level todos whose sub-tasks are bound to scenes with this app
         let mut stmt2 = conn.prepare(
             "SELECT DISTINCT t.id FROM todos t
              JOIN todos sub ON sub.parent_id = t.id
-             JOIN todo_app_bindings b ON sub.id = b.todo_id
-             WHERE b.app_id = ?1 AND t.status = 'pending' AND t.parent_id IS NULL
-               AND t.id NOT IN (SELECT todo_id FROM todo_app_bindings WHERE app_id = ?1)"
+             JOIN todo_scene_bindings b ON sub.id = b.todo_id
+             JOIN scene_apps sa ON b.scene_id = sa.scene_id
+             WHERE sa.app_id = ?1 AND t.status = 'pending' AND t.parent_id IS NULL
+               AND t.id NOT IN (
+                 SELECT DISTINCT t2.id FROM todos t2
+                 JOIN todo_scene_bindings b2 ON t2.id = b2.todo_id
+                 JOIN scene_apps sa2 ON b2.scene_id = sa2.scene_id
+                 WHERE sa2.app_id = ?1
+               )"
         ).map_err(|e| format!("Prepare sub-parents: {}", e))?;
         let parent_ids: Vec<i64> = stmt2.query_map(params![app_id], |row| row.get(0))
             .map_err(|e| format!("Query sub-parents: {}", e))?.filter_map(|r| r.ok()).collect();

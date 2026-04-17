@@ -12,6 +12,7 @@ export function Settings({ onClose }: SettingsProps) {
   const [widgetOpacity, setWidgetOpacity] = useState(85);
   const [widgetSize, setWidgetSize] = useState<"small" | "medium" | "large">("medium");
   const [showEmptyWidget, setShowEmptyWidget] = useState(false);
+  const [retentionDays, setRetentionDays] = useState(90);
   const [expandedApp, setExpandedApp] = useState<number | null>(null);
   const [offsets, setOffsets] = useState<Record<number, { x: number; y: number }>>({});
 
@@ -23,6 +24,7 @@ export function Settings({ onClose }: SettingsProps) {
       setWidgetOpacity(parsed.widgetOpacity ?? 85);
       setWidgetSize(parsed.widgetSize ?? "medium");
       setShowEmptyWidget(parsed.showEmptyWidget ?? false);
+      setRetentionDays(parsed.retentionDays ?? 90);
     }
     const savedOffsets = localStorage.getItem("scene-todo-widget-offsets");
     if (savedOffsets) {
@@ -74,6 +76,24 @@ export function Settings({ onClose }: SettingsProps) {
         <label className="flex items-center justify-between py-2">
           <span className="text-sm text-gray-700">开机自启</span>
           <input type="checkbox" checked={autoStart} onChange={(e) => handleAutoStart(e.target.checked)} className="rounded" />
+        </label>
+        <label className="flex items-center justify-between py-2">
+          <span className="text-sm text-gray-700">数据保留天数</span>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min={1}
+              max={3650}
+              value={retentionDays}
+              onChange={(e) => {
+                const v = Math.max(1, parseInt(e.target.value) || 90);
+                setRetentionDays(v);
+                saveSettings({ retentionDays: v });
+              }}
+              className="w-20 px-2 py-1 text-sm border rounded text-right"
+            />
+            <span className="text-xs text-gray-400">天</span>
+          </div>
         </label>
       </section>
 

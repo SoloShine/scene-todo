@@ -150,3 +150,7 @@ export const getActiveScene = () =>
 
 export const setActiveScene = (sceneId: number) =>
   invoke<void>("set_active_scene", { sceneId });
+
+// Data cleanup
+export const cleanupOldSessions = (retentionDays: number) =>
+  invoke<number>("cleanup_old_sessions", { retentionDays });

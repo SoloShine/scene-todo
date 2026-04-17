@@ -12,6 +12,7 @@ use tauri::{
     menu::{MenuBuilder, MenuItemBuilder},
     tray::{TrayIconBuilder, MouseButton, MouseButtonState, TrayIconEvent},
 };
+use tauri::menu::PredefinedMenuItem;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -45,11 +46,13 @@ pub fn run() {
 
             // System tray
             let show_item = MenuItemBuilder::with_id("show", "显示主窗口").build(app)?;
-            let pause_item = MenuItemBuilder::with_id("pause", "暂停 Widget").build(app)?;
+            let pause_widget_item = MenuItemBuilder::with_id("pause_widget", "暂停 Widget").build(app)?;
+            let pause_tracking_item = MenuItemBuilder::with_id("pause_tracking", "暂停追踪").build(app)?;
+            let separator = PredefinedMenuItem::separator(app)?;
             let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
 
             let menu = MenuBuilder::new(app)
-                .items(&[&show_item, &pause_item, &quit_item])
+                .items(&[&show_item, &separator, &pause_widget_item, &pause_tracking_item, &separator, &quit_item])
                 .build()?;
 
             let _tray = TrayIconBuilder::new()
@@ -64,18 +67,31 @@ pub fn run() {
                                 let _ = win.set_focus();
                             }
                         }
-                        "pause" => {
+                        "pause_widget" => {
                             let monitor = app.state::<WindowMonitor>();
                             if monitor.is_running() {
                                 monitor.stop();
                                 if let Some(tray) = app.tray_by_id("main") {
-                                    let _ = tray.set_tooltip(Some("SceneTodo (已暂停)"));
+                                    let _ = tray.set_tooltip(Some("SceneTodo (Widget 已暂停)"));
                                 }
                             } else {
                                 monitor.start();
                                 if let Some(tray) = app.tray_by_id("main") {
                                     let _ = tray.set_tooltip(Some("SceneTodo"));
                                 }
+                            }
+                        }
+                        "pause_tracking" => {
+                            let time_tracker = app.state::<Arc<TimeTracker>>();
+                            let current = time_tracker.is_paused();
+                            time_tracker.set_paused(!current);
+                            let new_label = if !current { "恢复追踪" } else { "暂停追踪" };
+                            if let Some(item) = app.menu().and_then(|m| m.get("pause_tracking")) {
+                                let _ = item.as_menuitem().map(|mi| mi.set_text(new_label));
+                            }
+                            if let Some(tray) = app.tray_by_id("main") {
+                                let tooltip = if !current { "SceneTodo (追踪已暂停)" } else { "SceneTodo" };
+                                let _ = tray.set_tooltip(Some(tooltip));
                             }
                         }
                         "quit" => {
@@ -161,6 +177,7 @@ pub fn run() {
             commands::scene_cmd::get_tracking_status,
             commands::scene_cmd::get_active_scene,
             commands::scene_cmd::set_active_scene,
+            commands::scene_cmd::cleanup_old_sessions,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

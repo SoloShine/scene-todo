@@ -123,3 +123,8 @@ pub fn set_active_scene(
     monitor.set_last_active_scene(scene_id);
     Ok(())
 }
+
+#[tauri::command]
+pub fn cleanup_old_sessions(db: State<'_, Arc<Database>>, retention_days: i64) -> Result<u64, String> {
+    scene_repo::cleanup_old_sessions(&db, retention_days)
+}
