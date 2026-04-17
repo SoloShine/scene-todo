@@ -11,6 +11,9 @@ export const createTodo = (input: CreateTodo) =>
 export const listTodos = (filters: TodoFilters = {}) =>
   invoke<Todo[]>("list_todos", { filters });
 
+export const listTodosWithDetails = (filters: TodoFilters = {}) =>
+  invoke<TodoWithDetails[]>("list_todos_with_details", { filters });
+
 export const getTodo = (id: number) =>
   invoke<Todo>("get_todo", { id });
 

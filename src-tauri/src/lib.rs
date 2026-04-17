@@ -112,6 +112,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::todo_cmd::create_todo,
             commands::todo_cmd::list_todos,
+            commands::todo_cmd::list_todos_with_details,
             commands::todo_cmd::get_todo,
             commands::todo_cmd::update_todo,
             commands::todo_cmd::delete_todo,

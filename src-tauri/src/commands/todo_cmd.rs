@@ -15,6 +15,11 @@ pub fn list_todos(db: State<'_, Arc<Database>>, filters: TodoFilters) -> Result<
 }
 
 #[tauri::command]
+pub fn list_todos_with_details(db: State<'_, Arc<Database>>, filters: TodoFilters) -> Result<Vec<TodoWithDetails>, String> {
+    todo_repo::list_todos_with_details(&db, filters)
+}
+
+#[tauri::command]
 pub fn get_todo(db: State<'_, Arc<Database>>, id: i64) -> Result<Todo, String> {
     todo_repo::get_todo(&db, id)
 }

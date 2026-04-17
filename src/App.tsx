@@ -58,9 +58,12 @@ export default function App() {
 
   const handleToggleTag = (tagId: number) => {
     setShowSettings(false);
-    setSelectedTagIds((prev) =>
-      prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId]
-    );
+    setSelectedGroupId(null);
+    setSelectedTagIds((prev) => {
+      const next = prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId];
+      setFilters(next.length > 0 ? { tag_id: next[0] } : {});
+      return next;
+    });
   };
 
   return (
@@ -77,7 +80,7 @@ export default function App() {
         {showSettings ? (
           <Settings onClose={() => setShowSettings(false)} />
         ) : (
-          <TodoList filters={filters} selectedTagIds={selectedTagIds} />
+          <TodoList filters={filters} />
         )}
       </main>
     </div>

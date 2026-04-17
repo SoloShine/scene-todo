@@ -43,6 +43,14 @@ pub fn list_todos(db: &Database, filters: TodoFilters) -> Result<Vec<Todo>, Stri
         sql.push_str(&format!(" AND priority = ?{}", param_values.len() + 1));
         param_values.push(Box::new(p.clone()));
     }
+    if let Some(ref tid) = filters.tag_id {
+        sql.push_str(&format!(" AND id IN (SELECT todo_id FROM todo_tags WHERE tag_id = ?{})", param_values.len() + 1));
+        param_values.push(Box::new(*tid));
+    }
+    if let Some(ref d) = filters.due_before {
+        sql.push_str(&format!(" AND due_date <= ?{}", param_values.len() + 1));
+        param_values.push(Box::new(d.clone()));
+    }
     sql.push_str(" ORDER BY sort_order, created_at DESC");
 
     let params: Vec<&dyn rusqlite::types::ToSql> = param_values.iter().map(|p| p.as_ref()).collect();
@@ -167,6 +175,11 @@ pub fn list_todos_by_app(db: &Database, app_id: i64) -> Result<Vec<TodoWithDetai
         result
     };
     ids.iter().map(|&id| get_todo_with_details(db, id)).collect()
+}
+
+pub fn list_todos_with_details(db: &Database, filters: TodoFilters) -> Result<Vec<TodoWithDetails>, String> {
+    let todos = list_todos(db, filters)?;
+    todos.iter().map(|t| get_todo_with_details(db, t.id)).collect()
 }
 
 pub fn add_tag_to_todo(db: &Database, todo_id: i64, tag_id: i64) -> Result<(), String> {
