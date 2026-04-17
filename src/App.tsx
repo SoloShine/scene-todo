@@ -41,10 +41,8 @@ export default function App() {
         setFilters({});
         break;
       case "today":
-        setFilters({ due_before: new Date().toISOString().split("T")[0] });
-        break;
-      case "important":
-        setFilters({ priority: "high" });
+        const now = new Date();
+        setFilters({ due_before: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}` });
         break;
     }
   };

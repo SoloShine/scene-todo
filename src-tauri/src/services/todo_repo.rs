@@ -48,7 +48,7 @@ pub fn list_todos(db: &Database, filters: TodoFilters) -> Result<Vec<Todo>, Stri
         param_values.push(Box::new(*tid));
     }
     if let Some(ref d) = filters.due_before {
-        sql.push_str(&format!(" AND due_date <= ?{}", param_values.len() + 1));
+        sql.push_str(&format!(" AND date(due_date) <= ?{}", param_values.len() + 1));
         param_values.push(Box::new(d.clone()));
     }
     sql.push_str(" ORDER BY sort_order, created_at DESC");
@@ -86,7 +86,14 @@ pub fn update_todo(db: &Database, input: UpdateTodo) -> Result<Todo, String> {
     }
     if let Some(ref v) = input.priority { sets.push(format!("priority = ?{}", param_values.len() + 1)); param_values.push(Box::new(v.clone())); }
     if let Some(v) = input.group_id { sets.push(format!("group_id = ?{}", param_values.len() + 1)); param_values.push(Box::new(v)); }
-    if let Some(ref v) = input.due_date { sets.push(format!("due_date = ?{}", param_values.len() + 1)); param_values.push(Box::new(v.clone())); }
+    if let Some(ref v) = input.due_date {
+        if v.is_empty() {
+            sets.push("due_date = NULL".into());
+        } else {
+            sets.push(format!("due_date = ?{}", param_values.len() + 1));
+            param_values.push(Box::new(v.clone()));
+        }
+    }
 
     if sets.is_empty() { return get_todo(db, input.id); }
 

@@ -21,25 +21,51 @@ const priorityConfig: Record<string, { label: string; color: string; bg: string 
   low: { label: "低", color: "text-green-600", bg: "bg-green-50" },
 };
 
-function formatRelativeDate(dateStr: string | null): string | null {
+export function parseDateLocal(dateStr: string): Date | null {
+  const parts = dateStr.slice(0, 10).split("-");
+  if (parts.length !== 3) return null;
+  const [y, m, d] = parts.map(Number);
+  const date = new Date(y, m - 1, d);
+  return isNaN(date.getTime()) ? null : date;
+}
+
+export function todayKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function toDatetimeLocalValue(dateStr: string | null): string {
+  if (!dateStr) return "";
+  // "2026-04-18T23:59:59" → "2026-04-18T23:59", "2026-04-18" → "2026-04-18T23:59"
+  if (dateStr.length > 10) return dateStr.slice(0, 16);
+  return dateStr + "T23:59";
+}
+
+function extractTime(dateStr: string | null): string | null {
+  if (!dateStr || dateStr.length < 16) return null;
+  const time = dateStr.slice(11, 16);
+  return time === "23:59" ? null : time;
+}
+
+function formatDueDate(dateStr: string | null, isOverdue: boolean): string | null {
   if (!dateStr) return null;
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return null;
+  const d = parseDateLocal(dateStr);
+  if (!d) return null;
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const diff = Math.round((target.getTime() - today.getTime()) / 86400000);
-  if (diff === 0) return "今天";
-  if (diff === 1) return "明天";
-  if (diff === -1) return "昨天";
-  if (diff > 0 && diff <= 7) return `${diff}天后`;
-  if (diff < 0 && diff >= -7) return `${-diff}天前`;
-  return `${d.getMonth() + 1}/${d.getDate()}`;
+  const isToday = d.getTime() === today.getTime();
+  const timePart = extractTime(dateStr);
+  const timeSuffix = timePart ? ` ${timePart}` : "";
+  if (!isOverdue && isToday) return "今天" + timeSuffix;
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}/${m}/${day}${timeSuffix}`;
 }
 
 function formatTime(dateStr: string | null): string | null {
   if (!dateStr) return null;
-  const d = new Date(dateStr);
+  const d = new Date(dateStr.includes("T") ? dateStr : dateStr.replace(" ", "T") + "Z");
   if (isNaN(d.getTime())) return null;
   const h = d.getHours().toString().padStart(2, "0");
   const m = d.getMinutes().toString().padStart(2, "0");
@@ -54,12 +80,12 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
   const [editTitle, setEditTitle] = useState(todo.title);
   const [editDesc, setEditDesc] = useState(todo.description || "");
   const [editPriority, setEditPriority] = useState(todo.priority);
+  const [editDueDate, setEditDueDate] = useState(toDatetimeLocalValue(todo.due_date));
   const [subTitle, setSubTitle] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
   const editRef = useRef<HTMLDivElement>(null);
   const isCompleted = todo.status === "completed";
 
-  // Close menu on outside click
   useEffect(() => {
     if (!showMenu) return;
     const handler = (e: MouseEvent) => {
@@ -83,12 +109,16 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
     const titleChanged = editTitle.trim() !== todo.title;
     const descChanged = (editDesc.trim() || "") !== (todo.description || "");
     const prioChanged = editPriority !== todo.priority;
-    if (titleChanged || descChanged || prioChanged) {
+    const newDate = editDueDate || "";
+    const oldDate = todo.due_date || "";
+    const dateChanged = newDate !== oldDate && (newDate !== "" || oldDate !== "");
+    if (titleChanged || descChanged || prioChanged || dateChanged) {
       await api.updateTodo({
         id: todo.id,
         title: editTitle.trim(),
         description: editDesc.trim() || null,
         priority: editPriority,
+        due_date: editDueDate || "",
       });
       onRefresh?.();
     }
@@ -100,10 +130,10 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
     setEditTitle(todo.title);
     setEditDesc(todo.description || "");
     setEditPriority(todo.priority);
+    setEditDueDate(toDatetimeLocalValue(todo.due_date));
     onStartEdit();
   };
 
-  // Save and exit edit on click outside edit area
   const saveRef = useRef(handleSaveEdit);
   saveRef.current = handleSaveEdit;
 
@@ -136,7 +166,7 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
           placeholder="描述（可选）"
           className="w-full text-xs text-gray-500 outline-none bg-transparent mb-2"
         />
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2 flex-wrap">
           {(["high", "medium", "low"] as const).map((p) => (
             <button
               key={p}
@@ -146,57 +176,89 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
               {priorityConfig[p].label}
             </button>
           ))}
+          <div className="flex items-center gap-1">
+            <input
+              type="datetime-local"
+              value={editDueDate}
+              onChange={(e) => setEditDueDate(e.target.value)}
+              className="text-xs text-gray-500 outline-none bg-transparent border-b border-gray-200 px-1"
+            />
+            {editDueDate && (
+              <button
+                onClick={() => setEditDueDate("")}
+                className="text-[10px] text-gray-400 hover:text-red-500 leading-none"
+                title="清除截止日期"
+              >
+                &times;
+              </button>
+            )}
+          </div>
           <span className="text-[10px] text-gray-400 ml-auto">点击外部自动保存</span>
         </div>
       </div>
     );
   }
 
-  const dueLabel = formatRelativeDate(todo.due_date);
-  const isOverdue = todo.due_date && new Date(todo.due_date) < new Date() && !isCompleted;
+  const todayStart = new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+  const isOverdue = (() => {
+    if (!todo.due_date || isCompleted) return false;
+    if (todo.due_date.length > 10) {
+      const due = new Date(todo.due_date);
+      return !isNaN(due.getTime()) && due < new Date();
+    }
+    const d = parseDateLocal(todo.due_date);
+    return d ? d < todayStart : false;
+  })();
+  const dueLabel = formatDueDate(todo.due_date, isOverdue);
   const createdTime = formatTime(todo.created_at);
+  const completedTime = isCompleted ? formatTime(todo.completed_at) : null;
 
   return (
     <>
-      <div className="group flex items-start gap-2.5 px-3 py-2 hover:bg-gray-50 transition-colors relative">
-        {/* Checkbox */}
+      <div className={`group flex items-start gap-2.5 px-3 py-2 hover:bg-gray-50 transition-colors relative ${isOverdue ? "bg-red-50/30" : ""}`}>
         <button
           onClick={() => onToggle(todo.id, todo.status as "pending" | "completed")}
           className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
             isCompleted
               ? "bg-green-500 border-green-500 text-white"
+              : isOverdue
+              ? "border-red-300 hover:border-red-400"
               : "border-gray-300 hover:border-blue-400"
           }`}
         >
           {isCompleted && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
         </button>
 
-        {/* Content */}
         <div className="flex-1 min-w-0" onDoubleClick={handleStartEdit}>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className={`text-sm ${isCompleted ? "line-through text-gray-400" : "text-gray-800"} cursor-text`}>
               {todo.title}
             </span>
+            {isOverdue && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-red-100 text-red-600">过期</span>
+            )}
             <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${priorityConfig[todo.priority]?.color || ""} ${priorityConfig[todo.priority]?.bg || ""}`}>
               {priorityConfig[todo.priority]?.label || ""}
             </span>
             {dueLabel && (
               <span className={`text-[10px] ${isOverdue ? "text-red-500 font-medium" : "text-gray-400"}`}>
-                {isOverdue && "⚠ "}{dueLabel}
+                {dueLabel}
               </span>
             )}
           </div>
           <div className="flex items-center gap-3 mt-0.5">
-            {todo.description && (
+            {todo.description && !isCompleted && (
               <span className="text-xs text-gray-400 truncate">{todo.description}</span>
             )}
-            {createdTime && (
+            {completedTime && (
+              <span className="text-[10px] text-green-500 flex-shrink-0">完成于 {completedTime}</span>
+            )}
+            {!isCompleted && createdTime && (
               <span className="text-[10px] text-gray-300 flex-shrink-0">{createdTime}</span>
             )}
           </div>
         </div>
 
-        {/* Quick actions */}
         <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
           <button
             onClick={() => { setShowSubInput(!showSubInput); setSubTitle(""); }}
@@ -247,7 +309,6 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
         )}
       </div>
 
-      {/* Inline sub-task input */}
       {showSubInput && (
         <div className="flex items-center gap-2 pl-10 pr-3 py-1.5 bg-gray-50/50 border-b border-gray-100">
           <input

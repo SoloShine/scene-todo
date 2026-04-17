@@ -5,7 +5,6 @@ interface SmartViewsProps {
 const views = [
   { key: "all", label: "\u5168\u90E8", icon: "\uD83D\uDCCB" },
   { key: "today", label: "\u4ECA\u5929", icon: "\uD83D\uDCC5" },
-  { key: "important", label: "\u91CD\u8981", icon: "\u2B50" },
 ];
 
 export function SmartViews({ onSmartView }: SmartViewsProps) {
