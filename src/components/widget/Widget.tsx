@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { listTodosByApp, updateTodo, createTodo, hideWidget } from "../../lib/invoke";
+import { listTodosByApp, updateTodo, createTodo, hideWidget, bindTodoToApp } from "../../lib/invoke";
 import type { TodoWithDetails } from "../../types";
 import { WidgetTodoItem } from "./WidgetTodoItem";
 
@@ -8,17 +8,27 @@ interface WidgetProps {
   appName: string;
 }
 
-export function Widget({ appId, appName }: WidgetProps) {
+function readOpacity(): number {
+  try {
+    const saved = localStorage.getItem("overlay-todo-settings");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return parsed.widgetOpacity ?? 85;
+    }
+  } catch {}
+  return 85;
+}
+
+export function Widget({ appId }: WidgetProps) {
   const [todos, setTodos] = useState<TodoWithDetails[]>([]);
   const [collapsed, setCollapsed] = useState(false);
   const [quickAdd, setQuickAdd] = useState("");
-  const [opacity, setOpacity] = useState(85);
+  const [opacity, setOpacity] = useState(readOpacity);
 
   const refresh = useCallback(async () => {
     try {
       const data = await listTodosByApp(appId);
       setTodos(data);
-      // Auto-hide when no pending todos
       if (data.length === 0) {
         await hideWidget(appId);
       }
@@ -33,16 +43,16 @@ export function Widget({ appId, appName }: WidgetProps) {
     return () => clearInterval(interval);
   }, [refresh]);
 
+  // Force body transparent + listen for opacity changes from Settings
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("overlay-todo-settings");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setOpacity(parsed.widgetOpacity ?? 85);
-      }
-    } catch {
-      // ignore
-    }
+    document.documentElement.style.setProperty("background", "transparent", "important");
+    document.body.style.setProperty("background", "transparent", "important");
+    const root = document.getElementById("root");
+    if (root) root.style.setProperty("background", "transparent", "important");
+
+    const onStorage = () => setOpacity(readOpacity());
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   const handleToggle = async (id: number) => {
@@ -52,7 +62,8 @@ export function Widget({ appId, appName }: WidgetProps) {
 
   const handleQuickAdd = async (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && quickAdd.trim()) {
-      await createTodo({ title: quickAdd.trim() });
+      const todo = await createTodo({ title: quickAdd.trim() });
+      await bindTodoToApp(todo.id, appId);
       setQuickAdd("");
       await refresh();
     }
@@ -63,28 +74,34 @@ export function Widget({ appId, appName }: WidgetProps) {
     0
   );
 
-  const bg = `rgba(245, 245, 245, ${opacity / 100})`;
+  const bgAlpha = opacity / 100;
 
   return (
     <div
       className="overflow-hidden"
-      style={{ width: "100%", height: "100%", background: bg }}
+      style={{
+        width: "100%",
+        height: "100%",
+        background: `rgba(255, 255, 255, ${bgAlpha})`,
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        borderRadius: "10px",
+        border: "1px solid rgba(200, 200, 200, 0.3)",
+      }}
     >
       {/* Title bar */}
       <div
         className="flex items-center justify-between px-3 py-1.5 cursor-move"
         data-tauri-drag-region
-        style={{ background: `rgba(255, 255, 255, ${Math.min((opacity + 5) / 100, 1)})` }}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2" data-tauri-drag-region>
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="text-gray-400 hover:text-gray-600 text-xs"
           >
             {collapsed ? "\u25B8" : "\u25BE"}
           </button>
-          <span className="text-xs font-medium text-gray-700">{appName}</span>
-          <span className="text-[10px] text-gray-400">({pendingCount})</span>
+          <span className="text-[10px] text-gray-500">({pendingCount})</span>
         </div>
       </div>
 
@@ -118,7 +135,7 @@ export function Widget({ appId, appName }: WidgetProps) {
             onKeyDown={handleQuickAdd}
             placeholder="Quick add..."
             className="w-full px-2 py-1 text-xs rounded outline-none focus:ring-1 focus:ring-blue-300"
-            style={{ background: `rgba(255, 255, 255, 0.6)` }}
+            style={{ background: "rgba(255, 255, 255, 0.5)" }}
           />
         </div>
       )}

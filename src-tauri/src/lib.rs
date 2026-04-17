@@ -137,6 +137,7 @@ pub fn run() {
             commands::app_cmd::stop_window_monitor,
             commands::app_cmd::start_window_capture,
             commands::app_cmd::save_widget_offset,
+            commands::app_cmd::set_widget_default_size,
             commands::app_cmd::hide_widget,
         ])
         .run(tauri::generate_context!())

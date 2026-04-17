@@ -35,21 +35,20 @@ export function BindingEditor({ todoId, onClose, onRefresh }: BindingEditorProps
     setCapturing(true);
     try {
       const result = await api.startWindowCapture();
-      const { process_name, window_title } = result;
+      const { process_name } = result;
       if (!process_name) return;
 
-      const existing = apps.find((a) =>
-        a.process_names
-          .toLowerCase()
-          .split(",")
-          .some((p) => p.trim() === process_name.toLowerCase())
-      );
+      const existing = apps.find((a) => {
+        try {
+          return JSON.parse(a.process_names).some((p: string) => p.toLowerCase() === process_name.toLowerCase());
+        } catch { return false; }
+      });
 
       let appId: number;
       if (existing) {
         appId = existing.id;
       } else {
-        const displayName = window_title || process_name.replace(/\.[^.]+$/, "");
+        const displayName = process_name.replace(/\.[^.]+$/, "");
         const newApp = await create({
           name: displayName,
           process_names: [process_name],

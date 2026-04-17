@@ -34,6 +34,15 @@ export function Settings({ onClose }: SettingsProps) {
     const current = JSON.parse(localStorage.getItem("overlay-todo-settings") || "{}");
     const updated = { ...current, ...updates };
     localStorage.setItem("overlay-todo-settings", JSON.stringify(updated));
+    // Sync size to backend
+    const size = updated.widgetSize ?? "medium";
+    const sizeMap: Record<string, [number, number]> = {
+      small: [200, 240],
+      medium: [260, 300],
+      large: [340, 400],
+    };
+    const [w, h] = sizeMap[size] || sizeMap.medium;
+    api.setWidgetDefaultSize(w, h);
   };
 
   const handleAutoStart = async (enabled: boolean) => {
@@ -81,7 +90,7 @@ export function Settings({ onClose }: SettingsProps) {
           />
         </label>
         <label className="flex items-center justify-between py-2">
-          <span className="text-sm text-gray-700">浮窗透明度</span>
+          <span className="text-sm text-gray-700">浮窗不透明度</span>
           <div className="flex items-center gap-2">
             <input type="range" min={30} max={100} value={widgetOpacity}
               onChange={(e) => { const v = parseInt(e.target.value); setWidgetOpacity(v); saveSettings({ widgetOpacity: v }); }}
@@ -138,6 +147,10 @@ export function Settings({ onClose }: SettingsProps) {
                         className="flex-1"
                       />
                       <span className="w-8 text-gray-400">{off.x}px</span>
+                      <input type="number" min={-200} max={500} value={off.x}
+                        onChange={(e) => { const v = parseInt(e.target.value) || 0; handleOffsetChange(app.id, "x", v); }}
+                        className="w-14 px-1 py-0.5 border rounded text-center text-xs"
+                      />
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
                       <span className="w-14">Y 偏移</span>
@@ -146,6 +159,10 @@ export function Settings({ onClose }: SettingsProps) {
                         className="flex-1"
                       />
                       <span className="w-8 text-gray-400">{off.y}px</span>
+                      <input type="number" min={0} max={500} value={off.y}
+                        onChange={(e) => { const v = parseInt(e.target.value) || 0; handleOffsetChange(app.id, "y", v); }}
+                        className="w-14 px-1 py-0.5 border rounded text-center text-xs"
+                      />
                     </div>
                   </div>
                 )}

@@ -11,6 +11,7 @@ use crate::services::db::Database;
 pub struct WidgetManager {
     active_widgets: Mutex<HashMap<i64, String>>,
     widget_offsets: Mutex<HashMap<i64, (i32, i32)>>,
+    default_size: Mutex<(f64, f64)>,
     db: Arc<Database>,
 }
 
@@ -19,6 +20,7 @@ impl WidgetManager {
         Self {
             active_widgets: Mutex::new(HashMap::new()),
             widget_offsets: Mutex::new(HashMap::new()),
+            default_size: Mutex::new((260.0, 300.0)),
             db,
         }
     }
@@ -31,7 +33,6 @@ impl WidgetManager {
         let active = self.active_widgets.lock().unwrap();
         let target_label = event.app_id.map(|id| format!("widget-{}", id));
 
-        // Hide widgets that are NOT the target (no flicker for the target)
         for (_, label) in active.iter() {
             if target_label.as_ref() != Some(label) {
                 if let Some(win) = app_handle.get_webview_window(label) {
@@ -46,7 +47,6 @@ impl WidgetManager {
         {
             let target_hwnd = HWND(hwnd_value as *mut _);
 
-            // Check if there are pending todos for this app
             match todo_repo::list_todos_by_app(&self.db, app_id) {
                 Ok(todos) if todos.is_empty() => return,
                 Err(_) => return,
@@ -62,17 +62,19 @@ impl WidgetManager {
                     app_id,
                     urlencoding(app_name)
                 );
+                let (w, h) = *self.default_size.lock().unwrap();
                 let widget_window = WebviewWindow::builder(
                     app_handle,
                     &label,
                     WebviewUrl::App(url.into()),
                 )
                 .title(&format!("{} - Widget", app_name))
-                .inner_size(260.0, 300.0)
+                .inner_size(w, h)
                 .decorations(false)
                 .always_on_top(true)
                 .skip_taskbar(true)
                 .transparent(true)
+                .shadow(false)
                 .build();
 
                 match widget_window {
@@ -86,6 +88,10 @@ impl WidgetManager {
                 }
             } else {
                 if let Some(win) = app_handle.get_webview_window(&label) {
+                    let (w, h) = *self.default_size.lock().unwrap();
+                    let _ = win.set_size(tauri::Size::Physical(
+                        tauri::PhysicalSize::new(w as u32, h as u32),
+                    ));
                     let _ = win.show();
                     self.position_widget(&win, target_hwnd, app_id);
                 }
@@ -95,7 +101,6 @@ impl WidgetManager {
 
     fn position_widget(&self, widget: &WebviewWindow, target_hwnd: HWND, app_id: i64) {
         if let Some((x, y, _w, _h)) = process_matcher::get_window_rect(target_hwnd) {
-            // Default: top-left corner of target window, just below the title bar
             let title_bar_h = 32;
             let padding = 8;
             let (dx, dy) = self
@@ -114,6 +119,10 @@ impl WidgetManager {
 
     pub fn save_offset(&self, app_id: i64, offset: (i32, i32)) {
         self.widget_offsets.lock().unwrap().insert(app_id, offset);
+    }
+
+    pub fn set_default_size(&self, size: (f64, f64)) {
+        *self.default_size.lock().unwrap() = size;
     }
 
     pub fn destroy_widget(&self, app_handle: &AppHandle, app_id: i64) {

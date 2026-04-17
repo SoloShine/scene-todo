@@ -56,8 +56,16 @@ pub struct CapturedWindow {
 }
 
 /// Synchronous capture: hides window, waits for foreground change, returns result directly.
+/// If user clicks the already-focused window (OS auto-focused after hide), a 3s timeout
+/// fallback captures the current foreground.
 #[tauri::command]
 pub fn start_window_capture(app: tauri::AppHandle) -> Result<CapturedWindow, String> {
+    // Record main HWND (as isize) before hiding — raw HWND is not Send
+    let main_hwnd_val: Option<isize> = app
+        .get_webview_window("main")
+        .and_then(|w| w.hwnd().ok())
+        .map(|h| h.0 as isize);
+
     if let Some(win) = app.get_webview_window("main") {
         let _ = win.hide();
     }
@@ -68,14 +76,61 @@ pub fn start_window_capture(app: tauri::AppHandle) -> Result<CapturedWindow, Str
     std::thread::spawn(move || {
         use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
 
-        std::thread::sleep(std::time::Duration::from_millis(500));
-        let initial_fg = unsafe { GetForegroundWindow() };
+        let main_hwnd = main_hwnd_val.map(|v| windows::Win32::Foundation::HWND(v as *mut _));
 
-        let target_hwnd = loop {
-            std::thread::sleep(std::time::Duration::from_millis(100));
-            let fg = unsafe { GetForegroundWindow() };
-            if fg != initial_fg && !fg.is_invalid() {
-                break fg;
+        // Phase 1: Wait for a stable foreground window that is NOT our main window.
+        let initial_fg = {
+            let mut stable_count = 0u32;
+            let mut last_fg = unsafe { GetForegroundWindow() };
+            loop {
+                std::thread::sleep(std::time::Duration::from_millis(50));
+                let fg = unsafe { GetForegroundWindow() };
+                let is_main = main_hwnd.map_or(false, |m| fg == m);
+                if fg == last_fg && !fg.is_invalid() && !is_main {
+                    stable_count += 1;
+                    if stable_count >= 4 {
+                        break fg;
+                    }
+                } else {
+                    stable_count = 0;
+                    last_fg = fg;
+                }
+            }
+        };
+
+        // Phase 2: Wait for user to click a different window.
+        // Timeout after 3s: if no change, the user likely clicked the already-focused
+        // window (OS auto-focused it after we hid), so capture current foreground.
+        let target_hwnd = {
+            let start = std::time::Instant::now();
+            let timeout = std::time::Duration::from_secs(3);
+            let mut candidate = None;
+            let mut stable_count = 0u32;
+            loop {
+                std::thread::sleep(std::time::Duration::from_millis(50));
+                let fg = unsafe { GetForegroundWindow() };
+
+                if fg != initial_fg && !fg.is_invalid() {
+                    match candidate {
+                        Some(prev) if prev == fg => {
+                            stable_count += 1;
+                            if stable_count >= 3 {
+                                break fg;
+                            }
+                        }
+                        _ => {
+                            candidate = Some(fg);
+                            stable_count = 0;
+                        }
+                    }
+                } else {
+                    candidate = None;
+                    stable_count = 0;
+                }
+
+                if start.elapsed() > timeout {
+                    break unsafe { GetForegroundWindow() };
+                }
             }
         };
 
@@ -103,6 +158,16 @@ pub fn save_widget_offset(
     offset_y: i32,
 ) -> Result<(), String> {
     widget_mgr.save_offset(app_id, (offset_x, offset_y));
+    Ok(())
+}
+
+#[tauri::command]
+pub fn set_widget_default_size(
+    widget_mgr: State<'_, WidgetManager>,
+    width: f64,
+    height: f64,
+) -> Result<(), String> {
+    widget_mgr.set_default_size((width, height));
     Ok(())
 }
 

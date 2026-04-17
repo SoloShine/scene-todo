@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Sidebar } from "./components/sidebar/Sidebar";
 import { TodoList } from "./components/todo/TodoList";
 import { Settings } from "./components/settings/Settings";
-import { startWindowMonitor } from "./lib/invoke";
+import { startWindowMonitor, setWidgetDefaultSize } from "./lib/invoke";
 import type { TodoFilters } from "./types";
 
 export default function App() {
@@ -13,6 +13,21 @@ export default function App() {
     startWindowMonitor().catch((e) =>
       console.error("Failed to start window monitor:", e)
     );
+    // Sync initial widget size to backend
+    try {
+      const saved = localStorage.getItem("overlay-todo-settings");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        const size = parsed.widgetSize ?? "medium";
+        const sizeMap: Record<string, [number, number]> = {
+          small: [200, 240],
+          medium: [260, 300],
+          large: [340, 400],
+        };
+        const [w, h] = sizeMap[size] || sizeMap.medium;
+        setWidgetDefaultSize(w, h);
+      }
+    } catch {}
   }, []);
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
