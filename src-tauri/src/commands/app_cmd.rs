@@ -172,8 +172,8 @@ pub fn set_widget_default_size(
 }
 
 #[tauri::command]
-pub fn hide_widget(app: tauri::AppHandle, app_id: i64) -> Result<(), String> {
-    let label = format!("widget-{}", app_id);
+pub fn hide_widget(app: tauri::AppHandle, scene_id: i64) -> Result<(), String> {
+    let label = format!("widget-scene-{}", scene_id);
     if let Some(win) = app.get_webview_window(&label) {
         let _ = win.hide();
     }

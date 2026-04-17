@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { listTodosByApp, updateTodo, createTodo, hideWidget, bindTodoToApp } from "../../lib/invoke";
+import { listTodosByScene, updateTodo, createTodo, hideWidget, bindTodoToScene } from "../../lib/invoke";
 import type { TodoWithDetails } from "../../types";
 import { WidgetTodoItem } from "./WidgetTodoItem";
 
 interface WidgetProps {
-  appId: number;
-  appName: string;
+  sceneId: number;
+  sceneName: string;
 }
 
 function readOpacity(): number {
@@ -19,7 +19,7 @@ function readOpacity(): number {
   return 85;
 }
 
-export function Widget({ appId }: WidgetProps) {
+export function Widget({ sceneId }: WidgetProps) {
   const [todos, setTodos] = useState<TodoWithDetails[]>([]);
   const [collapsed, setCollapsed] = useState(false);
   const [quickAdd, setQuickAdd] = useState("");
@@ -27,15 +27,15 @@ export function Widget({ appId }: WidgetProps) {
 
   const refresh = useCallback(async () => {
     try {
-      const data = await listTodosByApp(appId);
+      const data = await listTodosByScene(sceneId);
       setTodos(data);
       if (data.length === 0) {
-        await hideWidget(appId);
+        await hideWidget(sceneId);
       }
     } catch {
       // ignore
     }
-  }, [appId]);
+  }, [sceneId]);
 
   useEffect(() => {
     refresh();
@@ -63,7 +63,7 @@ export function Widget({ appId }: WidgetProps) {
   const handleQuickAdd = async (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && quickAdd.trim()) {
       const todo = await createTodo({ title: quickAdd.trim() });
-      await bindTodoToApp(todo.id, appId);
+      await bindTodoToScene(todo.id, sceneId);
       setQuickAdd("");
       await refresh();
     }

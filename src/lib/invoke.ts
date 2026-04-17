@@ -94,8 +94,8 @@ export const saveWidgetOffset = (appId: number, offsetX: number, offsetY: number
 export const setWidgetDefaultSize = (width: number, height: number) =>
   invoke<void>("set_widget_default_size", { width, height });
 
-export const hideWidget = (appId: number) =>
-  invoke<void>("hide_widget", { appId });
+export const hideWidget = (sceneId: number) =>
+  invoke<void>("hide_widget", { sceneId });
 
 // Scene management
 export const createScene = (input: CreateScene) =>
