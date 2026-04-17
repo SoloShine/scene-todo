@@ -8,7 +8,7 @@
 
 **Tech Stack:** Rust, rusqlite, Tauri 2.0 commands, serde
 
-**Parent:** [2026-04-16-overlay-todo.md](2026-04-16-overlay-todo.md)
+**Parent:** [2026-04-16-scene-todo.md](2026-04-16-scene-todo.md)
 
 **Depends on:** Phase 1 (database, models, Tauri state)
 
@@ -186,7 +186,7 @@ mod tests {
 
 Run:
 ```bash
-cd d:/Project/overlay-todo/src-tauri && cargo test --lib services::todo_repo
+cd d:/Project/scene-todo/src-tauri && cargo test --lib services::todo_repo
 ```
 
 Expected: Compilation fails — functions use `todo!()` macro.
@@ -351,7 +351,7 @@ pub fn remove_tag_from_todo(db: &Database, todo_id: i64, tag_id: i64) -> Result<
 
 Run:
 ```bash
-cd d:/Project/overlay-todo/src-tauri && cargo test --lib services::todo_repo -- --nocapture
+cd d:/Project/scene-todo/src-tauri && cargo test --lib services::todo_repo -- --nocapture
 ```
 
 Expected: All 5 tests pass.
@@ -498,7 +498,7 @@ mod tests {
 
 Run:
 ```bash
-cd d:/Project/overlay-todo/src-tauri && cargo test --lib services::group_repo -- --nocapture
+cd d:/Project/scene-todo/src-tauri && cargo test --lib services::group_repo -- --nocapture
 ```
 
 Expected: All 3 tests pass.
@@ -620,7 +620,7 @@ mod tests {
 
 Run:
 ```bash
-cd d:/Project/overlay-todo/src-tauri && cargo test --lib services::tag_repo -- --nocapture
+cd d:/Project/scene-todo/src-tauri && cargo test --lib services::tag_repo -- --nocapture
 ```
 
 Expected: All 2 tests pass.
@@ -819,7 +819,7 @@ mod tests {
 
 Run:
 ```bash
-cd d:/Project/overlay-todo/src-tauri && cargo test --lib services::app_repo -- --nocapture
+cd d:/Project/scene-todo/src-tauri && cargo test --lib services::app_repo -- --nocapture
 ```
 
 Expected: All 3 tests pass.
@@ -1043,7 +1043,7 @@ File: `src-tauri/src/lib.rs` — update the `invoke_handler`:
 
 Run:
 ```bash
-cd d:/Project/overlay-todo && npm run tauri dev
+cd d:/Project/scene-todo && npm run tauri dev
 ```
 
 Expected: App compiles and launches. No runtime errors.
@@ -1052,7 +1052,7 @@ Expected: App compiles and launches. No runtime errors.
 
 Run:
 ```bash
-cd d:/Project/overlay-todo/src-tauri && cargo test --lib
+cd d:/Project/scene-todo/src-tauri && cargo test --lib
 ```
 
 Expected: All tests pass (db: 3, todo: 5, group: 3, tag: 2, app: 3 = 16 total).

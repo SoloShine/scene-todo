@@ -1,4 +1,4 @@
-# Overlay Todo
+# SceneTodo
 
 桌面待办事项应用，核心功能是将待办以浮动 Widget 形态挂载到关联的桌面软件窗口上。切换到某软件时自动显示关联待办，切走后自动隐藏。
 
@@ -29,7 +29,7 @@
 ## 项目结构
 
 ```
-overlay-todo/
+scene-todo/
 ├── src-tauri/                    # Rust 后端
 │   ├── src/
 │   │   ├── main.rs               # 入口

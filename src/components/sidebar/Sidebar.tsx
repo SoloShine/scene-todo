@@ -18,7 +18,7 @@ export function Sidebar({
   return (
     <aside className="w-60 border-r border-gray-200 bg-white flex flex-col">
       <div className="p-3 border-b border-gray-200">
-        <h1 className="text-lg font-bold text-gray-800">Overlay Todo</h1>
+        <h1 className="text-lg font-bold text-gray-800">SceneTodo</h1>
       </div>
       <nav className="flex-1 overflow-y-auto p-2 space-y-4">
         <SmartViews onSmartView={onSmartView} />

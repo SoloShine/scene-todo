@@ -8,7 +8,7 @@
 
 **Tech Stack:** React 18, TypeScript, Tailwind CSS, @tauri-apps/api
 
-**Parent:** [2026-04-16-overlay-todo.md](2026-04-16-overlay-todo.md)
+**Parent:** [2026-04-16-scene-todo.md](2026-04-16-scene-todo.md)
 
 **Depends on:** Phase 2 (backend CRUD commands registered)
 
@@ -354,7 +354,7 @@ export function Sidebar({
   return (
     <aside className="w-60 border-r border-gray-200 bg-white flex flex-col">
       <div className="p-3 border-b border-gray-200">
-        <h1 className="text-lg font-bold text-gray-800">Overlay Todo</h1>
+        <h1 className="text-lg font-bold text-gray-800">SceneTodo</h1>
       </div>
       <nav className="flex-1 overflow-y-auto p-2 space-y-4">
         <SmartViews onSmartView={onSmartView} />
@@ -398,10 +398,10 @@ export function TodoList() {
 
 Run:
 ```bash
-cd d:/Project/overlay-todo && npm run tauri dev
+cd d:/Project/scene-todo && npm run tauri dev
 ```
 
-Expected: App window shows sidebar with "Overlay Todo" header and smart views. Content area shows "TODO: TodoList".
+Expected: App window shows sidebar with "SceneTodo" header and smart views. Content area shows "TODO: TodoList".
 
 - [ ] **Step 6: Commit**
 
@@ -671,7 +671,7 @@ export function TagList({ selectedTagIds, onToggleTag }: TagListProps) {
 
 Run:
 ```bash
-cd d:/Project/overlay-todo && npm run tauri dev
+cd d:/Project/scene-todo && npm run tauri dev
 ```
 
 Expected: Sidebar shows "分组" and "标签" sections. Clicking "+" shows input. Creating items works.
@@ -935,7 +935,7 @@ export function TodoList({ filters, selectedTagIds }: TodoListProps) {
 
 Run:
 ```bash
-cd d:/Project/overlay-todo && npm run tauri dev
+cd d:/Project/scene-todo && npm run tauri dev
 ```
 
 Expected:
@@ -1136,7 +1136,7 @@ Note: Full `boundAppIds` and `onRefresh` integration requires `getTodoWithDetail
 
 Run:
 ```bash
-cd d:/Project/overlay-todo && npm run tauri dev
+cd d:/Project/scene-todo && npm run tauri dev
 ```
 
 Expected: Hover a todo, click 📎 — dialog opens. Can create a new app and toggle binding.

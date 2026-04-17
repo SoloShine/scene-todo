@@ -51,7 +51,7 @@ pub fn run() {
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
-                .tooltip("Overlay Todo")
+                .tooltip("SceneTodo")
                 .on_menu_event(move |app, event| {
                     match event.id().as_ref() {
                         "show" => {
@@ -65,12 +65,12 @@ pub fn run() {
                             if monitor.is_running() {
                                 monitor.stop();
                                 if let Some(tray) = app.tray_by_id("main") {
-                                    let _ = tray.set_tooltip(Some("Overlay Todo (已暂停)"));
+                                    let _ = tray.set_tooltip(Some("SceneTodo (已暂停)"));
                                 }
                             } else {
                                 monitor.start();
                                 if let Some(tray) = app.tray_by_id("main") {
-                                    let _ = tray.set_tooltip(Some("Overlay Todo"));
+                                    let _ = tray.set_tooltip(Some("SceneTodo"));
                                 }
                             }
                         }

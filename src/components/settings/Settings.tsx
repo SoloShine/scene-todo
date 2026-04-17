@@ -16,7 +16,7 @@ export function Settings({ onClose }: SettingsProps) {
   const [offsets, setOffsets] = useState<Record<number, { x: number; y: number }>>({});
 
   useEffect(() => {
-    const saved = localStorage.getItem("overlay-todo-settings");
+    const saved = localStorage.getItem("scene-todo-settings");
     if (saved) {
       const parsed = JSON.parse(saved);
       setAutoStart(parsed.autoStart ?? false);
@@ -24,16 +24,16 @@ export function Settings({ onClose }: SettingsProps) {
       setWidgetSize(parsed.widgetSize ?? "medium");
       setShowEmptyWidget(parsed.showEmptyWidget ?? false);
     }
-    const savedOffsets = localStorage.getItem("overlay-todo-widget-offsets");
+    const savedOffsets = localStorage.getItem("scene-todo-widget-offsets");
     if (savedOffsets) {
       setOffsets(JSON.parse(savedOffsets));
     }
   }, []);
 
   const saveSettings = (updates: Record<string, unknown>) => {
-    const current = JSON.parse(localStorage.getItem("overlay-todo-settings") || "{}");
+    const current = JSON.parse(localStorage.getItem("scene-todo-settings") || "{}");
     const updated = { ...current, ...updates };
-    localStorage.setItem("overlay-todo-settings", JSON.stringify(updated));
+    localStorage.setItem("scene-todo-settings", JSON.stringify(updated));
     // Sync size to backend
     const size = updated.widgetSize ?? "medium";
     const sizeMap: Record<string, [number, number]> = {
@@ -55,7 +55,7 @@ export function Settings({ onClose }: SettingsProps) {
     const updated = { ...current, [axis]: value };
     const newOffsets = { ...offsets, [appId]: updated };
     setOffsets(newOffsets);
-    localStorage.setItem("overlay-todo-widget-offsets", JSON.stringify(newOffsets));
+    localStorage.setItem("scene-todo-widget-offsets", JSON.stringify(newOffsets));
     api.saveWidgetOffset(appId, updated.x, updated.y);
   };
 

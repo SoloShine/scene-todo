@@ -8,7 +8,7 @@
 
 **Tech Stack:** Tauri 2.0 tray-icon plugin, React, TypeScript, localStorage
 
-**Parent:** [2026-04-16-overlay-todo.md](2026-04-16-overlay-todo.md)
+**Parent:** [2026-04-16-scene-todo.md](2026-04-16-scene-todo.md)
 
 **Depends on:** Phase 4 (widget system complete)
 
@@ -42,7 +42,7 @@ let menu = MenuBuilder::new(app)
 let _tray = TrayIconBuilder::new()
     .icon(app.default_window_icon().unwrap().clone())
     .menu(&menu)
-    .tooltip("Overlay Todo")
+    .tooltip("SceneTodo")
     .on_menu_event(move |app, event| {
         match event.id().as_ref() {
             "show" => {
@@ -57,12 +57,12 @@ let _tray = TrayIconBuilder::new()
                     monitor.stop();
                     // Update menu text
                     if let Some(tray) = app.tray_by_id("main") {
-                        let _ = tray.set_tooltip("Overlay Todo (已暂停)");
+                        let _ = tray.set_tooltip("SceneTodo (已暂停)");
                     }
                 } else {
                     monitor.start();
                     if let Some(tray) = app.tray_by_id("main") {
-                        let _ = tray.set_tooltip("Overlay Todo");
+                        let _ = tray.set_tooltip("SceneTodo");
                     }
                 }
             }
@@ -100,7 +100,7 @@ Also ensure `windows` config hides main window from taskbar on close:
 "windows": [
   {
     "label": "main",
-    "title": "Overlay Todo",
+    "title": "SceneTodo",
     "width": 900,
     "height": 600,
     "visible": true,
@@ -129,7 +129,7 @@ if let Some(main_win) = app.get_webview_window("main") {
 
 Run:
 ```bash
-cd d:/Project/overlay-todo && npm run tauri dev
+cd d:/Project/scene-todo && npm run tauri dev
 ```
 
 Expected:
@@ -174,7 +174,7 @@ export function Settings({ onClose }: SettingsProps) {
 
   useEffect(() => {
     // Load settings from localStorage (MVP approach)
-    const saved = localStorage.getItem("overlay-todo-settings");
+    const saved = localStorage.getItem("scene-todo-settings");
     if (saved) {
       const parsed = JSON.parse(saved);
       setAutoStart(parsed.autoStart ?? false);
@@ -184,9 +184,9 @@ export function Settings({ onClose }: SettingsProps) {
   }, []);
 
   const saveSettings = (updates: Record<string, unknown>) => {
-    const current = JSON.parse(localStorage.getItem("overlay-todo-settings") || "{}");
+    const current = JSON.parse(localStorage.getItem("scene-todo-settings") || "{}");
     const updated = { ...current, ...updates };
-    localStorage.setItem("overlay-todo-settings", JSON.stringify(updated));
+    localStorage.setItem("scene-todo-settings", JSON.stringify(updated));
   };
 
   const handleAutoStart = async (enabled: boolean) => {
@@ -328,7 +328,7 @@ Add `onOpenSettings: () => void` to SidebarProps and pass from App.tsx.
 
 Run:
 ```bash
-cd d:/Project/overlay-todo && npm run tauri dev
+cd d:/Project/scene-todo && npm run tauri dev
 ```
 
 Expected: Click settings in sidebar — settings page appears with auto-start toggle, opacity slider, size selector, and app management list.
@@ -350,7 +350,7 @@ git commit -m "feat: add settings page with autostart, widget config, and app ma
 
 Run the app:
 ```bash
-cd d:/Project/overlay-todo && npm run tauri dev
+cd d:/Project/scene-todo && npm run tauri dev
 ```
 
 Execute this exact test sequence:
@@ -371,7 +371,7 @@ Execute this exact test sequence:
 - [ ] **Step 2: Performance check**
 
 While running, check:
-- Open Task Manager → find `overlay-todo.exe`
+- Open Task Manager → find `scene-todo.exe`
 - Verify memory usage < 50MB
 - Verify switching between windows causes no lag or stutter
 

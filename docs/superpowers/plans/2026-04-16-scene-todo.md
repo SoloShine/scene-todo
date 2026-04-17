@@ -1,4 +1,4 @@
-# Overlay Todo Implementation Plan
+# SceneTodo Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 >
@@ -10,7 +10,7 @@
 
 **Tech Stack:** Tauri 2.0, Rust, React 18, TypeScript, shadcn/ui (Tailwind CSS), SQLite (rusqlite), windows-rs (Win32 API), Vite
 
-**Spec:** `docs/superpowers/specs/2026-04-16-overlay-todo-design.md`
+**Spec:** `docs/superpowers/specs/2026-04-16-scene-todo-design.md`
 
 ---
 

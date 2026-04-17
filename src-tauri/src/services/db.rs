@@ -27,7 +27,7 @@ impl Database {
             .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
         std::fs::create_dir_all(&dir)
             .map_err(|e| format!("Failed to create app data dir: {}", e))?;
-        Ok(dir.join("overlay-todo.db"))
+        Ok(dir.join("scene-todo.db"))
     }
 
     fn run_migrations(&self) -> Result<(), String> {

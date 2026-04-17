@@ -8,7 +8,7 @@
 
 **Tech Stack:** Tauri 2.0, Rust, React 18, TypeScript, Tailwind CSS, shadcn/ui, SQLite (rusqlite), Vite
 
-**Parent:** [2026-04-16-overlay-todo.md](2026-04-16-overlay-todo.md)
+**Parent:** [2026-04-16-scene-todo.md](2026-04-16-scene-todo.md)
 
 ---
 
@@ -23,7 +23,7 @@
 
 Run:
 ```bash
-cd d:/Project/overlay-todo
+cd d:/Project/scene-todo
 npm create tauri-app@latest -- --template react-ts --manager npm .
 ```
 
@@ -107,7 +107,7 @@ windows = { version = "0.58", features = [
 
 Run:
 ```bash
-cd d:/Project/overlay-todo/src-tauri && cargo check
+cd d:/Project/scene-todo/src-tauri && cargo check
 ```
 
 Expected: Compiles with no errors.
@@ -116,7 +116,7 @@ Expected: Compiles with no errors.
 
 Run:
 ```bash
-cd d:/Project/overlay-todo
+cd d:/Project/scene-todo
 npx shadcn@latest init -d
 ```
 
@@ -240,7 +240,7 @@ impl Database {
             .map_err(|e| format!("Failed to resolve app data dir: {}", e))?;
         std::fs::create_dir_all(&dir)
             .map_err(|e| format!("Failed to create app data dir: {}", e))?;
-        Ok(dir.join("overlay-todo.db"))
+        Ok(dir.join("scene-todo.db"))
     }
 
     fn run_migrations(&self) -> Result<(), String> {
@@ -356,7 +356,7 @@ Each placeholder contains: `// TODO: implement in later phase`
 
 Run:
 ```bash
-cd d:/Project/overlay-todo/src-tauri && cargo test --lib services::db -- --nocapture
+cd d:/Project/scene-todo/src-tauri && cargo test --lib services::db -- --nocapture
 ```
 
 Expected: All 3 tests pass.
@@ -548,7 +548,7 @@ pub use app::*;
 
 Run:
 ```bash
-cd d:/Project/overlay-todo/src-tauri && cargo check
+cd d:/Project/scene-todo/src-tauri && cargo check
 ```
 
 Expected: Compiles without errors.
@@ -605,7 +605,7 @@ File: `src-tauri/src/main.rs`
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    overlay_todo_lib::run()
+    scene_todo_lib::run()
 }
 ```
 
@@ -620,7 +620,7 @@ File: `src-tauri/src/commands/mod.rs`
 
 Run:
 ```bash
-cd d:/Project/overlay-todo && npm run tauri dev
+cd d:/Project/scene-todo && npm run tauri dev
 ```
 
 Expected: App window opens. Database file is created in app data directory.

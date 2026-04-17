@@ -15,7 +15,7 @@ export default function App() {
     );
     // Sync initial widget size to backend
     try {
-      const saved = localStorage.getItem("overlay-todo-settings");
+      const saved = localStorage.getItem("scene-todo-settings");
       if (saved) {
         const parsed = JSON.parse(saved);
         const size = parsed.widgetSize ?? "medium";

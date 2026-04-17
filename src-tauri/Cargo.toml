@@ -1,12 +1,12 @@
 [package]
-name = "overlay-todo"
+name = "scene-todo"
 version = "0.1.0"
-description = "A desktop overlay todo application"
+description = "A desktop scene-based todo application"
 authors = ["you"]
 edition = "2021"
 
 [lib]
-name = "overlay_todo_lib"
+name = "scene_todo_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

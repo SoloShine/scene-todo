@@ -10,7 +10,7 @@ interface WidgetProps {
 
 function readOpacity(): number {
   try {
-    const saved = localStorage.getItem("overlay-todo-settings");
+    const saved = localStorage.getItem("scene-todo-settings");
     if (saved) {
       const parsed = JSON.parse(saved);
       return parsed.widgetOpacity ?? 85;

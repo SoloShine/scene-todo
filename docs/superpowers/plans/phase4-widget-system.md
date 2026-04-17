@@ -8,7 +8,7 @@
 
 **Tech Stack:** Rust, windows-rs (Win32 API), Tauri 2.0 multi-window, React, TypeScript
 
-**Parent:** [2026-04-16-overlay-todo.md](2026-04-16-overlay-todo.md)
+**Parent:** [2026-04-16-scene-todo.md](2026-04-16-scene-todo.md)
 
 **Depends on:** Phase 2 (backend CRUD, especially `find_app_by_process` and `list_todos_by_app`)
 
@@ -120,7 +120,7 @@ mod tests {
 
 Run:
 ```bash
-cd d:/Project/overlay-todo/src-tauri && cargo test --lib services::process_matcher -- --nocapture
+cd d:/Project/scene-todo/src-tauri && cargo test --lib services::process_matcher -- --nocapture
 ```
 
 Expected: Tests pass and print debug info (results depend on environment).
@@ -270,7 +270,7 @@ pub fn find_app_by_process_conn(conn: &rusqlite::Connection, process_name: &str)
 
 Run:
 ```bash
-cd d:/Project/overlay-todo/src-tauri && cargo check
+cd d:/Project/scene-todo/src-tauri && cargo check
 ```
 
 Expected: Compiles without errors.
@@ -483,7 +483,7 @@ commands::app_cmd::stop_window_monitor,
 
 Run:
 ```bash
-cd d:/Project/overlay-todo/src-tauri && cargo check
+cd d:/Project/scene-todo/src-tauri && cargo check
 ```
 
 Expected: Compiles without errors.
@@ -722,7 +722,7 @@ export const stopWindowMonitor = () => invoke<void>("stop_window_monitor");
 
 Run:
 ```bash
-cd d:/Project/overlay-todo && npm run tauri dev
+cd d:/Project/scene-todo && npm run tauri dev
 ```
 
 Test flow:
