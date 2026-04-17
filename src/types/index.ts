@@ -15,7 +15,7 @@ export interface Todo {
 export interface TodoWithDetails extends Todo {
   tags: Tag[];
   sub_tasks: Todo[];
-  bound_app_ids: number[];
+  bound_scene_ids: number[];
 }
 
 export interface Group {
@@ -104,4 +104,67 @@ export interface TodoFilters {
   priority?: string | null;
   parent_id?: number | null;
   due_before?: string | null;
+}
+
+// --- Scene types ---
+export interface Scene {
+  id: number;
+  name: string;
+  icon: string | null;
+  color: string;
+  sort_order: number;
+  track_time: boolean;
+  created_at: string;
+}
+
+export interface CreateScene {
+  name: string;
+  icon?: string | null;
+  color?: string | null;
+  track_time?: boolean;
+}
+
+export interface UpdateScene {
+  id: number;
+  name?: string | null;
+  icon?: string | null;
+  color?: string | null;
+  sort_order?: number | null;
+  track_time?: boolean | null;
+}
+
+export interface SceneApp {
+  scene_id: number;
+  app_id: number;
+  priority: number;
+}
+
+export interface TimeSession {
+  id: number;
+  scene_id: number | null;
+  app_id: number | null;
+  started_at: string;
+  ended_at: string | null;
+  duration_secs: number | null;
+}
+
+export interface SceneTimeSummary {
+  scene_id: number;
+  scene_name: string;
+  color: string;
+  total_secs: number;
+  percentage: number;
+}
+
+export interface AppTimeDetail {
+  app_id: number;
+  app_name: string;
+  total_secs: number;
+}
+
+export interface TrackingStatus {
+  paused: boolean;
+  current_scene_id: number | null;
+  current_scene_name: string | null;
+  session_started_at: string | null;
 }

@@ -11,6 +11,7 @@ type TodoGroup = "overdue" | "today" | "upcoming" | "undated" | "completed";
 
 interface TodoListProps {
   filters: TodoFilters;
+  selectedSceneId?: number | null;
 }
 
 const GROUP_CONFIG: { key: TodoGroup; label: string; color: string }[] = [
@@ -51,7 +52,7 @@ function localTodayKey(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-export function TodoList({ filters }: TodoListProps) {
+export function TodoList({ filters, selectedSceneId: _selectedSceneId }: TodoListProps) {
   const { todos, loading, create, toggleStatus, remove, refresh } = useTodos(filters);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchText, setSearchText] = useState("");

@@ -3,6 +3,8 @@ import type {
   Todo, TodoWithDetails, Group, Tag, App,
   CreateTodo, UpdateTodo, CreateGroup, UpdateGroup,
   CreateTag, UpdateTag, CreateApp, UpdateApp, TodoFilters,
+  Scene, CreateScene, UpdateScene, SceneApp,
+  TimeSession, SceneTimeSummary, AppTimeDetail, TrackingStatus,
 } from "../types";
 
 export const createTodo = (input: CreateTodo) =>
@@ -94,3 +96,57 @@ export const setWidgetDefaultSize = (width: number, height: number) =>
 
 export const hideWidget = (appId: number) =>
   invoke<void>("hide_widget", { appId });
+
+// Scene management
+export const createScene = (input: CreateScene) =>
+  invoke<Scene>("create_scene", { input });
+
+export const listScenes = () =>
+  invoke<Scene[]>("list_scenes");
+
+export const updateScene = (input: UpdateScene) =>
+  invoke<Scene>("update_scene", { input });
+
+export const deleteScene = (id: number) =>
+  invoke<void>("delete_scene", { id });
+
+export const addAppToScene = (sceneId: number, appId: number, priority: number) =>
+  invoke<void>("add_app_to_scene", { sceneId, appId, priority });
+
+export const removeAppFromScene = (sceneId: number, appId: number) =>
+  invoke<void>("remove_app_from_scene", { sceneId, appId });
+
+export const listSceneApps = (sceneId: number) =>
+  invoke<SceneApp[]>("list_scene_apps", { sceneId });
+
+export const bindTodoToScene = (todoId: number, sceneId: number) =>
+  invoke<void>("bind_todo_to_scene", { todoId, sceneId });
+
+export const unbindTodoFromScene = (todoId: number, sceneId: number) =>
+  invoke<void>("unbind_todo_from_scene", { todoId, sceneId });
+
+export const listTodosByScene = (sceneId: number) =>
+  invoke<TodoWithDetails[]>("list_todos_by_scene", { sceneId });
+
+// Time statistics
+export const getTimeSummary = (rangeStart: string, rangeEnd: string) =>
+  invoke<SceneTimeSummary[]>("get_time_summary", { rangeStart, rangeEnd });
+
+export const getTimeDetail = (sceneId: number, rangeStart: string, rangeEnd: string) =>
+  invoke<AppTimeDetail[]>("get_time_detail", { sceneId, rangeStart, rangeEnd });
+
+export const getTimeSessions = (rangeStart: string, rangeEnd: string, limit: number) =>
+  invoke<TimeSession[]>("get_time_sessions", { rangeStart, rangeEnd, limit });
+
+// Tracking control
+export const setTrackingPaused = (paused: boolean) =>
+  invoke<void>("set_tracking_paused", { paused });
+
+export const getTrackingStatus = () =>
+  invoke<TrackingStatus>("get_tracking_status");
+
+export const getActiveScene = () =>
+  invoke<Scene | null>("get_active_scene");
+
+export const setActiveScene = (sceneId: number) =>
+  invoke<void>("set_active_scene", { sceneId });
