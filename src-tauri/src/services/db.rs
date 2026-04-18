@@ -52,6 +52,7 @@ impl Database {
         let migrations: Vec<(i64, &str, &str)> = vec![
             (1, "001_init", include_str!("../../migrations/001_init.sql")),
             (2, "002_scene_tracking", include_str!("../../migrations/002_scene_tracking.sql")),
+            (3, "003_show_widget", include_str!("../../migrations/003_show_widget.sql")),
         ];
 
         for (id, name, sql) in &migrations {

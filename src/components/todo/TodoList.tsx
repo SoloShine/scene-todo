@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { List, CalendarDays, ChevronDown, ChevronRight } from "lucide-react";
 import { useTodos } from "../../hooks/useTodos";
 import { TodoForm } from "./TodoForm";
@@ -57,14 +57,16 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
   const { todos: filteredTodos, loading, create, toggleStatus, remove, refresh } = useTodos(filters);
   const [sceneTodos, setSceneTodos] = useState<TodoWithDetails[]>([]);
 
-  // When a scene is selected, fetch its todos separately
-  useMemo(() => {
+  const refreshSceneTodos = useCallback(async () => {
     if (selectedSceneId) {
-      api.listTodosByScene(selectedSceneId).then(setSceneTodos);
+      const data = await api.listTodosByScene(selectedSceneId);
+      setSceneTodos(data);
     } else {
       setSceneTodos([]);
     }
   }, [selectedSceneId]);
+
+  useEffect(() => { refreshSceneTodos(); }, [refreshSceneTodos]);
 
   const todos = selectedSceneId ? sceneTodos : filteredTodos;
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -75,12 +77,20 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<TodoGroup>>(new Set(["completed"]));
 
-  const handleCreate = (title: string) => {
-    create({ title, due_date: localTodayKey() + "T23:59" });
+  const handleCreate = async (title: string) => {
+    const todo = await create({ title, due_date: localTodayKey() + "T23:59" });
+    if (selectedSceneId) {
+      await api.bindTodoToScene(todo.id, selectedSceneId);
+      refreshSceneTodos();
+    }
   };
 
-  const handleAddSubTask = (parentId: number, title: string) => {
-    create({ title, parent_id: parentId, due_date: localTodayKey() + "T23:59" });
+  const handleAddSubTask = async (parentId: number, title: string) => {
+    const todo = await create({ title, parent_id: parentId, due_date: localTodayKey() + "T23:59" });
+    if (selectedSceneId) {
+      await api.bindTodoToScene(todo.id, selectedSceneId);
+      refreshSceneTodos();
+    }
   };
 
   const matchesFilter = (t: { title: string; description?: string | null; priority: string; status: string; due_date: string | null }) => {

@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindow};
 use windows::Win32::Foundation::HWND;
 
+use crate::services::app_repo;
 use crate::services::process_matcher;
 use crate::services::scene_repo;
 use crate::services::window_monitor::ForegroundChanged;
@@ -62,6 +63,15 @@ impl WidgetManager {
             Ok(todos) if todos.is_empty() => return,
             Err(_) => return,
             _ => {}
+        }
+
+        // Check if the matched app has show_widget enabled
+        if let Some(app_id) = event.app_id {
+            if let Ok(app) = app_repo::get_app(&self.db, app_id) {
+                if !app.show_widget {
+                    return;
+                }
+            }
         }
 
         let mut active = self.active_widgets.lock().unwrap();

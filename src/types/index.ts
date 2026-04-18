@@ -38,6 +38,7 @@ export interface App {
   process_names: string;
   icon_path: string | null;
   display_name: string | null;
+  show_widget: boolean;
 }
 
 export interface CreateTodo {
@@ -95,6 +96,7 @@ export interface UpdateApp {
   name?: string | null;
   process_names?: string[] | null;
   display_name?: string | null;
+  show_widget?: boolean | null;
 }
 
 export interface TodoFilters {

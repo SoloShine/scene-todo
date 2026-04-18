@@ -9,6 +9,7 @@ fn row_to_app(row: &Row) -> Result<App, rusqlite::Error> {
         process_names: row.get(2)?,
         icon_path: row.get(3)?,
         display_name: row.get(4)?,
+        show_widget: row.get::<_, i32>(5)? != 0,
     })
 }
 
@@ -22,7 +23,7 @@ pub fn create_app(db: &Database, input: CreateApp) -> Result<App, String> {
     ).map_err(|e| format!("Insert app: {}", e))?;
     let id = conn.last_insert_rowid();
     let mut stmt = conn.prepare(
-        "SELECT id, name, process_names, icon_path, display_name FROM apps WHERE id = ?1"
+        "SELECT id, name, process_names, icon_path, display_name, show_widget FROM apps WHERE id = ?1"
     ).map_err(|e| format!("Prepare: {}", e))?;
     stmt.query_row(params![id], row_to_app).map_err(|e| format!("Fetch: {}", e))
 }
@@ -30,7 +31,7 @@ pub fn create_app(db: &Database, input: CreateApp) -> Result<App, String> {
 pub fn list_apps(db: &Database) -> Result<Vec<App>, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare(
-        "SELECT id, name, process_names, icon_path, display_name FROM apps ORDER BY name"
+        "SELECT id, name, process_names, icon_path, display_name, show_widget FROM apps ORDER BY name"
     ).map_err(|e| format!("Prepare: {}", e))?;
     let rows = stmt.query_map([], row_to_app).map_err(|e| format!("Query: {}", e))?;
     Ok(rows.filter_map(|r| r.ok()).collect())
@@ -39,7 +40,7 @@ pub fn list_apps(db: &Database) -> Result<Vec<App>, String> {
 pub fn get_app(db: &Database, id: i64) -> Result<App, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare(
-        "SELECT id, name, process_names, icon_path, display_name FROM apps WHERE id = ?1"
+        "SELECT id, name, process_names, icon_path, display_name, show_widget FROM apps WHERE id = ?1"
     ).map_err(|e| format!("Prepare: {}", e))?;
     stmt.query_row(params![id], row_to_app).map_err(|e| format!("Not found: {}", e))
 }
@@ -55,6 +56,7 @@ pub fn update_app(db: &Database, input: UpdateApp) -> Result<App, String> {
         sets.push(format!("process_names = ?{}", pv.len() + 1)); pv.push(Box::new(json));
     }
     if let Some(ref v) = input.display_name { sets.push(format!("display_name = ?{}", pv.len() + 1)); pv.push(Box::new(v.clone())); }
+    if let Some(v) = input.show_widget { sets.push(format!("show_widget = ?{}", pv.len() + 1)); pv.push(Box::new(v as i32)); }
 
     if sets.is_empty() { drop(conn); return get_app(db, input.id); }
 
@@ -98,7 +100,7 @@ pub fn find_app_by_process(db: &Database, process_name: &str) -> Option<App> {
 
 pub fn find_app_by_process_conn(conn: &rusqlite::Connection, process_name: &str) -> Option<App> {
     let apps: Vec<App> = conn
-        .prepare("SELECT id, name, process_names, icon_path, display_name FROM apps")
+        .prepare("SELECT id, name, process_names, icon_path, display_name, show_widget FROM apps")
         .ok()?
         .query_map([], row_to_app)
         .ok()?

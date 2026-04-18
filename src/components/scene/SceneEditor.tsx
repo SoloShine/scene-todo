@@ -18,13 +18,14 @@ const COLOR_OPTIONS = [
 
 export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
   const { scenes, create, update, remove } = useScenes();
-  const { apps } = useApps();
+  const { apps, create: createApp, refresh: refreshApps } = useApps();
   const [name, setName] = useState("");
   const [icon, setIcon] = useState("📁");
   const [color, setColor] = useState("#6B7280");
   const [trackTime, setTrackTime] = useState(true);
   const [sceneApps, setSceneApps] = useState<SceneApp[]>([]);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [capturing, setCapturing] = useState(false);
 
   const existingScene = sceneId ? scenes.find((s) => s.id === sceneId) : null;
 
@@ -67,6 +68,44 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
     await api.addAppToScene(existingScene.id, appId, 0);
     const updated = await api.listSceneApps(existingScene.id);
     setSceneApps(updated);
+  };
+
+  const handleCapture = async () => {
+    if (!existingScene) return;
+    setCapturing(true);
+    try {
+      const result = await api.startWindowCapture();
+      const { process_name } = result;
+      if (!process_name) return;
+
+      const existing = apps.find((a) => {
+        try {
+          return JSON.parse(a.process_names).some((p: string) => p.toLowerCase() === process_name.toLowerCase());
+        } catch { return false; }
+      });
+
+      let appId: number;
+      if (existing) {
+        appId = existing.id;
+      } else {
+        const displayName = process_name.replace(/\.[^.]+$/, "");
+        const newApp = await createApp({ name: displayName, process_names: [process_name] });
+        appId = newApp.id;
+      }
+
+      // Check if already bound to this scene
+      const alreadyBound = sceneApps.some((sa) => sa.app_id === appId);
+      if (!alreadyBound) {
+        await api.addAppToScene(existingScene.id, appId, 0);
+        const updated = await api.listSceneApps(existingScene.id);
+        setSceneApps(updated);
+      }
+      await refreshApps();
+    } catch (e) {
+      console.error("Window capture failed:", e);
+    } finally {
+      setCapturing(false);
+    }
   };
 
   const handleRemoveApp = async (appId: number) => {
@@ -160,18 +199,27 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
                   </div>
                 );
               })}
-              {unboundApps.length > 0 && (
-                <select
-                  onChange={(e) => { if (e.target.value) handleAddApp(Number(e.target.value)); e.target.value = ""; }}
-                  className="w-full text-sm border border-gray-200 rounded px-2 py-1"
-                  defaultValue=""
+              <div className="flex gap-1">
+                <button
+                  onClick={handleCapture}
+                  disabled={capturing}
+                  className="flex-1 py-1.5 text-xs rounded border border-gray-200 hover:border-blue-400 hover:text-blue-500 cursor-pointer transition-colors disabled:opacity-50"
                 >
-                  <option value="">+ 添加应用...</option>
-                  {unboundApps.map((app) => (
-                    <option key={app.id} value={app.id}>{app.display_name || app.name}</option>
-                  ))}
-                </select>
-              )}
+                  {capturing ? "点击目标窗口..." : "+ 抓取窗口添加"}
+                </button>
+                {unboundApps.length > 0 && (
+                  <select
+                    onChange={(e) => { if (e.target.value) handleAddApp(Number(e.target.value)); e.target.value = ""; }}
+                    className="flex-1 text-xs border border-gray-200 rounded px-2 py-1"
+                    defaultValue=""
+                  >
+                    <option value="">从已有应用添加</option>
+                    {unboundApps.map((app) => (
+                      <option key={app.id} value={app.id}>{app.display_name || app.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
             </div>
           </div>
         )}

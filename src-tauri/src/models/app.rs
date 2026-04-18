@@ -7,6 +7,7 @@ pub struct App {
     pub process_names: String,  // JSON array, e.g. '["WINWORD.EXE"]'
     pub icon_path: Option<String>,
     pub display_name: Option<String>,
+    pub show_widget: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,6 +23,7 @@ pub struct UpdateApp {
     pub name: Option<String>,
     pub process_names: Option<Vec<String>>,
     pub display_name: Option<String>,
+    pub show_widget: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -7,7 +7,7 @@ interface SettingsProps {
 }
 
 export function Settings({ onClose }: SettingsProps) {
-  const { apps, remove } = useApps();
+  const { apps, create, remove, refresh } = useApps();
   const [autoStart, setAutoStart] = useState(false);
   const [widgetOpacity, setWidgetOpacity] = useState(85);
   const [widgetSize, setWidgetSize] = useState<"small" | "medium" | "large">("medium");
@@ -15,6 +15,7 @@ export function Settings({ onClose }: SettingsProps) {
   const [retentionDays, setRetentionDays] = useState(90);
   const [expandedApp, setExpandedApp] = useState<number | null>(null);
   const [offsets, setOffsets] = useState<Record<number, { x: number; y: number }>>({});
+  const [capturing, setCapturing] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("scene-todo-settings");
@@ -59,6 +60,33 @@ export function Settings({ onClose }: SettingsProps) {
     setOffsets(newOffsets);
     localStorage.setItem("scene-todo-widget-offsets", JSON.stringify(newOffsets));
     api.saveWidgetOffset(appId, updated.x, updated.y);
+  };
+
+  const handleCapture = async () => {
+    setCapturing(true);
+    try {
+      const result = await api.startWindowCapture();
+      const { process_name } = result;
+      if (!process_name) return;
+      const existing = apps.find((a) => {
+        try {
+          return JSON.parse(a.process_names).some((p: string) => p.toLowerCase() === process_name.toLowerCase());
+        } catch { return false; }
+      });
+      if (!existing) {
+        const displayName = process_name.replace(/\.[^.]+$/, "");
+        await create({ name: displayName, process_names: [process_name] });
+      }
+    } catch (e) {
+      console.error("Window capture failed:", e);
+    } finally {
+      setCapturing(false);
+    }
+  };
+
+  const handleToggleShowWidget = async (appId: number, show: boolean) => {
+    await api.updateApp({ id: appId, show_widget: show });
+    refresh();
   };
 
   return (
@@ -149,14 +177,25 @@ export function Settings({ onClose }: SettingsProps) {
                     >
                       {isExpanded ? "\u25BE" : "\u25B8"}
                     </button>
-                    <div>
+                    <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-700">{app.display_name || app.name}</span>
-                      <span className="text-xs text-gray-400 ml-2">
+                      <span className="text-xs text-gray-400">
                         {(() => { try { return JSON.parse(app.process_names).join(", "); } catch { return app.process_names; } })()}
                       </span>
                     </div>
                   </div>
-                  <button onClick={() => remove(app.id)} className="text-xs text-gray-400 hover:text-red-500">删除</button>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1 cursor-pointer" title={app.show_widget ? "显示浮窗" : "隐藏浮窗"}>
+                      <input
+                        type="checkbox"
+                        checked={app.show_widget}
+                        onChange={(e) => handleToggleShowWidget(app.id, e.target.checked)}
+                        className="rounded"
+                      />
+                      <span className="text-[10px] text-gray-400">浮窗</span>
+                    </label>
+                    <button onClick={() => remove(app.id)} className="text-xs text-gray-400 hover:text-red-500">删除</button>
+                  </div>
                 </div>
                 {isExpanded && (
                   <div className="ml-6 px-2 py-2 bg-gray-50 rounded text-xs space-y-2">
@@ -189,6 +228,13 @@ export function Settings({ onClose }: SettingsProps) {
               </div>
             );
           })}
+          <button
+            onClick={handleCapture}
+            disabled={capturing}
+            className="w-full py-2 mt-1 text-xs rounded border border-gray-200 hover:border-blue-400 hover:text-blue-500 cursor-pointer transition-colors disabled:opacity-50"
+          >
+            {capturing ? "点击目标窗口以抓取..." : "+ 抓取窗口添加关联软件"}
+          </button>
           {apps.length === 0 && <p className="text-xs text-gray-400 py-2">暂无关联软件</p>}
         </div>
       </section>
