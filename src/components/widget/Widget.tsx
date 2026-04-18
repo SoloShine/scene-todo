@@ -207,13 +207,14 @@ export function Widget({ appId, scenes }: WidgetProps) {
         flexDirection: "column",
         width: "100%",
         height: "100%",
-        background: `rgba(255, 255, 255, ${bgAlpha})`,
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        borderRadius: "10px",
+        background: `rgba(255, 255, 255, ${passthrough ? bgAlpha : 0.92})`,
+        backdropFilter: "blur(20px) saturate(180%)",
+        WebkitBackdropFilter: "blur(20px) saturate(180%)",
+        borderRadius: "14px",
         border: passthrough
-          ? "1px dashed rgba(100, 149, 237, 0.5)"
-          : "1px solid rgba(200, 200, 200, 0.3)",
+          ? "1px dashed rgba(99, 102, 241, 0.4)"
+          : "1px solid rgba(255, 255, 255, 0.5)",
+        boxShadow: "0 8px 32px rgba(99,102,241,0.12), 0 2px 8px rgba(0,0,0,0.06)",
         transition: "border 0.2s",
       }}
     >
@@ -226,7 +227,7 @@ export function Widget({ appId, scenes }: WidgetProps) {
         <div className="flex items-center gap-1 min-w-0 flex-1" data-tauri-drag-region>
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="text-gray-500 hover:text-gray-700 text-[10px] flex-shrink-0"
+            className="w-5 h-5 rounded-md bg-theme-bg/20 flex items-center justify-center text-theme text-[10px] hover:bg-theme-bg/40 transition-colors flex-shrink-0"
           >
             {collapsed ? "\u25B8" : "\u25BE"}
           </button>
@@ -240,18 +241,19 @@ export function Widget({ appId, scenes }: WidgetProps) {
                   setShowSceneDropdown(!showSceneDropdown);
                 }
               }}
-              className={`text-[11px] text-gray-700 font-medium truncate flex items-center gap-0.5 ${
-                scenes.length > 1 ? "cursor-pointer hover:text-gray-900" : ""
+              className={`text-xs font-semibold text-[#1e1b4b] truncate flex items-center gap-1 ${
+                scenes.length > 1 ? "cursor-pointer" : ""
               }`}
             >
+              <div className="w-1.5 h-1.5 rounded-full bg-theme flex-shrink-0" />
               <span>{defaultScene?.name ?? "SceneTodo"}</span>
               {scenes.length > 1 && (
-                <span className="text-[9px] text-gray-400 flex-shrink-0">▾</span>
+                <span className="text-[9px] text-[#1e1b4b]/50 flex-shrink-0">▾</span>
               )}
               {remainingScenes > 0 && (
-                <span className="text-[9px] text-gray-400 flex-shrink-0">+{remainingScenes}</span>
+                <span className="bg-theme-bg/50 text-theme text-[9px] px-1.5 rounded-full font-semibold flex-shrink-0">+{remainingScenes}</span>
               )}
-              <span className="text-[10px] text-gray-400 flex-shrink-0">({pendingCount})</span>
+              <span className="bg-theme-bg/50 text-theme text-[9px] px-1.5 rounded-full font-semibold flex-shrink-0">{pendingCount}</span>
             </button>
 
             {showSceneDropdown && scenes.length > 1 && (
@@ -284,7 +286,7 @@ export function Widget({ appId, scenes }: WidgetProps) {
 
         <button
           onClick={handlePassthrough}
-          className="text-[11px] px-1 rounded flex-shrink-0 text-gray-400 hover:text-blue-500 hover:bg-gray-100 transition-colors"
+          className="w-5 h-5 rounded-md bg-theme-bg/20 flex items-center justify-center text-theme text-[10px] hover:bg-theme-bg/40 transition-colors flex-shrink-0"
           title="点击穿透：鼠标可穿透浮窗操作下方应用"
         >
           📍
@@ -333,7 +335,7 @@ export function Widget({ appId, scenes }: WidgetProps) {
         <div
           ref={todoListRef}
           style={{ flex: 1, minHeight: 0, overflowY: "auto" }}
-          className="px-2 pb-1 space-y-0.5"
+          className="px-2 pb-1.5 space-y-0.5"
         >
           {filteredTodos.map(todo => (
             <div key={todo.id}>
@@ -366,8 +368,7 @@ export function Widget({ appId, scenes }: WidgetProps) {
             onChange={(e) => setQuickAdd(e.target.value)}
             onKeyDown={handleQuickAdd}
             placeholder="Quick add..."
-            className="w-full px-2 py-1 text-xs rounded outline-none focus:ring-1 focus:ring-blue-300"
-            style={{ background: "rgba(255, 255, 255, 0.5)" }}
+            className="w-full px-2 py-1 text-[11px] rounded-lg bg-theme-bg/20 border border-dashed border-theme-border/60 text-[#1e1b4b] placeholder:text-theme-light/50 outline-none focus:border-theme"
           />
         </div>
       )}
