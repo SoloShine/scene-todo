@@ -171,6 +171,7 @@ pub fn run() {
             commands::app_cmd::set_widget_default_size,
             commands::app_cmd::hide_widget,
             commands::app_cmd::set_widget_passthrough,
+            commands::app_cmd::disable_widget_passthrough,
             commands::scene_cmd::create_scene,
             commands::scene_cmd::list_scenes,
             commands::scene_cmd::update_scene,

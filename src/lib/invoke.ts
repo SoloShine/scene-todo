@@ -100,6 +100,9 @@ export const hideWidget = (appId: number) =>
 export const setWidgetPassthrough = (appId: number, passthrough: boolean) =>
   invoke<void>("set_widget_passthrough", { appId, passthrough });
 
+export const disableWidgetPassthrough = (appId: number) =>
+  invoke<void>("disable_widget_passthrough", { appId });
+
 // Scene management
 export const createScene = (input: CreateScene) =>
   invoke<Scene>("create_scene", { input });

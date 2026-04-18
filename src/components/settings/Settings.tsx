@@ -140,7 +140,7 @@ export function Settings({ onClose }: SettingsProps) {
         <label className="flex items-center justify-between py-2">
           <span className="text-sm text-gray-700">浮窗不透明度</span>
           <div className="flex items-center gap-2">
-            <input type="range" min={30} max={100} value={widgetOpacity}
+            <input type="range" min={0} max={100} value={widgetOpacity}
               onChange={(e) => { const v = parseInt(e.target.value); setWidgetOpacity(v); saveSettings({ widgetOpacity: v }); }}
               className="w-24"
             />

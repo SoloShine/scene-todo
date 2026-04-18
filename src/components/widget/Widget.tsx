@@ -71,9 +71,11 @@ export function Widget({ appId, sceneNames }: WidgetProps) {
   };
 
   const handlePassthrough = async () => {
-    const next = !passthrough;
-    setPassthrough(next);
-    await setWidgetPassthrough(appId, next);
+    if (!passthrough) {
+      setPassthrough(true);
+      await setWidgetPassthrough(appId, true);
+    }
+    // Disabling is handled by the pin window → disableWidgetPassthrough command
   };
 
   const pendingCount = todos.reduce(
@@ -82,6 +84,7 @@ export function Widget({ appId, sceneNames }: WidgetProps) {
   );
 
   const title = sceneNames.length > 0 ? sceneNames.join(" · ") : "SceneTodo";
+  // Background alpha from opacity (0-100), text stays at full opacity
   const bgAlpha = opacity / 100;
 
   return (
@@ -93,11 +96,11 @@ export function Widget({ appId, sceneNames }: WidgetProps) {
         background: passthrough ? "transparent" : `rgba(255, 255, 255, ${bgAlpha})`,
         backdropFilter: passthrough ? "none" : "blur(12px)",
         WebkitBackdropFilter: passthrough ? "none" : "blur(12px)",
-        borderRadius: "10px",
+        borderRadius: passthrough ? 0 : "10px",
         border: passthrough ? "none" : "1px solid rgba(200, 200, 200, 0.3)",
       }}
     >
-      {/* Title bar — always visible and interactive */}
+      {/* Title bar */}
       <div
         className="flex items-center justify-between px-2 py-1 cursor-move"
         data-tauri-drag-region
@@ -105,7 +108,7 @@ export function Widget({ appId, sceneNames }: WidgetProps) {
         <div className="flex items-center gap-1 min-w-0 flex-1" data-tauri-drag-region>
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="text-gray-400 hover:text-gray-600 text-[10px] flex-shrink-0"
+            className="text-gray-500 hover:text-gray-700 text-[10px] flex-shrink-0"
           >
             {collapsed ? "\u25B8" : "\u25BE"}
           </button>
@@ -116,14 +119,10 @@ export function Widget({ appId, sceneNames }: WidgetProps) {
         </div>
         <button
           onClick={handlePassthrough}
-          className={`text-[11px] px-1 rounded flex-shrink-0 transition-colors ${
-            passthrough
-              ? "text-blue-500 bg-blue-50 hover:bg-blue-100"
-              : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-          }`}
-          title={passthrough ? "点击穿透中（通过托盘菜单关闭）" : "开启点击穿透"}
+          className="text-[11px] px-1 rounded flex-shrink-0 text-gray-400 hover:text-blue-500 hover:bg-gray-100 transition-colors"
+          title="点击穿透：鼠标可穿透浮窗操作下方应用"
         >
-          {passthrough ? "📌" : "📍"}
+          📍
         </button>
       </div>
 
