@@ -10,7 +10,7 @@ use services::widget_manager::WidgetManager;
 use services::window_monitor::{ForegroundChanged, WindowMonitor, WindowMoved};
 use services::scene_repo;
 use tauri::{
-    Listener, Manager,
+    Listener, Manager, Emitter,
     menu::{MenuBuilder, MenuItemBuilder},
     tray::{TrayIconBuilder, MouseButton, MouseButtonState, TrayIconEvent},
 };
@@ -188,13 +188,13 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // Prevent app from closing when main window is closed (hide to tray)
+            // Handle main window close — ask frontend what to do
             if let Some(main_win) = app.get_webview_window("main") {
-                let win_clone = main_win.clone();
+                let app_handle = app.handle().clone();
                 main_win.on_window_event(move |event| {
                     if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                         api.prevent_close();
-                        let _ = win_clone.hide();
+                        let _ = app_handle.emit("close-requested", ());
                     }
                 });
             }
@@ -237,6 +237,8 @@ pub fn run() {
             commands::app_cmd::extract_app_icon,
             commands::app_cmd::refresh_all_icons,
             commands::app_cmd::import_app_icon,
+            commands::app_cmd::exit_app,
+            commands::app_cmd::hide_main_window,
             commands::data_cmd::export_data,
             commands::data_cmd::import_data,
             commands::scene_cmd::create_scene,

@@ -174,3 +174,10 @@ export const exportData = () =>
 
 export const importData = (json: string) =>
   invoke<void>("import_data", { json });
+
+// Window control
+export const exitApp = () =>
+  invoke<void>("exit_app");
+
+export const hideMainWindow = () =>
+  invoke<void>("hide_main_window");

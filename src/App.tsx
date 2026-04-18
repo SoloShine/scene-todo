@@ -4,8 +4,11 @@ import { TodoList } from "./components/todo/TodoList";
 import { Settings } from "./components/settings/Settings";
 import { SceneEditor } from "./components/scene/SceneEditor";
 import { StatsView } from "./components/stats/StatsView";
-import { startWindowMonitor, setWidgetDefaultSize, cleanupOldSessions, saveWidgetOffset } from "./lib/invoke";
+import { startWindowMonitor, setWidgetDefaultSize, cleanupOldSessions, saveWidgetOffset, exitApp, hideMainWindow } from "./lib/invoke";
+import { listen } from "@tauri-apps/api/event";
 import type { TodoFilters } from "./types";
+
+type CloseAction = "prompt" | "hide" | "exit";
 
 export default function App() {
   const [filters, setFilters] = useState<TodoFilters>({});
@@ -16,6 +19,7 @@ export default function App() {
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
   const [selectedSceneId, setSelectedSceneId] = useState<number | null>(null);
   const [editingSceneId, setEditingSceneId] = useState<number | null>(null);
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
 
   useEffect(() => {
     startWindowMonitor().catch((e) =>
@@ -51,6 +55,21 @@ export default function App() {
         }
       }
     } catch {}
+  }, []);
+
+  useEffect(() => {
+    const unlisten = listen("close-requested", () => {
+      const saved = localStorage.getItem("scene-todo-settings");
+      const closeAction: CloseAction = saved ? JSON.parse(saved).closeAction ?? "prompt" : "prompt";
+      if (closeAction === "hide") {
+        hideMainWindow();
+      } else if (closeAction === "exit") {
+        exitApp();
+      } else {
+        setShowCloseDialog(true);
+      }
+    });
+    return () => { unlisten.then((f) => f()); };
   }, []);
 
   const handleSmartView = (view: string) => {
@@ -129,6 +148,56 @@ export default function App() {
       </main>
       {editingSceneId !== null && (
         <SceneEditor sceneId={editingSceneId} onClose={() => setEditingSceneId(null)} />
+      )}
+
+      {/* Close confirmation dialog */}
+      {showCloseDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl border border-surface-border p-5 w-72 shadow-xl">
+            <h3 className="text-sm font-semibold text-foreground mb-3">关闭确认</h3>
+            <p className="text-xs text-muted-foreground mb-4">希望如何处理？</p>
+            <div className="space-y-2 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="closeAction" value="hide" defaultChecked className="accent-[var(--accent-base)]" />
+                <span className="text-xs text-foreground">隐藏到系统托盘</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="closeAction" value="exit" className="accent-[var(--accent-base)]" />
+                <span className="text-xs text-foreground">退出程序</span>
+              </label>
+            </div>
+            <label className="flex items-center gap-2 mb-4 cursor-pointer">
+              <input type="checkbox" id="rememberClose" className="accent-[var(--accent-base)]" />
+              <span className="text-[11px] text-muted-foreground">记住选择，不再询问</span>
+            </label>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowCloseDialog(false)}
+                className="px-3 py-1.5 text-xs rounded-lg border border-surface-border hover:bg-accent"
+              >
+                取消
+              </button>
+              <button
+                onClick={() => {
+                  const form = document.querySelector('input[name="closeAction"]:checked') as HTMLInputElement;
+                  const action = form?.value ?? "hide";
+                  const remember = (document.getElementById("rememberClose") as HTMLInputElement)?.checked;
+                  if (remember) {
+                    const saved = JSON.parse(localStorage.getItem("scene-todo-settings") || "{}");
+                    saved.closeAction = action;
+                    localStorage.setItem("scene-todo-settings", JSON.stringify(saved));
+                  }
+                  setShowCloseDialog(false);
+                  if (action === "exit") exitApp();
+                  else hideMainWindow();
+                }}
+                className="px-3 py-1.5 text-xs rounded-lg bg-theme text-theme-text hover:opacity-90"
+              >
+                确认
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -17,6 +17,7 @@ export function Settings() {
   const [offsets, setOffsets] = useState<Record<number, { x: number; y: number }>>({});
   const [capturing, setCapturing] = useState(false);
   const [refreshingIcons, setRefreshingIcons] = useState(false);
+  const [closeAction, setCloseAction] = useState<"prompt" | "hide" | "exit">("prompt");
 
   useEffect(() => {
     const saved = localStorage.getItem("scene-todo-settings");
@@ -26,6 +27,7 @@ export function Settings() {
       setWidgetSize(parsed.widgetSize ?? "medium");
       setShowEmptyWidget(parsed.showEmptyWidget ?? false);
       setRetentionDays(parsed.retentionDays ?? 90);
+      setCloseAction(parsed.closeAction ?? "prompt");
     }
     isAutostartEnabled().then((enabled) => setAutoStart(enabled)).catch(() => {});
     const savedOffsets = localStorage.getItem("scene-todo-widget-offsets");
@@ -215,10 +217,25 @@ export function Settings() {
 
       {/* General */}
       <section className="mb-6">
-        <h3 className="text-sm font-medium text-muted-foreground mb-3">通用</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span className="w-1 h-4 rounded-full bg-theme" />
+          通用
+        </h3>
         <label className="flex items-center justify-between py-2">
           <span className="text-sm text-foreground">开机自启</span>
           <input type="checkbox" checked={autoStart} onChange={(e) => handleAutoStart(e.target.checked)} className="rounded" />
+        </label>
+        <label className="flex items-center justify-between py-2">
+          <span className="text-sm text-foreground">关闭按钮行为</span>
+          <select
+            value={closeAction}
+            onChange={(e) => { const v = e.target.value as "prompt" | "hide" | "exit"; setCloseAction(v); saveSettings({ closeAction: v }); }}
+            className="text-sm border rounded px-2 py-1"
+          >
+            <option value="prompt">每次询问</option>
+            <option value="hide">隐藏到托盘</option>
+            <option value="exit">退出程序</option>
+          </select>
         </label>
         <label className="flex items-center justify-between py-2">
           <span className="text-sm text-foreground">数据保留天数</span>
@@ -250,7 +267,10 @@ export function Settings() {
 
       {/* Widget */}
       <section className="mb-6">
-        <h3 className="text-sm font-medium text-muted-foreground mb-3">Widget</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span className="w-1 h-4 rounded-full bg-theme" />
+          Widget
+        </h3>
         <label className="flex items-center justify-between py-2">
           <span className="text-sm text-foreground">无待办时显示浮窗</span>
           <input
@@ -286,7 +306,10 @@ export function Settings() {
       {/* App Management with per-app offset */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-muted-foreground">已关联软件</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+            <span className="w-1 h-4 rounded-full bg-theme" />
+            已关联软件
+          </h3>
           {apps.length > 0 && (
             <button
               onClick={handleRefreshIcons}

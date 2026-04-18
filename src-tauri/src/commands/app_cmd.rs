@@ -206,6 +206,18 @@ pub fn set_widget_passthrough(
 }
 
 #[tauri::command]
+pub fn exit_app(app: tauri::AppHandle) {
+    app.exit(0);
+}
+
+#[tauri::command]
+pub fn hide_main_window(app: tauri::AppHandle) {
+    if let Some(win) = app.get_webview_window("main") {
+        let _ = win.hide();
+    }
+}
+
+#[tauri::command]
 pub fn resize_widget(
     app: tauri::AppHandle,
     app_id: i64,
