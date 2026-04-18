@@ -7,7 +7,7 @@ use std::sync::Arc;
 use services::db::Database;
 use services::time_tracker::TimeTracker;
 use services::widget_manager::WidgetManager;
-use services::window_monitor::{ForegroundChanged, WindowMonitor};
+use services::window_monitor::{ForegroundChanged, WindowMonitor, WindowMoved};
 use tauri::{
     Listener, Manager,
     menu::{MenuBuilder, MenuItemBuilder},
@@ -65,6 +65,15 @@ pub fn run() {
                 if let Ok(fg_event) = serde_json::from_str::<ForegroundChanged>(event.payload()) {
                     let widget_mgr = app_handle.state::<WidgetManager>();
                     widget_mgr.handle_foreground_change(&app_handle, &fg_event);
+                }
+            });
+
+            // Listen for window move events and reposition widgets
+            let move_app_handle = app.handle().clone();
+            app.listen("window-location-changed", move |event| {
+                if let Ok(moved) = serde_json::from_str::<WindowMoved>(event.payload()) {
+                    let widget_mgr = move_app_handle.state::<WidgetManager>();
+                    widget_mgr.handle_window_moved(&move_app_handle, moved.hwnd);
                 }
             });
 

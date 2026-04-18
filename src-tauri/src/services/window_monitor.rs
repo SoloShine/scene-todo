@@ -20,6 +20,11 @@ pub struct ForegroundChanged {
     pub hwnd: isize,
 }
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct WindowMoved {
+    pub hwnd: isize,
+}
+
 pub struct WindowMonitor {
     app_handle: AppHandle,
     db: Arc<Database>,
@@ -27,6 +32,7 @@ pub struct WindowMonitor {
     running: Arc<Mutex<bool>>,
     last_hwnd: Arc<Mutex<isize>>,
     last_active_scene_id: Arc<Mutex<Option<i64>>>,
+    tracked_hwnd: Arc<Mutex<isize>>,
     our_pid: u32,
 }
 
@@ -43,6 +49,7 @@ impl WindowMonitor {
             running: Arc::new(Mutex::new(false)),
             last_hwnd: Arc::new(Mutex::new(0)),
             last_active_scene_id: Arc::new(Mutex::new(None)),
+            tracked_hwnd: Arc::new(Mutex::new(0)),
             our_pid: std::process::id(),
         }
     }
@@ -60,9 +67,12 @@ impl WindowMonitor {
         let running_flag = self.running.clone();
         let last_hwnd = self.last_hwnd.clone();
         let last_active_scene_id = self.last_active_scene_id.clone();
+        let tracked_hwnd = self.tracked_hwnd.clone();
         let our_pid = self.our_pid;
 
         std::thread::spawn(move || {
+            let mut last_tracked_pos: Option<(i32, i32)> = None;
+
             loop {
                 {
                     let r = running_flag.lock().unwrap();
@@ -85,7 +95,6 @@ impl WindowMonitor {
                         }
 
                         if fg_pid == our_pid {
-                            // Our own process — check if it's the main window
                             let is_main = app_handle
                                 .get_webview_window("main")
                                 .map(|w| {
@@ -95,9 +104,10 @@ impl WindowMonitor {
                                 .unwrap_or(false);
 
                             if is_main {
-                                // Main window focused — hide all widgets, clear scene
                                 *last_active_scene_id.lock().unwrap() = None;
                                 time_tracker.end_current_session();
+                                *tracked_hwnd.lock().unwrap() = 0;
+                                last_tracked_pos = None;
 
                                 let event = ForegroundChanged {
                                     process_name: String::new(),
@@ -161,6 +171,16 @@ impl WindowMonitor {
                                 time_tracker.end_current_session();
                             }
 
+                            // Track this hwnd for move events
+                            if matched_app.is_some() {
+                                *tracked_hwnd.lock().unwrap() = current_hwnd;
+                                last_tracked_pos = process_matcher::get_window_rect(foreground)
+                                    .map(|(x, y, _, _)| (x, y));
+                            } else {
+                                *tracked_hwnd.lock().unwrap() = 0;
+                                last_tracked_pos = None;
+                            }
+
                             let event = ForegroundChanged {
                                 process_name: process_name.clone(),
                                 app_id: matched_app.as_ref().map(|a| a.id),
@@ -171,6 +191,32 @@ impl WindowMonitor {
                             };
 
                             let _ = app_handle.emit("foreground-changed", &event);
+                        }
+                    }
+                }
+
+                // Check if tracked window has moved
+                {
+                    let tracked = *tracked_hwnd.lock().unwrap();
+                    if tracked != 0 {
+                        if let Some((x, y)) = process_matcher::get_window_rect(HWND(tracked as *mut _))
+                            .map(|(x, y, _, _)| (x, y))
+                        {
+                            let changed = match last_tracked_pos {
+                                Some((lx, ly)) => lx != x || ly != y,
+                                None => true,
+                            };
+                            if changed {
+                                last_tracked_pos = Some((x, y));
+                                let _ = app_handle.emit(
+                                    "window-location-changed",
+                                    WindowMoved { hwnd: tracked },
+                                );
+                            }
+                        } else {
+                            // Window no longer exists
+                            *tracked_hwnd.lock().unwrap() = 0;
+                            last_tracked_pos = None;
                         }
                     }
                 }
@@ -202,5 +248,13 @@ impl WindowMonitor {
 
     pub fn get_time_tracker(&self) -> &Arc<TimeTracker> {
         &self.time_tracker
+    }
+
+    pub fn set_tracked_hwnd(&self, hwnd: isize) {
+        *self.tracked_hwnd.lock().unwrap() = hwnd;
+    }
+
+    pub fn get_tracked_hwnd(&self) -> isize {
+        *self.tracked_hwnd.lock().unwrap()
     }
 }

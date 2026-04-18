@@ -155,6 +155,16 @@ impl WidgetManager {
         self.widget_offsets.lock().unwrap().insert(app_id, offset);
     }
 
+    pub fn handle_window_moved(&self, app_handle: &AppHandle, hwnd: isize) {
+        let active = self.active_widgets.lock().unwrap();
+        for (&app_id, label) in active.iter() {
+            if let Some(win) = app_handle.get_webview_window(label) {
+                let target_hwnd = HWND(hwnd as *mut _);
+                self.position_widget(&win, target_hwnd, app_id);
+            }
+        }
+    }
+
     pub fn set_default_size(&self, size: (f64, f64)) {
         *self.default_size.lock().unwrap() = size;
     }
