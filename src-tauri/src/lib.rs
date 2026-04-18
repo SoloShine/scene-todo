@@ -2,6 +2,7 @@ mod commands;
 mod models;
 mod services;
 
+use std::collections::HashSet;
 use std::sync::Arc;
 use services::db::Database;
 use services::time_tracker::TimeTracker;
@@ -13,6 +14,26 @@ use tauri::{
     tray::{TrayIconBuilder, MouseButton, MouseButtonState, TrayIconEvent},
 };
 use tauri::menu::PredefinedMenuItem;
+
+pub struct PassthroughState {
+    active: std::sync::Mutex<HashSet<i64>>,
+}
+
+impl PassthroughState {
+    pub fn new() -> Self {
+        Self { active: std::sync::Mutex::new(HashSet::new()) }
+    }
+    pub fn set(&self, app_id: i64, passthrough: bool) {
+        let mut active = self.active.lock().unwrap();
+        if passthrough { active.insert(app_id); } else { active.remove(&app_id); }
+    }
+    pub fn is_any_active(&self) -> bool {
+        !self.active.lock().unwrap().is_empty()
+    }
+    pub fn clear(&self) -> HashSet<i64> {
+        std::mem::take(&mut *self.active.lock().unwrap())
+    }
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -33,6 +54,9 @@ pub fn run() {
             let widget_mgr = WidgetManager::new(db_arc.clone());
             app.manage(widget_mgr);
 
+            let passthrough_state = PassthroughState::new();
+            app.manage(passthrough_state);
+
             let monitor = WindowMonitor::new(app.handle().clone(), db_arc, time_tracker);
             app.manage(monitor);
 
@@ -46,35 +70,26 @@ pub fn run() {
 
             // System tray
             let show_item = MenuItemBuilder::with_id("show", "显示主窗口").build(app)?;
-            let unpassthrough_item = MenuItemBuilder::with_id("unpassthrough", "关闭浮窗穿透").build(app)?;
             let pause_widget_item = MenuItemBuilder::with_id("pause_widget", "暂停 Widget").build(app)?;
             let pause_tracking_item = MenuItemBuilder::with_id("pause_tracking", "暂停追踪").build(app)?;
             let separator = PredefinedMenuItem::separator(app)?;
             let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
 
             let menu = MenuBuilder::new(app)
-                .items(&[&show_item, &unpassthrough_item, &separator, &pause_widget_item, &pause_tracking_item, &separator, &quit_item])
+                .items(&[&show_item, &separator, &pause_widget_item, &pause_tracking_item, &separator, &quit_item])
                 .build()?;
 
             let _tray = TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
                 .tooltip("SceneTodo")
+                .show_menu_on_left_click(false)
                 .on_menu_event(move |app, event| {
                     match event.id().as_ref() {
                         "show" => {
                             if let Some(win) = app.get_webview_window("main") {
                                 let _ = win.show();
                                 let _ = win.set_focus();
-                            }
-                        }
-                        "unpassthrough" => {
-                            // Disable passthrough on all widget windows
-                            for win in app.webview_windows().values() {
-                                let label = win.label();
-                                if label.starts_with("widget-app-") {
-                                    let _ = win.set_ignore_cursor_events(false);
-                                }
                             }
                         }
                         "pause_widget" => {
@@ -118,9 +133,25 @@ pub fn run() {
                     } = event
                     {
                         let app = tray.app_handle();
-                        if let Some(win) = app.get_webview_window("main") {
-                            let _ = win.show();
-                            let _ = win.set_focus();
+                        let state = app.state::<PassthroughState>();
+
+                        if state.is_any_active() {
+                            let app_ids = state.clear();
+                            for id in &app_ids {
+                                let label = format!("widget-app-{}", id);
+                                if let Some(win) = app.get_webview_window(&label) {
+                                    let _ = win.set_ignore_cursor_events(false);
+                                    let _ = win.eval("window.dispatchEvent(new Event('passthrough-disabled'));");
+                                }
+                            }
+                            if let Some(t) = app.tray_by_id("main") {
+                                let _ = t.set_tooltip(Some("SceneTodo"));
+                            }
+                        } else {
+                            if let Some(win) = app.get_webview_window("main") {
+                                let _ = win.show();
+                                let _ = win.set_focus();
+                            }
                         }
                     }
                 })
@@ -171,7 +202,7 @@ pub fn run() {
             commands::app_cmd::set_widget_default_size,
             commands::app_cmd::hide_widget,
             commands::app_cmd::set_widget_passthrough,
-            commands::app_cmd::disable_widget_passthrough,
+            commands::app_cmd::resize_widget,
             commands::scene_cmd::create_scene,
             commands::scene_cmd::list_scenes,
             commands::scene_cmd::update_scene,

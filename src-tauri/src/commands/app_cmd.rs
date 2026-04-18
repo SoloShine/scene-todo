@@ -181,53 +181,58 @@ pub fn hide_widget(app: tauri::AppHandle, app_id: i64) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub fn set_widget_passthrough(app: tauri::AppHandle, app_id: i64, passthrough: bool) -> Result<(), String> {
+pub fn set_widget_passthrough(
+    app: tauri::AppHandle,
+    passthrough_state: State<'_, crate::PassthroughState>,
+    app_id: i64,
+    passthrough: bool,
+) -> Result<(), String> {
     let label = format!("widget-app-{}", app_id);
     if let Some(win) = app.get_webview_window(&label) {
         let _ = win.set_ignore_cursor_events(passthrough);
-
-        if passthrough {
-            // Create a tiny pin window at the widget's top-right corner
-            let pos = win.outer_position().unwrap_or(tauri::PhysicalPosition::new(0, 0));
-            let size = win.inner_size().unwrap_or(tauri::PhysicalSize::new(260, 300));
-            let pin_x = pos.x + size.width as i32 - 28;
-            let pin_y = pos.y + 2;
-
-            let pin_label = format!("pin-app-{}", app_id);
-            let url = format!("/pin?app_id={}", app_id);
-
-            if app.get_webview_window(&pin_label).is_none() {
-                let _ = tauri::WebviewWindow::builder(
-                    &app,
-                    &pin_label,
-                    tauri::WebviewUrl::App(url.into()),
-                )
-                .inner_size(22.0, 22.0)
-                .position(pin_x as f64, pin_y as f64)
-                .decorations(false)
-                .always_on_top(true)
-                .skip_taskbar(true)
-                .transparent(true)
-                .shadow(false)
-                .focused(false)
-                .build();
-            }
-        }
+    }
+    passthrough_state.set(app_id, passthrough);
+    if let Some(tray) = app.tray_by_id("main") {
+        let tooltip = if passthrough {
+            "SceneTodo (📌 穿透中 — 左键点击托盘恢复)"
+        } else {
+            "SceneTodo"
+        };
+        let _ = tray.set_tooltip(Some(tooltip));
     }
     Ok(())
 }
 
 #[tauri::command]
-pub fn disable_widget_passthrough(app: tauri::AppHandle, app_id: i64) -> Result<(), String> {
-    // Disable passthrough on widget
+pub fn resize_widget(
+    app: tauri::AppHandle,
+    app_id: i64,
+    height: f64,
+    min_height: Option<f64>,
+    max_height: Option<f64>,
+) -> Result<(), String> {
     let label = format!("widget-app-{}", app_id);
     if let Some(win) = app.get_webview_window(&label) {
-        let _ = win.set_ignore_cursor_events(false);
-    }
-    // Close the pin window
-    let pin_label = format!("pin-app-{}", app_id);
-    if let Some(win) = app.get_webview_window(&pin_label) {
-        let _ = win.close();
+        let size = win.inner_size().map_err(|e| format!("Size: {}", e))?;
+        let scale = win.scale_factor().unwrap_or(1.0);
+        let logical_w = size.width as f64 / scale;
+        eprintln!(
+            "[resize_widget] app={} scale={:.1} current={}x{} -> h={}, min={:?}, max={:?}",
+            app_id, scale, size.width, size.height, height, min_height, max_height
+        );
+        if let Some(min_h) = min_height {
+            let _ = win.set_min_size(Some(tauri::Size::Logical(
+                tauri::LogicalSize::new(logical_w, min_h),
+            )));
+        }
+        if let Some(max_h) = max_height {
+            let _ = win.set_max_size(Some(tauri::Size::Logical(
+                tauri::LogicalSize::new(logical_w, max_h),
+            )));
+        }
+        let _ = win.set_size(tauri::Size::Logical(
+            tauri::LogicalSize::new(logical_w, height),
+        ));
     }
     Ok(())
 }

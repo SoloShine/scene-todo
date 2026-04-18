@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useLayoutEffect, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { listTodosByApp, updateTodo, createTodo, hideWidget, bindTodoToScene, setWidgetPassthrough } from "../../lib/invoke";
 import type { TodoWithDetails } from "../../types";
 import { WidgetTodoItem } from "./WidgetTodoItem";
@@ -20,12 +21,20 @@ function readOpacity(): number {
   return 85;
 }
 
+const TITLE_BAR_H = 28;
+const QUICK_ADD_H = 32;
+
 export function Widget({ appId, sceneNames }: WidgetProps) {
   const [todos, setTodos] = useState<TodoWithDetails[]>([]);
   const [collapsed, setCollapsed] = useState(false);
   const [quickAdd, setQuickAdd] = useState("");
   const [opacity, setOpacity] = useState(readOpacity);
   const [passthrough, setPassthrough] = useState(false);
+  const outerRef = useRef<HTMLDivElement>(null);
+  const todoListRef = useRef<HTMLDivElement>(null);
+  const titleBarRef = useRef<HTMLDivElement>(null);
+  const quickAddRef = useRef<HTMLDivElement>(null);
+  const lastNeededH = useRef(0);
 
   const refresh = useCallback(async () => {
     try {
@@ -53,8 +62,47 @@ export function Widget({ appId, sceneNames }: WidgetProps) {
 
     const onStorage = () => setOpacity(readOpacity());
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+
+    const onPassthroughDisabled = () => setPassthrough(false);
+    window.addEventListener("passthrough-disabled", onPassthroughDisabled);
+
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("passthrough-disabled", onPassthroughDisabled);
+    };
   }, []);
+
+  // Auto-size: sync measurement after DOM commit, skip if unchanged
+  useLayoutEffect(() => {
+    const outerEl = outerRef.current;
+    const borderH = outerEl ? (outerEl.offsetHeight - outerEl.clientHeight) : 0;
+    const tbH = (titleBarRef.current?.offsetHeight ?? TITLE_BAR_H);
+    if (collapsed) {
+      const h = tbH + borderH;
+      if (lastNeededH.current !== h) {
+        lastNeededH.current = h;
+        invoke("resize_widget", { appId, height: h, minHeight: h, maxHeight: h });
+      }
+      return;
+    }
+    const el = todoListRef.current;
+    if (!el) return;
+    // useLayoutEffect fires after DOM commit; reading scrollHeight forces
+    // a synchronous reflow, giving accurate measurements.
+    const todoH = el.scrollHeight;
+    const qaH = quickAddRef.current?.offsetHeight ?? 0;
+    const needed = tbH + todoH + qaH + borderH;
+    // minH includes a small floor for todo area so scrollbar can render
+    const minH = tbH + qaH + borderH + 20;
+    console.log(
+      `[Widget ${appId}] tbH=${tbH} todoScrollH=${todoH} qaH=${qaH} borderH=${borderH}` +
+      ` needed=${needed} minH=${minH} todos=${todos.length}`
+    );
+    if (needed !== lastNeededH.current) {
+      lastNeededH.current = needed;
+      invoke("resize_widget", { appId, height: needed, minHeight: minH, maxHeight: needed });
+    }
+  }, [todos, collapsed, passthrough, appId]);
 
   const handleToggle = async (id: number) => {
     await updateTodo({ id, status: "completed" });
@@ -75,7 +123,6 @@ export function Widget({ appId, sceneNames }: WidgetProps) {
       setPassthrough(true);
       await setWidgetPassthrough(appId, true);
     }
-    // Disabling is handled by the pin window → disableWidgetPassthrough command
   };
 
   const pendingCount = todos.reduce(
@@ -84,24 +131,29 @@ export function Widget({ appId, sceneNames }: WidgetProps) {
   );
 
   const title = sceneNames.length > 0 ? sceneNames.join(" · ") : "SceneTodo";
-  // Background alpha from opacity (0-100), text stays at full opacity
   const bgAlpha = opacity / 100;
 
   return (
     <div
-      className="overflow-hidden"
+      ref={outerRef}
       style={{
+        display: "flex",
+        flexDirection: "column",
         width: "100%",
         height: "100%",
-        background: passthrough ? "transparent" : `rgba(255, 255, 255, ${bgAlpha})`,
-        backdropFilter: passthrough ? "none" : "blur(12px)",
-        WebkitBackdropFilter: passthrough ? "none" : "blur(12px)",
-        borderRadius: passthrough ? 0 : "10px",
-        border: passthrough ? "none" : "1px solid rgba(200, 200, 200, 0.3)",
+        background: `rgba(255, 255, 255, ${bgAlpha})`,
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+        borderRadius: "10px",
+        border: passthrough
+          ? "1px dashed rgba(100, 149, 237, 0.5)"
+          : "1px solid rgba(200, 200, 200, 0.3)",
+        transition: "border 0.2s",
       }}
     >
-      {/* Title bar */}
+      {/* Title bar — fixed */}
       <div
+        ref={titleBarRef}
         className="flex items-center justify-between px-2 py-1 cursor-move"
         data-tauri-drag-region
       >
@@ -126,9 +178,13 @@ export function Widget({ appId, sceneNames }: WidgetProps) {
         </button>
       </div>
 
-      {/* Todo list */}
-      {!collapsed && !passthrough && (
-        <div className="px-2 pb-1 space-y-0.5 max-h-48 overflow-y-auto">
+      {/* Todo list — fills available space, scrolls when window is small */}
+      {!collapsed && (
+        <div
+          ref={todoListRef}
+          style={{ flex: 1, minHeight: 0, overflowY: "auto" }}
+          className="px-2 pb-1 space-y-0.5"
+        >
           {todos.map((todo) => (
             <div key={todo.id}>
               <WidgetTodoItem todo={todo} onToggle={handleToggle} />
@@ -147,9 +203,9 @@ export function Widget({ appId, sceneNames }: WidgetProps) {
         </div>
       )}
 
-      {/* Quick add */}
+      {/* Quick add — always at bottom when visible */}
       {!collapsed && !passthrough && (
-        <div className="px-2 pb-2">
+        <div ref={quickAddRef} className="px-2 pb-2 flex-shrink-0">
           <input
             value={quickAdd}
             onChange={(e) => setQuickAdd(e.target.value)}

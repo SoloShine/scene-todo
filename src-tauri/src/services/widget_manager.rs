@@ -120,12 +120,8 @@ impl WidgetManager {
                 }
             }
         } else {
-            // Widget already exists — reposition
+            // Widget already exists — reposition only
             if let Some(win) = app_handle.get_webview_window(&target_label) {
-                let (w, h) = *self.default_size.lock().unwrap();
-                let _ = win.set_size(tauri::Size::Physical(
-                    tauri::PhysicalSize::new(w as u32, h as u32),
-                ));
                 let _ = win.show();
                 if event.hwnd != 0 {
                     let target_hwnd = HWND(event.hwnd as *mut _);
