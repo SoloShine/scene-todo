@@ -76,11 +76,11 @@ export function CalendarView({ todos, onDateSelect, selectedDate }: CalendarView
     <div className="select-none">
       {/* Month navigation */}
       <div className="flex items-center justify-between px-3 py-2">
-        <button onClick={prevMonth} className="p-1 rounded hover:bg-gray-100 text-gray-500">
+        <button onClick={prevMonth} className="p-1 rounded hover:bg-accent text-muted-foreground">
           <ChevronLeft size={16} />
         </button>
-        <span className="text-sm font-medium text-gray-700">{monthLabel}</span>
-        <button onClick={nextMonth} className="p-1 rounded hover:bg-gray-100 text-gray-500">
+        <span className="text-sm font-medium text-foreground">{monthLabel}</span>
+        <button onClick={nextMonth} className="p-1 rounded hover:bg-accent text-muted-foreground">
           <ChevronRight size={16} />
         </button>
       </div>
@@ -88,15 +88,15 @@ export function CalendarView({ todos, onDateSelect, selectedDate }: CalendarView
       {/* Weekday headers */}
       <div className="grid grid-cols-7 px-2">
         {WEEKDAYS.map((d) => (
-          <div key={d} className="text-center text-[10px] text-gray-400 py-1 font-medium">{d}</div>
+          <div key={d} className="text-center text-[10px] text-muted-foreground py-1 font-medium">{d}</div>
         ))}
       </div>
 
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-px bg-gray-100 mx-2 rounded overflow-hidden">
+      <div className="grid grid-cols-7 gap-px bg-surface-divider mx-2 rounded overflow-hidden">
         {cells.map((day, i) => {
           if (day === null) {
-            return <div key={i} className="min-h-[72px] bg-gray-50" />;
+            return <div key={i} className="min-h-[72px] bg-background" />;
           }
 
           const dateKey = toDateKey(new Date(year, month, day));
@@ -110,16 +110,16 @@ export function CalendarView({ todos, onDateSelect, selectedDate }: CalendarView
               onClick={() => onDateSelect(isSelected ? null : dateKey)}
               className={`min-h-[72px] p-1 cursor-pointer transition-colors ${
                 isSelected
-                  ? "bg-blue-50 ring-1 ring-inset ring-blue-400"
-                  : "bg-white hover:bg-gray-50"
+                  ? "bg-accent ring-1 ring-inset ring-theme-border"
+                  : "bg-card hover:bg-accent"
               }`}
             >
               <div className="flex items-center justify-center mb-0.5">
                 <span
                   className={`text-xs leading-none ${
                     isToday
-                      ? "bg-blue-500 text-white rounded-full w-5 h-5 flex items-center justify-center font-medium"
-                      : "text-gray-600"
+                      ? "bg-theme text-theme-text rounded-full w-5 h-5 flex items-center justify-center font-medium"
+                      : "text-muted-foreground"
                   }`}
                 >
                   {day}
@@ -131,15 +131,15 @@ export function CalendarView({ todos, onDateSelect, selectedDate }: CalendarView
                     key={todo.id}
                     className={`text-[9px] truncate px-1 py-0.5 rounded leading-tight ${
                       todo.status === "completed"
-                        ? "bg-gray-100 text-gray-400 line-through"
-                        : priorityColors[todo.priority] || "bg-gray-100 text-gray-600"
+                        ? "bg-muted text-muted-foreground line-through"
+                        : priorityColors[todo.priority] || "bg-muted text-foreground"
                     }`}
                   >
                     {todo.title}
                   </div>
                 ))}
                 {dayTodos.length > 2 && (
-                  <div className="text-[9px] text-gray-400 px-1">+{dayTodos.length - 2}</div>
+                  <div className="text-[9px] text-muted-foreground px-1">+{dayTodos.length - 2}</div>
                 )}
               </div>
             </div>
@@ -149,23 +149,23 @@ export function CalendarView({ todos, onDateSelect, selectedDate }: CalendarView
 
       {/* Undated todos */}
       {undatedTodos.length > 0 && !selectedDate && (
-        <div className="mx-2 mt-2 border-t border-gray-200 pt-2">
-          <div className="text-[10px] text-gray-400 font-medium px-1 mb-1">未设日期</div>
+        <div className="mx-2 mt-2 border-t border-surface-border pt-2">
+          <div className="text-[10px] text-muted-foreground font-medium px-1 mb-1">未设日期</div>
           <div className="space-y-0.5 max-h-32 overflow-y-auto">
             {undatedTodos.slice(0, 5).map((todo) => (
               <div
                 key={todo.id}
                 className={`text-[10px] truncate px-1.5 py-0.5 rounded ${
                   todo.status === "completed"
-                    ? "bg-gray-100 text-gray-400 line-through"
-                    : priorityColors[todo.priority] || "bg-gray-50 text-gray-600"
+                    ? "bg-muted text-muted-foreground line-through"
+                    : priorityColors[todo.priority] || "bg-background text-foreground"
                 }`}
               >
                 {todo.title}
               </div>
             ))}
             {undatedTodos.length > 5 && (
-              <div className="text-[10px] text-gray-400 px-1.5">+{undatedTodos.length - 5} 项</div>
+              <div className="text-[10px] text-muted-foreground px-1.5">+{undatedTodos.length - 5} 项</div>
             )}
           </div>
         </div>

@@ -98,23 +98,23 @@ export function BindingEditor({ todoId, onClose, onRefresh }: BindingEditorProps
 
   if (capturing) {
     return (
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-4 py-2 rounded-full shadow-lg text-sm animate-pulse z-50">
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-theme text-theme-text px-4 py-2 rounded-full shadow-lg text-sm animate-pulse z-50">
         点击目标窗口以抓取...
       </div>
     );
   }
 
   return (
-    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl w-80 p-4" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-foreground/20 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-card rounded-2xl border border-surface-border shadow-xl w-80 p-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm">关联场景</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
+          <h3 className="font-semibold text-sm text-foreground">关联场景</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">&times;</button>
         </div>
 
         <button
           onClick={handleStartCapture}
-          className="w-full py-2 mb-3 text-sm rounded border bg-white border-gray-200 hover:border-blue-400 hover:text-blue-500 cursor-pointer transition-colors"
+          className="w-full py-2 mb-3 text-sm rounded-lg border border-dashed border-theme-border text-theme hover:bg-accent cursor-pointer transition-colors"
         >
           + 点击后选择目标窗口
         </button>

@@ -118,11 +118,11 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
   const unboundApps = apps.filter((a) => !boundAppIds.includes(a.id));
 
   return (
-    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-96 p-4 max-h-[80vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-foreground/20 flex items-center justify-center z-50">
+      <div className="bg-card rounded-2xl border border-surface-border shadow-xl w-96 p-4 max-h-[80vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold">{existingScene ? "编辑场景" : "新建场景"}</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
+          <h3 className="font-semibold text-foreground">{existingScene ? "编辑场景" : "新建场景"}</h3>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">&times;</button>
         </div>
 
         {/* Name */}
@@ -130,16 +130,16 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="场景名称"
-          className="w-full px-3 py-2 border border-gray-200 rounded mb-3 text-sm"
+          className="w-full px-3 py-2 border border-surface-border bg-background focus:border-theme-border outline-none rounded-lg mb-3 text-sm"
         />
 
         {/* Icon */}
         <div className="mb-3">
-          <label className="text-xs text-gray-500 mb-1 block">图标</label>
+          <label className="text-xs text-muted-foreground mb-1 block">图标</label>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className="text-2xl w-10 h-10 flex items-center justify-center border border-gray-200 rounded hover:bg-gray-50"
+              className="text-2xl w-10 h-10 flex items-center justify-center border border-surface-border rounded-lg hover:bg-accent"
             >
               {icon}
             </button>
@@ -149,7 +149,7 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
                   <button
                     key={e}
                     onClick={() => { setIcon(e); setShowEmojiPicker(false); }}
-                    className={`text-xl w-8 h-8 flex items-center justify-center rounded hover:bg-gray-100 ${icon === e ? "bg-blue-50" : ""}`}
+                    className={`text-xl w-8 h-8 flex items-center justify-center rounded hover:bg-accent ${icon === e ? "bg-accent" : ""}`}
                   >
                     {e}
                   </button>
@@ -161,13 +161,13 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
 
         {/* Color */}
         <div className="mb-3">
-          <label className="text-xs text-gray-500 mb-1 block">颜色</label>
+          <label className="text-xs text-muted-foreground mb-1 block">颜色</label>
           <div className="flex gap-1.5">
             {COLOR_OPTIONS.map((c) => (
               <button
                 key={c}
                 onClick={() => setColor(c)}
-                className={`w-6 h-6 rounded-full border-2 ${color === c ? "border-gray-800" : "border-transparent"}`}
+                className={`w-6 h-6 rounded-full border-2 ${color === c ? "border-foreground" : "border-transparent"}`}
                 style={{ backgroundColor: c }}
               />
             ))}
@@ -188,14 +188,14 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
         {/* Associated Apps (only for existing scenes) */}
         {existingScene && (
           <div className="mb-4">
-            <label className="text-xs text-gray-500 mb-1 block">关联应用</label>
+            <label className="text-xs text-muted-foreground mb-1 block">关联应用</label>
             <div className="space-y-1">
               {sceneApps.map((sa) => {
                 const app = apps.find((a) => a.id === sa.app_id);
                 return (
-                  <div key={sa.app_id} className="flex items-center justify-between px-2 py-1 bg-gray-50 rounded text-sm">
+                  <div key={sa.app_id} className="flex items-center justify-between px-2 py-1 bg-background rounded-lg text-sm">
                     <span>{app?.display_name || app?.name || `App #${sa.app_id}`}</span>
-                    <button onClick={() => handleRemoveApp(sa.app_id)} className="text-gray-400 hover:text-red-500">&times;</button>
+                    <button onClick={() => handleRemoveApp(sa.app_id)} className="text-muted-foreground hover:text-red-500">&times;</button>
                   </div>
                 );
               })}
@@ -203,14 +203,14 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
                 <button
                   onClick={handleCapture}
                   disabled={capturing}
-                  className="flex-1 py-1.5 text-xs rounded border border-gray-200 hover:border-blue-400 hover:text-blue-500 cursor-pointer transition-colors disabled:opacity-50"
+                  className="flex-1 py-1.5 text-xs rounded-lg border border-surface-border hover:border-theme-border hover:text-theme cursor-pointer transition-colors disabled:opacity-50"
                 >
                   {capturing ? "点击目标窗口..." : "+ 抓取窗口添加"}
                 </button>
                 {unboundApps.length > 0 && (
                   <select
                     onChange={(e) => { if (e.target.value) handleAddApp(Number(e.target.value)); e.target.value = ""; }}
-                    className="flex-1 text-xs border border-gray-200 rounded px-2 py-1"
+                    className="flex-1 text-xs border border-surface-border bg-background rounded-lg px-2 py-1"
                     defaultValue=""
                   >
                     <option value="">从已有应用添加</option>
@@ -234,8 +234,8 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
             )}
           </div>
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-3 py-1.5 text-sm rounded border hover:bg-gray-50">取消</button>
-            <button onClick={handleSave} className="px-3 py-1.5 text-sm rounded bg-blue-500 text-white hover:bg-blue-600">保存</button>
+            <button onClick={onClose} className="px-3 py-1.5 text-sm rounded-lg border border-surface-border hover:bg-accent">取消</button>
+            <button onClick={handleSave} className="px-3 py-1.5 text-sm rounded-lg bg-theme text-theme-text hover:opacity-90">保存</button>
           </div>
         </div>
       </div>
