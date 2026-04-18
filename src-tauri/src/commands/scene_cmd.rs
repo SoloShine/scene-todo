@@ -52,8 +52,8 @@ pub fn unbind_todo_from_scene(db: State<'_, Arc<Database>>, todo_id: i64, scene_
 }
 
 #[tauri::command]
-pub fn list_todos_by_scene(db: State<'_, Arc<Database>>, scene_id: i64) -> Result<Vec<Todo>, String> {
-    scene_repo::list_todos_by_scene(&db, scene_id)
+pub fn list_todos_by_scene(db: State<'_, Arc<Database>>, scene_id: i64) -> Result<Vec<TodoWithDetails>, String> {
+    scene_repo::list_todos_with_details_by_scene(&db, scene_id)
 }
 
 #[tauri::command]

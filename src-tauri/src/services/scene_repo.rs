@@ -186,40 +186,49 @@ pub fn unbind_todo_from_scene(db: &Database, todo_id: i64, scene_id: i64) -> Res
     Ok(())
 }
 
-pub fn list_todos_by_scene(db: &Database, scene_id: i64) -> Result<Vec<Todo>, String> {
-    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+fn query_todo_ids_by_scene(conn: &rusqlite::Connection, scene_id: i64) -> Result<Vec<i64>, String> {
     let mut stmt = conn.prepare(
-        "SELECT DISTINCT t.id, t.title, t.description, t.status, t.priority, t.group_id, t.parent_id, t.sort_order, t.due_date, t.created_at, t.completed_at \
-         FROM todos t \
+        "SELECT DISTINCT t.id FROM todos t \
          JOIN todo_scene_bindings tsb ON t.id = tsb.todo_id \
          WHERE tsb.scene_id = ?1 \
            AND t.status = 'pending' \
            AND t.parent_id IS NULL \
          UNION \
-         SELECT DISTINCT t2.id, t2.title, t2.description, t2.status, t2.priority, t2.group_id, t2.parent_id, t2.sort_order, t2.due_date, t2.created_at, t2.completed_at \
-         FROM todos t2 \
+         SELECT DISTINCT t2.id FROM todos t2 \
          JOIN todos parent ON t2.parent_id = parent.id \
          JOIN todo_scene_bindings tsb2 ON parent.id = tsb2.todo_id \
          WHERE tsb2.scene_id = ?1 \
-           AND t2.status = 'pending' \
-         ORDER BY sort_order, created_at"
+           AND t2.status = 'pending'"
     ).map_err(|e| format!("Prepare: {}", e))?;
-    let rows = stmt.query_map(params![scene_id], |row| {
-        Ok(Todo {
-            id: row.get(0)?,
-            title: row.get(1)?,
-            description: row.get(2)?,
-            status: row.get(3)?,
-            priority: row.get(4)?,
-            group_id: row.get(5)?,
-            parent_id: row.get(6)?,
-            sort_order: row.get(7)?,
-            due_date: row.get(8)?,
-            created_at: row.get(9)?,
-            completed_at: row.get(10)?,
-        })
-    }).map_err(|e| format!("Query: {}", e))?;
-    Ok(rows.filter_map(|r| r.ok()).collect())
+    let ids: Vec<i64> = stmt.query_map(params![scene_id], |row| row.get(0))
+        .map_err(|e| format!("Query: {}", e))?
+        .filter_map(|r| r.ok()).collect();
+    Ok(ids)
+}
+
+pub fn list_todos_by_scene(db: &Database, scene_id: i64) -> Result<Vec<Todo>, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let ids = query_todo_ids_by_scene(&conn, scene_id)?;
+    drop(conn);
+
+    let mut todos = Vec::with_capacity(ids.len());
+    for id in ids {
+        match crate::services::todo_repo::get_todo(db, id) {
+            Ok(t) => todos.push(t),
+            Err(_) => continue,
+        }
+    }
+    Ok(todos)
+}
+
+pub fn list_todos_with_details_by_scene(db: &Database, scene_id: i64) -> Result<Vec<TodoWithDetails>, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let ids = query_todo_ids_by_scene(&conn, scene_id)?;
+    drop(conn);
+
+    ids.iter()
+        .map(|&id| crate::services::todo_repo::get_todo_with_details(db, id))
+        .collect()
 }
 
 // --- Time tracking queries ---
