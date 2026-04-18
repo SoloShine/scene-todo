@@ -2,6 +2,8 @@
 
 桌面待办事项应用，核心功能是将待办以浮动 Widget 形态挂载到关联的桌面软件窗口上。切换到某软件时自动显示关联待办，切走后自动隐藏。
 
+**GitHub:** https://github.com/SoloShine/overlay-todo
+
 ## 技术栈
 
 | 层 | 技术 |
@@ -9,7 +11,7 @@
 | 桌面框架 | Tauri 2.0 |
 | 后端 | Rust |
 | 前端 | React 18 + TypeScript |
-| UI | Tailwind CSS + shadcn/ui |
+| UI | Tailwind CSS v4 + shadcn/ui |
 | 数据库 | SQLite (rusqlite) |
 | 窗口监控 | Win32 API (windows-rs) |
 | 构建 | Vite |
@@ -20,16 +22,19 @@
 - 分组与嵌套分组
 - 标签（多标签筛选）
 - 优先级与截止日期
+- 场景（Scene）管理，按场景组织待办
 - 软件关联（手动关联 exe 进程名）
 - 浮动 Widget（自动显示/隐藏/跟随目标窗口）
 - Widget 内操作（勾选完成、快速添加）
+- 时间追踪与统计（时间分布、实时概览、时间线）
 - 系统托盘（最小化隐藏、暂停 Widget、退出）
-- 设置页（开机自启、透明度、Widget 尺寸）
+- 设置页（主题、开机自启、透明度、Widget 尺寸、数据备份）
+- 关于页面（使用说明）
 
 ## 项目结构
 
 ```
-scene-todo/
+overlay-todo/
 ├── src-tauri/                    # Rust 后端
 │   ├── src/
 │   │   ├── main.rs               # 入口
@@ -55,7 +60,10 @@ scene-todo/
 │   │   ├── todo/                 # 待办列表
 │   │   ├── widget/               # 浮动 Widget
 │   │   ├── binding/              # 软件关联编辑器
-│   │   └── settings/             # 设置页
+│   │   ├── scene/                # 场景管理
+│   │   ├── stats/                # 统计视图
+│   │   ├── settings/             # 设置页 + 关于页
+│   │   └── ui/                   # 基础 UI 组件
 │   ├── hooks/                    # React Hooks
 │   ├── lib/invoke.ts             # Tauri invoke 类型安全封装
 │   └── types/index.ts            # TypeScript 类型定义
@@ -93,3 +101,7 @@ npm run tauri build
 ## 目标平台
 
 Windows 优先（使用 Win32 API），后续可扩展 macOS。
+
+## License
+
+MIT

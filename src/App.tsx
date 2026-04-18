@@ -4,6 +4,7 @@ import { TodoList } from "./components/todo/TodoList";
 import { Settings } from "./components/settings/Settings";
 import { SceneEditor } from "./components/scene/SceneEditor";
 import { StatsView } from "./components/stats/StatsView";
+import { About } from "./components/settings/About";
 import { startWindowMonitor, setWidgetDefaultSize, cleanupOldSessions, saveWidgetOffset, exitApp, hideMainWindow } from "./lib/invoke";
 import { listen } from "@tauri-apps/api/event";
 import type { TodoFilters } from "./types";
@@ -14,6 +15,7 @@ export default function App() {
   const [filters, setFilters] = useState<TodoFilters>({});
   const [showSettings, setShowSettings] = useState(false);
   const [showStats, setShowStats] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
 
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
@@ -75,6 +77,7 @@ export default function App() {
   const handleSmartView = (view: string) => {
     setShowSettings(false);
     setShowStats(false);
+    setShowAbout(false);
     setSelectedGroupId(null);
     setSelectedTagIds([]);
     setSelectedSceneId(null);
@@ -92,6 +95,7 @@ export default function App() {
   const handleSelectGroup = (groupId: number | null) => {
     setShowSettings(false);
     setShowStats(false);
+    setShowAbout(false);
     setSelectedGroupId(groupId);
     setSelectedTagIds([]);
     setSelectedSceneId(null);
@@ -101,6 +105,7 @@ export default function App() {
   const handleToggleTag = (tagId: number) => {
     setShowSettings(false);
     setShowStats(false);
+    setShowAbout(false);
     setSelectedGroupId(null);
     setSelectedTagIds((prev) => {
       const next = prev.includes(tagId) ? prev.filter((t) => t !== tagId) : [...prev, tagId];
@@ -112,6 +117,7 @@ export default function App() {
   const handleSelectScene = (sceneId: number | null) => {
     setShowSettings(false);
     setShowStats(false);
+    setShowAbout(false);
     setSelectedGroupId(null);
     setSelectedTagIds([]);
     setSelectedSceneId(sceneId);
@@ -133,14 +139,16 @@ export default function App() {
         selectedSceneId={selectedSceneId}
         onSelectScene={handleSelectScene}
         onEditScene={handleEditScene}
-        onOpenSettings={() => { setShowSettings((s) => !s); setShowStats(false); }}
-        onOpenStats={() => { setShowStats((s) => !s); setShowSettings(false); }}
+        onOpenSettings={() => { setShowSettings((s) => !s); setShowStats(false); setShowAbout(false); }}
+        onOpenStats={() => { setShowStats((s) => !s); setShowSettings(false); setShowAbout(false); }}
+        onOpenAbout={() => { setShowAbout((s) => !s); setShowSettings(false); setShowStats(false); }}
       />
       <main className="flex-1 overflow-auto">
-        {showSettings ? (
+        {showAbout ? (
+          <About />
+        ) : showSettings ? (
           <Settings />
         ) : showStats ? (
-
           <StatsView />
         ) : (
           <TodoList filters={filters} selectedSceneId={selectedSceneId} />
