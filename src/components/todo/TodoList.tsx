@@ -4,6 +4,7 @@ import { useTodos } from "../../hooks/useTodos";
 import { TodoForm } from "./TodoForm";
 import { TodoItem, parseDateLocal } from "./TodoItem";
 import { CalendarView } from "./CalendarView";
+import * as api from "../../lib/invoke";
 import type { TodoFilters, TodoWithDetails } from "../../types";
 
 type StatusFilter = "" | "pending" | "overdue" | "completed";
@@ -52,8 +53,20 @@ function localTodayKey(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-export function TodoList({ filters, selectedSceneId: _selectedSceneId }: TodoListProps) {
-  const { todos, loading, create, toggleStatus, remove, refresh } = useTodos(filters);
+export function TodoList({ filters, selectedSceneId }: TodoListProps) {
+  const { todos: filteredTodos, loading, create, toggleStatus, remove, refresh } = useTodos(filters);
+  const [sceneTodos, setSceneTodos] = useState<TodoWithDetails[]>([]);
+
+  // When a scene is selected, fetch its todos separately
+  useMemo(() => {
+    if (selectedSceneId) {
+      api.listTodosByScene(selectedSceneId).then(setSceneTodos);
+    } else {
+      setSceneTodos([]);
+    }
+  }, [selectedSceneId]);
+
+  const todos = selectedSceneId ? sceneTodos : filteredTodos;
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchText, setSearchText] = useState("");
   const [filterPriority, setFilterPriority] = useState<string>("");
