@@ -218,6 +218,28 @@ pub fn hide_main_window(app: tauri::AppHandle) {
 }
 
 #[tauri::command]
+pub fn set_title_bar_dark(app: tauri::AppHandle, dark: bool) {
+    #[cfg(target_os = "windows")]
+    {
+        use windows::Win32::Graphics::Dwm::{DwmSetWindowAttribute, DWMWINDOWATTRIBUTE};
+        use windows::Win32::Foundation::HWND;
+        if let Some(win) = app.get_webview_window("main") {
+            if let Ok(hwnd) = win.hwnd() {
+                let value: i32 = if dark { 1 } else { 0 };
+                let _ = unsafe {
+                    DwmSetWindowAttribute(
+                        HWND(hwnd.0),
+                        DWMWINDOWATTRIBUTE(20), // DWMWA_USE_IMMERSIVE_DARK_MODE
+                        &value as *const _ as *const _,
+                        std::mem::size_of::<i32>() as u32,
+                    )
+                };
+            }
+        }
+    }
+}
+
+#[tauri::command]
 pub fn resize_widget(
     app: tauri::AppHandle,
     app_id: i64,

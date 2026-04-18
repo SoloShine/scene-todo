@@ -239,6 +239,7 @@ pub fn run() {
             commands::app_cmd::import_app_icon,
             commands::app_cmd::exit_app,
             commands::app_cmd::hide_main_window,
+            commands::app_cmd::set_title_bar_dark,
             commands::data_cmd::export_data,
             commands::data_cmd::import_data,
             commands::scene_cmd::create_scene,

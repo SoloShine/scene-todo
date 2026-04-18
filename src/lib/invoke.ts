@@ -181,3 +181,6 @@ export const exitApp = () =>
 
 export const hideMainWindow = () =>
   invoke<void>("hide_main_window");
+
+export const setTitleBarDark = (dark: boolean) =>
+  invoke<void>("set_title_bar_dark", { dark });
