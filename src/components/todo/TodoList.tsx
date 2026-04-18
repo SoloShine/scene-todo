@@ -16,11 +16,11 @@ interface TodoListProps {
 }
 
 const GROUP_CONFIG: { key: TodoGroup; label: string; color: string }[] = [
-  { key: "overdue", label: "过期", color: "text-red-500" },
+  { key: "overdue", label: "过期", color: "text-destructive" },
   { key: "today", label: "今天", color: "text-blue-500" },
-  { key: "upcoming", label: "未开始", color: "text-gray-500" },
-  { key: "undated", label: "无日期", color: "text-gray-400" },
-  { key: "completed", label: "已结束", color: "text-green-500" },
+  { key: "upcoming", label: "未开始", color: "text-muted-foreground" },
+  { key: "undated", label: "无日期", color: "text-muted-foreground" },
+  { key: "completed", label: "已结束", color: "text-[oklch(0.600_0.150_160)]" },
 ];
 
 function getGroup(todo: TodoWithDetails): TodoGroup {
@@ -129,7 +129,7 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
     : [];
 
   if (loading) {
-    return <div className="p-4 text-sm text-gray-500">加载中...</div>;
+    return <div className="p-4 text-sm text-muted-foreground">加载中...</div>;
   }
 
   const statusOptions: { key: StatusFilter; label: string }[] = [
@@ -181,28 +181,28 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
       <TodoForm onSubmit={handleCreate} />
 
       {/* Filter bar */}
-      <div className="px-3 py-1.5 border-b border-gray-100 bg-gray-50/50 space-y-1.5">
+      <div className="px-3 py-1.5 border-b border-surface-divider bg-background/50 space-y-1.5">
         <div className="flex items-center gap-2">
           <div className="flex-1 relative">
-            <svg className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <svg className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               placeholder="搜索..."
-              className="w-full pl-7 pr-2 py-1 text-xs border border-gray-200 rounded-md outline-none focus:border-blue-300"
+              className="w-full pl-7 pr-2 py-1 text-xs border border-surface-border bg-background rounded-md outline-none focus:border-theme-border"
             />
           </div>
-          <div className="flex items-center gap-0.5 bg-gray-100 rounded p-0.5">
+          <div className="flex items-center gap-0.5 bg-accent/50 rounded p-0.5">
             <button
               onClick={() => { setViewMode("list"); setSelectedDate(null); }}
-              className={`p-1 rounded transition-colors ${viewMode === "list" ? "bg-white shadow-sm text-gray-700" : "text-gray-400"}`}
+              className={`p-1 rounded transition-colors ${viewMode === "list" ? "bg-theme text-theme-text font-medium shadow-sm rounded-md" : "text-muted-foreground hover:bg-accent rounded-md"}`}
               title="列表视图"
             >
               <List size={14} />
             </button>
             <button
               onClick={() => setViewMode("calendar")}
-              className={`p-1 rounded transition-colors ${viewMode === "calendar" ? "bg-white shadow-sm text-gray-700" : "text-gray-400"}`}
+              className={`p-1 rounded transition-colors ${viewMode === "calendar" ? "bg-theme text-theme-text font-medium shadow-sm rounded-md" : "text-muted-foreground hover:bg-accent rounded-md"}`}
               title="日历视图"
             >
               <CalendarDays size={14} />
@@ -217,22 +217,22 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
                 onClick={() => setFilterStatus(s.key)}
                 className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
                   s.key === "overdue"
-                    ? filterStatus === s.key ? "bg-red-500 text-white" : "text-red-400 hover:bg-red-50"
-                    : filterStatus === s.key ? "bg-blue-500 text-white" : "text-gray-400 hover:bg-gray-100"
+                    ? filterStatus === s.key ? "bg-destructive text-white" : "text-destructive/70 hover:bg-destructive/10"
+                    : filterStatus === s.key ? "bg-theme text-theme-text" : "text-muted-foreground hover:bg-accent"
                 }`}
               >
                 {s.label}
               </button>
             ))}
           </div>
-          <div className="w-px h-3 bg-gray-200" />
+          <div className="w-px h-3 bg-surface-border" />
           <div className="flex items-center gap-1">
             {(["", "high", "medium", "low"] as const).map((p) => (
               <button
                 key={p}
                 onClick={() => setFilterPriority(p)}
                 className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
-                  filterPriority === p ? "bg-blue-500 text-white" : "text-gray-400 hover:bg-gray-100"
+                  filterPriority === p ? "bg-theme text-theme-text" : "text-muted-foreground hover:bg-accent"
                 }`}
               >
                 {p === "" ? "全部" : p === "high" ? "高" : p === "medium" ? "中" : "低"}
@@ -245,7 +245,7 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
       <div className="flex-1 overflow-y-auto">
         {viewMode === "list" ? (
           filtered.length === 0 ? (
-            <div className="p-4 text-sm text-gray-400 text-center">
+            <div className="p-4 text-sm text-muted-foreground text-center">
               {todos.length === 0 ? "没有待办事项" : "没有匹配的待办"}
             </div>
           ) : (
@@ -257,11 +257,11 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
                 <div key={key}>
                   <button
                     onClick={() => toggleGroup(key)}
-                    className="w-full flex items-center gap-1.5 px-3 py-1.5 hover:bg-gray-50 transition-colors border-b border-gray-100"
+                    className="w-full flex items-center gap-1.5 px-3 py-1.5 hover:bg-accent transition-colors border-b border-surface-divider"
                   >
-                    {isCollapsed ? <ChevronRight size={12} className="text-gray-400" /> : <ChevronDown size={12} className="text-gray-400" />}
+                    {isCollapsed ? <ChevronRight size={12} className="text-muted-foreground" /> : <ChevronDown size={12} className="text-muted-foreground" />}
                     <span className={`text-xs font-medium ${color}`}>{label}</span>
-                    <span className="text-[10px] text-gray-300">{items.length}</span>
+                    <span className="text-[10px] text-muted-foreground">{items.length}</span>
                   </button>
                   {!isCollapsed && items.map(renderTodo)}
                 </div>
@@ -276,13 +276,13 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
               selectedDate={selectedDate}
             />
             {selectedDate && (
-              <div className="border-t border-gray-200">
-                <div className="flex items-center justify-between px-3 py-1.5 bg-gray-50">
-                  <span className="text-xs font-medium text-gray-600">{selectedDate} 的待办</span>
-                  <button onClick={() => setSelectedDate(null)} className="text-xs text-gray-400 hover:text-gray-600">清除筛选</button>
+              <div className="border-t border-surface-border">
+                <div className="flex items-center justify-between px-3 py-1.5 bg-background">
+                  <span className="text-xs font-medium text-muted-foreground">{selectedDate} 的待办</span>
+                  <button onClick={() => setSelectedDate(null)} className="text-xs text-muted-foreground hover:text-foreground">清除筛选</button>
                 </div>
                 {todosForDate.length === 0 ? (
-                  <div className="p-4 text-sm text-gray-400 text-center">该日无待办</div>
+                  <div className="p-4 text-sm text-muted-foreground text-center">该日无待办</div>
                 ) : (
                   todosForDate.map(renderTodo)
                 )}

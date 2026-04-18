@@ -16,9 +16,9 @@ interface TodoItemProps {
 }
 
 const priorityConfig: Record<string, { label: string; color: string; bg: string }> = {
-  high: { label: "高", color: "text-red-600", bg: "bg-red-50" },
-  medium: { label: "中", color: "text-yellow-600", bg: "bg-yellow-50" },
-  low: { label: "低", color: "text-green-600", bg: "bg-green-50" },
+  high: { label: "高", color: "text-destructive", bg: "bg-destructive/10" },
+  medium: { label: "中", color: "text-[oklch(0.650_0.180_85)]", bg: "bg-[oklch(0.960_0.040_85)]" },
+  low: { label: "低", color: "text-[oklch(0.600_0.150_160)]", bg: "bg-[oklch(0.960_0.040_160)]" },
 };
 
 export function parseDateLocal(dateStr: string): Date | null {
@@ -164,14 +164,14 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
           onChange={(e) => setEditDesc(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Escape") onEndEdit(); }}
           placeholder="描述（可选）"
-          className="w-full text-xs text-gray-500 outline-none bg-transparent mb-2"
+          className="w-full text-xs text-muted-foreground outline-none bg-transparent mb-2"
         />
         <div className="flex items-center gap-2 flex-wrap">
           {(["high", "medium", "low"] as const).map((p) => (
             <button
               key={p}
               onClick={() => setEditPriority(p)}
-              className={`px-2 py-0.5 rounded text-xs ${editPriority === p ? priorityConfig[p].bg + " " + priorityConfig[p].color + " font-medium" : "text-gray-400 hover:bg-gray-100"}`}
+              className={`px-2 py-0.5 rounded text-xs ${editPriority === p ? priorityConfig[p].bg + " " + priorityConfig[p].color + " font-medium" : "text-muted-foreground hover:bg-accent"}`}
             >
               {priorityConfig[p].label}
             </button>
@@ -181,19 +181,19 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
               type="datetime-local"
               value={editDueDate}
               onChange={(e) => setEditDueDate(e.target.value)}
-              className="text-xs text-gray-500 outline-none bg-transparent border-b border-gray-200 px-1"
+              className="text-xs text-muted-foreground outline-none bg-transparent border-b border-surface-border px-1"
             />
             {editDueDate && (
               <button
                 onClick={() => setEditDueDate("")}
-                className="text-[10px] text-gray-400 hover:text-red-500 leading-none"
+                className="text-[10px] text-muted-foreground hover:text-destructive leading-none"
                 title="清除截止日期"
               >
                 &times;
               </button>
             )}
           </div>
-          <span className="text-[10px] text-gray-400 ml-auto">点击外部自动保存</span>
+          <span className="text-[10px] text-muted-foreground ml-auto">点击外部自动保存</span>
         </div>
       </div>
     );
@@ -215,15 +215,15 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
 
   return (
     <>
-      <div className={`group flex items-start gap-2.5 px-3 py-2 hover:bg-gray-50 transition-colors relative ${isOverdue ? "bg-red-50/30" : ""}`}>
+      <div className={`group flex items-start gap-2.5 px-3 py-2 hover:bg-accent/50 rounded-lg transition-colors relative ${isOverdue ? "bg-red-50/30" : ""}`}>
         <button
           onClick={() => onToggle(todo.id, todo.status as "pending" | "completed")}
-          className={`mt-0.5 w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
+          className={`mt-0.5 w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
             isCompleted
-              ? "bg-green-500 border-green-500 text-white"
+              ? "bg-theme border-theme text-white"
               : isOverdue
               ? "border-red-300 hover:border-red-400"
-              : "border-gray-300 hover:border-blue-400"
+              : "border-theme-border hover:border-theme"
           }`}
         >
           {isCompleted && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>}
@@ -231,30 +231,30 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
 
         <div className="flex-1 min-w-0" onDoubleClick={handleStartEdit}>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-sm ${isCompleted ? "line-through text-gray-400" : "text-gray-800"} cursor-text`}>
+            <span className={`text-sm ${isCompleted ? "line-through text-muted-foreground" : "text-foreground font-medium"} cursor-text`}>
               {todo.title}
             </span>
             {isOverdue && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-red-100 text-red-600">过期</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-destructive/10 text-destructive">过期</span>
             )}
             <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${priorityConfig[todo.priority]?.color || ""} ${priorityConfig[todo.priority]?.bg || ""}`}>
               {priorityConfig[todo.priority]?.label || ""}
             </span>
             {dueLabel && (
-              <span className={`text-[10px] ${isOverdue ? "text-red-500 font-medium" : "text-gray-400"}`}>
+              <span className={`text-[10px] ${isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"}`}>
                 {dueLabel}
               </span>
             )}
           </div>
           <div className="flex items-center gap-3 mt-0.5">
             {todo.description && !isCompleted && (
-              <span className="text-xs text-gray-400 truncate">{todo.description}</span>
+              <span className="text-xs text-muted-foreground truncate">{todo.description}</span>
             )}
             {completedTime && (
               <span className="text-[10px] text-green-500 flex-shrink-0">完成于 {completedTime}</span>
             )}
             {!isCompleted && createdTime && (
-              <span className="text-[10px] text-gray-300 flex-shrink-0">{createdTime}</span>
+              <span className="text-[10px] text-theme-light/60 flex-shrink-0">{createdTime}</span>
             )}
           </div>
         </div>
@@ -262,7 +262,7 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
         <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
           <button
             onClick={() => { setShowSubInput(!showSubInput); setSubTitle(""); }}
-            className="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+            className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             title="添加子任务"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -270,26 +270,26 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="w-7 h-7 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+              className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
             </button>
             {showMenu && (
-              <div className="absolute right-0 top-8 w-36 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                <button onClick={handleStartEdit} className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+              <div className="absolute right-0 top-8 w-36 bg-card rounded-lg shadow-lg border border-surface-border py-1 z-50">
+                <button onClick={handleStartEdit} className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent flex items-center gap-2">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   编辑
                 </button>
-                <button onClick={() => { setShowMenu(false); setShowDetail(true); }} className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                <button onClick={() => { setShowMenu(false); setShowDetail(true); }} className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent flex items-center gap-2">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
                   分组/标签
                 </button>
-                <button onClick={() => { setShowMenu(false); setShowBinding(true); }} className="w-full text-left px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                <button onClick={() => { setShowMenu(false); setShowBinding(true); }} className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent flex items-center gap-2">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
                   关联场景
                 </button>
-                <div className="border-t border-gray-100 my-1" />
-                <button onClick={() => { setShowMenu(false); onDelete(todo.id); }} className="w-full text-left px-3 py-1.5 text-sm text-red-500 hover:bg-red-50 flex items-center gap-2">
+                <div className="border-t border-surface-divider my-1" />
+                <button onClick={() => { setShowMenu(false); onDelete(todo.id); }} className="w-full text-left px-3 py-1.5 text-sm text-destructive hover:bg-destructive/10 flex items-center gap-2">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
                   删除
                 </button>
@@ -310,16 +310,16 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
       </div>
 
       {showSubInput && (
-        <div className="flex items-center gap-2 pl-10 pr-3 py-1.5 bg-gray-50/50 border-b border-gray-100">
+        <div className="flex items-center gap-2 pl-10 pr-3 py-1.5 bg-background/50 border-b border-surface-divider">
           <input
             value={subTitle}
             onChange={(e) => setSubTitle(e.target.value)}
             onKeyDown={handleAddSub}
             placeholder="子任务名称..."
             autoFocus
-            className="flex-1 px-2 py-1 text-sm border border-gray-200 rounded shadow-sm outline-none focus:border-blue-300"
+            className="flex-1 px-2 py-1 text-sm border border-surface-border rounded shadow-sm outline-none focus:border-theme-border"
           />
-          <button onClick={() => { setSubTitle(""); setShowSubInput(false); }} className="text-xs text-gray-400 hover:text-gray-600 whitespace-nowrap">取消</button>
+          <button onClick={() => { setSubTitle(""); setShowSubInput(false); }} className="text-xs text-muted-foreground hover:text-foreground whitespace-nowrap">取消</button>
         </div>
       )}
     </>
