@@ -94,10 +94,6 @@ export function Widget({ appId, sceneNames }: WidgetProps) {
     const needed = tbH + todoH + qaH + borderH;
     // minH includes a small floor for todo area so scrollbar can render
     const minH = tbH + qaH + borderH + 20;
-    console.log(
-      `[Widget ${appId}] tbH=${tbH} todoScrollH=${todoH} qaH=${qaH} borderH=${borderH}` +
-      ` needed=${needed} minH=${minH} todos=${todos.length}`
-    );
     if (needed !== lastNeededH.current) {
       lastNeededH.current = needed;
       invoke("resize_widget", { appId, height: needed, minHeight: minH, maxHeight: needed });

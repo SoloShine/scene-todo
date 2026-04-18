@@ -216,10 +216,6 @@ pub fn resize_widget(
         let size = win.inner_size().map_err(|e| format!("Size: {}", e))?;
         let scale = win.scale_factor().unwrap_or(1.0);
         let logical_w = size.width as f64 / scale;
-        eprintln!(
-            "[resize_widget] app={} scale={:.1} current={}x{} -> h={}, min={:?}, max={:?}",
-            app_id, scale, size.width, size.height, height, min_height, max_height
-        );
         if let Some(min_h) = min_height {
             let _ = win.set_min_size(Some(tauri::Size::Logical(
                 tauri::LogicalSize::new(logical_w, min_h),
