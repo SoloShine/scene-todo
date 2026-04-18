@@ -19,7 +19,7 @@ export function ThemeSettings() {
   const { accent, mode, setAccent, setMode } = useTheme();
 
   return (
-    <section>
+    <section className="mb-6">
       <h3 className="text-sm font-medium text-muted-foreground mb-3">外观</h3>
 
       <div className="mb-4">

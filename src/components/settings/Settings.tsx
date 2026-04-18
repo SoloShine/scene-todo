@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useApps } from "../../hooks/useApps";
 import * as api from "../../lib/invoke";
 import { ThemeSettings } from "./ThemeSettings";
+import { enable as enableAutostart, disable as disableAutostart, isEnabled as isAutostartEnabled } from "@tauri-apps/plugin-autostart";
 
 interface SettingsProps {
   onClose: () => void;
@@ -22,12 +23,13 @@ export function Settings({ onClose }: SettingsProps) {
     const saved = localStorage.getItem("scene-todo-settings");
     if (saved) {
       const parsed = JSON.parse(saved);
-      setAutoStart(parsed.autoStart ?? false);
       setWidgetOpacity(parsed.widgetOpacity ?? 85);
       setWidgetSize(parsed.widgetSize ?? "medium");
       setShowEmptyWidget(parsed.showEmptyWidget ?? false);
       setRetentionDays(parsed.retentionDays ?? 90);
     }
+    // Read autostart state from the OS plugin, not localStorage
+    isAutostartEnabled().then((enabled) => setAutoStart(enabled)).catch(() => {});
     const savedOffsets = localStorage.getItem("scene-todo-widget-offsets");
     if (savedOffsets) {
       setOffsets(JSON.parse(savedOffsets));
@@ -50,8 +52,16 @@ export function Settings({ onClose }: SettingsProps) {
   };
 
   const handleAutoStart = async (enabled: boolean) => {
-    setAutoStart(enabled);
-    saveSettings({ autoStart: enabled });
+    try {
+      if (enabled) {
+        await enableAutostart();
+      } else {
+        await disableAutostart();
+      }
+      setAutoStart(enabled);
+    } catch (e) {
+      console.error("Failed to toggle autostart:", e);
+    }
   };
 
   const handleOffsetChange = (appId: number, axis: "x" | "y", value: number) => {
