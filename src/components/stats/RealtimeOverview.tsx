@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import type { TrackingStatus } from "../../types";
 
 interface Props {
@@ -14,6 +15,9 @@ function formatDuration(secs: number): string {
 }
 
 export function RealtimeOverview({ status, totalToday }: Props) {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
+
   if (!status) return null;
 
   const sessionDuration = status.session_started_at
@@ -21,7 +25,7 @@ export function RealtimeOverview({ status, totalToday }: Props) {
     : 0;
 
   return (
-    <div className="grid grid-cols-3 gap-4 mb-6">
+    <div className="grid grid-cols-4 gap-4 mb-6">
       <div className="bg-card rounded-xl border border-surface-border p-4">
         <p className="text-xs text-muted-foreground mb-1">当前场景</p>
         <p className="text-lg text-foreground font-semibold">
@@ -37,6 +41,12 @@ export function RealtimeOverview({ status, totalToday }: Props) {
       <div className="bg-card rounded-xl border border-surface-border p-4">
         <p className="text-xs text-muted-foreground mb-1">今日追踪</p>
         <p className="text-lg text-foreground font-semibold">{formatDuration(totalToday)}</p>
+      </div>
+      <div className="bg-card rounded-xl border border-surface-border p-4">
+        <p className="text-xs text-muted-foreground mb-1">当前时间</p>
+        <p className="text-lg text-foreground font-semibold">
+          {now.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+        </p>
       </div>
     </div>
   );

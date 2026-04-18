@@ -51,7 +51,21 @@ pub fn run() {
 
             // One-time migration: convert old UTC timestamps to local time
             {
-                let _ = scene_repo::migrate_utc_to_local(&db_arc);
+                let conn = db_arc.conn.lock().unwrap();
+                let done: bool = conn.query_row(
+                    "SELECT COUNT(*) > 0 FROM _migrations WHERE name = 'utc_to_local'",
+                    [],
+                    |row| row.get(0),
+                ).unwrap_or(false);
+                drop(conn);
+                if !done {
+                    let _ = scene_repo::migrate_utc_to_local(&db_arc);
+                    let conn = db_arc.conn.lock().unwrap();
+                    let _ = conn.execute(
+                        "INSERT INTO _migrations (name) VALUES ('utc_to_local')",
+                        [],
+                    );
+                }
             }
 
             let time_tracker = Arc::new(TimeTracker::new(db_arc.clone()));

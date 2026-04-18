@@ -50,11 +50,11 @@ export function SceneTimeline({ rangeStart, rangeEnd, preset }: Props) {
     [sessions]
   );
 
-  if (preset === "today" || preset === "custom") {
+  if (preset === "today") {
     return <DayTimeline sessions={validSessions} sceneColorMap={sceneColorMap} scenes={scenes} date={rangeStart} />;
   }
-  if (preset === "week") {
-    return <WeekTimeline sessions={validSessions} sceneColorMap={sceneColorMap} scenes={scenes} rangeStart={rangeStart} />;
+  if (preset === "week" || preset === "custom") {
+    return <WeekTimeline sessions={validSessions} sceneColorMap={sceneColorMap} scenes={scenes} rangeStart={rangeStart} rangeEnd={rangeEnd} />;
   }
   // month
   return <MonthTimeline sessions={validSessions} sceneColorMap={sceneColorMap} scenes={scenes} rangeStart={rangeStart} />;
@@ -137,18 +137,29 @@ function DayTimeline({ sessions, sceneColorMap, scenes, date }: {
 }
 
 // --- Week: 7-day stacked bars ---
-function WeekTimeline({ sessions, sceneColorMap, scenes, rangeStart }: {
-  sessions: TimeSession[]; sceneColorMap: Map<number, string>; scenes: Scene[]; rangeStart: string;
+function WeekTimeline({ sessions, sceneColorMap, scenes, rangeStart, rangeEnd }: {
+  sessions: TimeSession[]; sceneColorMap: Map<number, string>; scenes: Scene[]; rangeStart: string; rangeEnd?: string;
 }) {
-  // Build 7 days ending today
+  // Build days for the range (default: 7 days ending today)
   const days = useMemo(() => {
-    const today = new Date();
+    if (rangeEnd) {
+      // Custom range: generate all days from rangeStart to rangeEnd-1day
+      const end = new Date(rangeEnd + "T00:00:00");
+      const start = new Date(rangeStart + "T00:00:00");
+      const diffDays = Math.round((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+      const count = Math.min(Math.max(diffDays, 1), 31);
+      return Array.from({ length: count }, (_, i) => {
+        const d = new Date(start);
+        d.setDate(d.getDate() + i);
+        return fmtDate(d);
+      });
+    }
     return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(today);
+      const d = new Date();
       d.setDate(d.getDate() - (6 - i));
       return fmtDate(d);
     });
-  }, [rangeStart]);
+  }, [rangeStart, rangeEnd]);
 
   const dayData = useMemo(() => {
     return days.map((day) => {
@@ -184,9 +195,12 @@ function WeekTimeline({ sessions, sceneColorMap, scenes, rangeStart }: {
   const maxSecs = Math.max(...dayData.map((d) => d.totalSecs), 1);
   const todayStr = fmtDate(new Date());
 
+  const BAR_AREA_HEIGHT = 100; // px available for bars
+  const scaleMax = Math.max(maxSecs * 1.1, 3600); // max + 10% headroom, min 1h
+
   return (
     <div className="bg-card rounded-xl border border-surface-border p-4">
-      <h3 className="text-sm font-semibold text-foreground mb-3">近 7 天</h3>
+      <h3 className="text-sm font-semibold text-foreground mb-3">{days.length <= 7 ? "近 7 天" : `${days.length} 天概览`}</h3>
       {dayData.every((d) => d.totalSecs === 0) ? (
         <p className="text-muted-foreground text-center py-6 text-sm">暂无追踪记录</p>
       ) : (
@@ -194,24 +208,25 @@ function WeekTimeline({ sessions, sceneColorMap, scenes, rangeStart }: {
           {dayData.map((d, i) => {
             const date = new Date(d.day + "T00:00:00");
             const isToday = d.day === todayStr;
-            // Scale: max day fills ~91% of bar height (1/1.1), with 10% headroom
-            const scaleMax = Math.max(maxSecs * 1.1, 3600);
-            const barPct = Math.min((d.totalSecs / scaleMax) * 100, 100);
+            const barPx = Math.min((d.totalSecs / scaleMax) * BAR_AREA_HEIGHT, BAR_AREA_HEIGHT);
             return (
               <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
                 <span className="text-[9px] text-muted-foreground">
                   {d.totalSecs > 0 ? formatDuration(d.totalSecs) : ""}
                 </span>
-                <div className="w-full flex items-end" style={{ flex: 1 }}>
-                  <div className="w-full flex flex-col-reverse rounded-md overflow-hidden" style={{ height: `${barPct}%`, minHeight: d.totalSecs > 0 ? 4 : 0 }}>
-                    {d.segments.map((seg, si) => (
-                      <div
-                        key={si}
-                        className="w-full transition-opacity hover:opacity-80"
-                        style={{ height: `${seg.pct}%`, backgroundColor: seg.color, minHeight: 2 }}
-                        title={`${formatDuration(seg.secs)}`}
-                      />
-                    ))}
+                <div style={{ flex: 1, display: "flex", alignItems: "flex-end", width: "100%" }}>
+                  <div className="w-full flex flex-col-reverse rounded-md overflow-hidden" style={{ height: d.totalSecs > 0 ? Math.max(barPx, 4) : 0 }}>
+                    {d.segments.map((seg, si) => {
+                      const segPx = Math.max((seg.pct / 100) * Math.max(barPx, 4), 2);
+                      return (
+                        <div
+                          key={si}
+                          className="w-full transition-opacity hover:opacity-80"
+                          style={{ height: segPx, backgroundColor: seg.color }}
+                          title={`${formatDuration(seg.secs)}`}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
                 <span className={`text-[10px] ${isToday ? "text-theme font-semibold" : "text-muted-foreground"}`}>
