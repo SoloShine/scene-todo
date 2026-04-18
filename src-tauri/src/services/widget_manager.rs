@@ -5,13 +5,13 @@ use windows::Win32::Foundation::HWND;
 
 use crate::services::app_repo;
 use crate::services::process_matcher;
-use crate::services::scene_repo;
+use crate::services::todo_repo;
 use crate::services::window_monitor::ForegroundChanged;
 use crate::services::db::Database;
 
 pub struct WidgetManager {
-    active_widgets: Mutex<HashMap<i64, String>>,  // scene_id -> label
-    widget_offsets: Mutex<HashMap<i64, (i32, i32)>>,  // app_id -> offset (kept per-app)
+    active_widgets: Mutex<HashMap<i64, String>>,  // app_id -> label
+    widget_offsets: Mutex<HashMap<i64, (i32, i32)>>,  // app_id -> offset
     default_size: Mutex<(f64, f64)>,
     db: Arc<Database>,
 }
@@ -31,26 +31,34 @@ impl WidgetManager {
         app_handle: &AppHandle,
         event: &ForegroundChanged,
     ) {
-        // If no scene, hide all widgets
-        if event.scene_id.is_none() {
-            let active = self.active_widgets.lock().unwrap();
-            for (_, label) in active.iter() {
-                if let Some(win) = app_handle.get_webview_window(label) {
-                    let _ = win.hide();
+        // Must have a matched app to show widget
+        let app_id = match event.app_id {
+            Some(id) => id,
+            None => {
+                // No app matched — hide all widgets
+                let active = self.active_widgets.lock().unwrap();
+                for (_, label) in active.iter() {
+                    if let Some(win) = app_handle.get_webview_window(label) {
+                        let _ = win.hide();
+                    }
                 }
+                return;
             }
-            return;
+        };
+
+        // Check if the matched app has show_widget enabled
+        if let Ok(app) = app_repo::get_app(&self.db, app_id) {
+            if !app.show_widget {
+                return;
+            }
         }
 
-        let scene_id = event.scene_id.unwrap();
-        let scene_name = event.scene_name.as_deref().unwrap_or("Unknown");
-        let app_id = event.app_id;
-        let target_label = format!("widget-scene-{}", scene_id);
+        let target_label = format!("widget-app-{}", app_id);
 
-        // Hide widgets for other scenes
+        // Hide widgets for other apps
         let active = self.active_widgets.lock().unwrap();
-        for (_, label) in active.iter() {
-            if *label != target_label {
+        for (&id, label) in active.iter() {
+            if id != app_id {
                 if let Some(win) = app_handle.get_webview_window(label) {
                     let _ = win.hide();
                 }
@@ -58,30 +66,21 @@ impl WidgetManager {
         }
         drop(active);
 
-        // Check if scene has pending todos
-        match scene_repo::list_todos_by_scene(&self.db, scene_id) {
+        // Check if app has pending todos across ALL its scenes
+        match todo_repo::list_todos_by_app(&self.db, app_id) {
             Ok(todos) if todos.is_empty() => return,
             Err(_) => return,
             _ => {}
         }
 
-        // Check if the matched app has show_widget enabled
-        if let Some(app_id) = event.app_id {
-            if let Ok(app) = app_repo::get_app(&self.db, app_id) {
-                if !app.show_widget {
-                    return;
-                }
-            }
-        }
-
+        let app_name = event.app_name.as_deref().unwrap_or("Unknown");
         let mut active = self.active_widgets.lock().unwrap();
 
-        if !active.contains_key(&scene_id) {
-            // Create new widget for this scene
+        if !active.contains_key(&app_id) {
             let url = format!(
-                "/widget?scene_id={}&scene_name={}",
-                scene_id,
-                urlencoding(scene_name)
+                "/widget?app_id={}&app_name={}",
+                app_id,
+                urlencoding(app_name)
             );
             let (w, h) = *self.default_size.lock().unwrap();
             let widget_window = WebviewWindow::builder(
@@ -89,7 +88,7 @@ impl WidgetManager {
                 &target_label,
                 WebviewUrl::App(url.into()),
             )
-            .title(&format!("{} - Widget", scene_name))
+            .title(&format!("{} - Widget", app_name))
             .inner_size(w, h)
             .decorations(false)
             .always_on_top(true)
@@ -102,17 +101,16 @@ impl WidgetManager {
                 Ok(win) => {
                     if event.hwnd != 0 {
                         let target_hwnd = HWND(event.hwnd as *mut _);
-                        let offset_app_id = app_id.unwrap_or(scene_id);
-                        self.position_widget(&win, target_hwnd, offset_app_id);
+                        self.position_widget(&win, target_hwnd, app_id);
                     }
-                    active.insert(scene_id, target_label);
+                    active.insert(app_id, target_label);
                 }
                 Err(e) => {
                     eprintln!("Failed to create widget window: {}", e);
                 }
             }
         } else {
-            // Widget already exists — reposition to new app window
+            // Widget already exists — reposition
             if let Some(win) = app_handle.get_webview_window(&target_label) {
                 let (w, h) = *self.default_size.lock().unwrap();
                 let _ = win.set_size(tauri::Size::Physical(
@@ -121,8 +119,7 @@ impl WidgetManager {
                 let _ = win.show();
                 if event.hwnd != 0 {
                     let target_hwnd = HWND(event.hwnd as *mut _);
-                    let offset_app_id = app_id.unwrap_or(scene_id);
-                    self.position_widget(&win, target_hwnd, offset_app_id);
+                    self.position_widget(&win, target_hwnd, app_id);
                 }
             }
         }
@@ -154,9 +151,9 @@ impl WidgetManager {
         *self.default_size.lock().unwrap() = size;
     }
 
-    pub fn destroy_widget(&self, app_handle: &AppHandle, scene_id: i64) {
+    pub fn destroy_widget(&self, app_handle: &AppHandle, app_id: i64) {
         let mut active = self.active_widgets.lock().unwrap();
-        if let Some(label) = active.remove(&scene_id) {
+        if let Some(label) = active.remove(&app_id) {
             if let Some(win) = app_handle.get_webview_window(&label) {
                 let _ = win.close();
             }

@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { listTodosByScene, updateTodo, createTodo, hideWidget, bindTodoToScene } from "../../lib/invoke";
+import { listTodosByApp, updateTodo, createTodo, hideWidget, bindTodoToScene } from "../../lib/invoke";
 import type { TodoWithDetails } from "../../types";
 import { WidgetTodoItem } from "./WidgetTodoItem";
 
 interface WidgetProps {
-  sceneId: number;
-  sceneName: string;
+  appId: number;
+  appName: string;
 }
 
 function readOpacity(): number {
@@ -19,7 +19,7 @@ function readOpacity(): number {
   return 85;
 }
 
-export function Widget({ sceneId }: WidgetProps) {
+export function Widget({ appId }: WidgetProps) {
   const [todos, setTodos] = useState<TodoWithDetails[]>([]);
   const [collapsed, setCollapsed] = useState(false);
   const [quickAdd, setQuickAdd] = useState("");
@@ -27,15 +27,15 @@ export function Widget({ sceneId }: WidgetProps) {
 
   const refresh = useCallback(async () => {
     try {
-      const data = await listTodosByScene(sceneId);
+      const data = await listTodosByApp(appId);
       setTodos(data);
       if (data.length === 0) {
-        await hideWidget(sceneId);
+        await hideWidget(appId);
       }
     } catch {
       // ignore
     }
-  }, [sceneId]);
+  }, [appId]);
 
   useEffect(() => {
     refresh();
@@ -43,7 +43,6 @@ export function Widget({ sceneId }: WidgetProps) {
     return () => clearInterval(interval);
   }, [refresh]);
 
-  // Force body transparent + listen for opacity changes from Settings
   useEffect(() => {
     document.documentElement.style.setProperty("background", "transparent", "important");
     document.body.style.setProperty("background", "transparent", "important");
@@ -63,7 +62,7 @@ export function Widget({ sceneId }: WidgetProps) {
   const handleQuickAdd = async (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && quickAdd.trim()) {
       const todo = await createTodo({ title: quickAdd.trim() });
-      await bindTodoToScene(todo.id, sceneId);
+      await bindTodoToScene(todo.id, appId);
       setQuickAdd("");
       await refresh();
     }
