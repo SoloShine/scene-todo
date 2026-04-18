@@ -22,21 +22,21 @@ export function RealtimeOverview({ status, totalToday }: Props) {
 
   return (
     <div className="grid grid-cols-3 gap-4 mb-6">
-      <div className="bg-white rounded-lg border p-4">
-        <p className="text-xs text-gray-500 mb-1">当前场景</p>
-        <p className="text-lg font-semibold">
+      <div className="bg-card rounded-xl border border-surface-border p-4">
+        <p className="text-xs text-muted-foreground mb-1">当前场景</p>
+        <p className="text-lg text-foreground font-semibold">
           {status.current_scene_name || "无"}
         </p>
       </div>
-      <div className="bg-white rounded-lg border p-4">
-        <p className="text-xs text-gray-500 mb-1">当前会话</p>
-        <p className="text-lg font-semibold">
+      <div className="bg-card rounded-xl border border-surface-border p-4">
+        <p className="text-xs text-muted-foreground mb-1">当前会话</p>
+        <p className="text-lg text-foreground font-semibold">
           {status.session_started_at ? formatDuration(sessionDuration) : "--"}
         </p>
       </div>
-      <div className="bg-white rounded-lg border p-4">
-        <p className="text-xs text-gray-500 mb-1">今日追踪</p>
-        <p className="text-lg font-semibold">{formatDuration(totalToday)}</p>
+      <div className="bg-card rounded-xl border border-surface-border p-4">
+        <p className="text-xs text-muted-foreground mb-1">今日追踪</p>
+        <p className="text-lg text-foreground font-semibold">{formatDuration(totalToday)}</p>
       </div>
     </div>
   );

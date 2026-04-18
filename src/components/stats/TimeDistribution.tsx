@@ -15,8 +15,8 @@ function formatDuration(secs: number): string {
 
 export function TimeDistribution({ summary, totalSecs }: Props) {
   return (
-    <div className="bg-white rounded-lg border p-4">
-      <h3 className="text-sm font-semibold text-gray-600 mb-3">时间分布</h3>
+    <div className="bg-card rounded-xl border border-surface-border p-4">
+      <h3 className="text-sm font-semibold text-foreground mb-3">时间分布</h3>
       <div className="h-48">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -42,7 +42,7 @@ export function TimeDistribution({ summary, totalSecs }: Props) {
         </ResponsiveContainer>
       </div>
       {totalSecs > 0 && (
-        <p className="text-center text-xs text-gray-400 mt-1">
+        <p className="text-center text-xs text-muted-foreground mt-1">
           共 {formatDuration(totalSecs)}
         </p>
       )}

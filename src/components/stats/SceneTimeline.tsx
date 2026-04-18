@@ -50,13 +50,13 @@ export function SceneTimeline({ rangeStart, rangeEnd }: Props) {
   const hours = Array.from({ length: 25 }, (_, i) => i);
 
   return (
-    <div className="bg-white rounded-lg border p-4">
-      <h3 className="text-sm font-semibold text-gray-600 mb-3">时间线</h3>
+    <div className="bg-card rounded-xl border border-surface-border p-4">
+      <h3 className="text-sm font-semibold text-foreground mb-3">时间线</h3>
 
       {/* Hour axis */}
       <div className="relative h-16">
         {/* Hour labels */}
-        <div className="absolute top-0 left-0 right-0 flex text-[9px] text-gray-400">
+        <div className="absolute top-0 left-0 right-0 flex text-[9px] text-muted-foreground">
           {hours.filter((h) => h % 3 === 0).map((h) => (
             <span key={h} style={{ position: "absolute", left: `${(h / 24) * 100}%`, transform: "translateX(-50%)" }}>
               {String(h).padStart(2, "0")}:00
@@ -65,11 +65,11 @@ export function SceneTimeline({ rangeStart, rangeEnd }: Props) {
         </div>
 
         {/* Timeline blocks */}
-        <div className="absolute top-4 left-0 right-0 h-8 rounded bg-gray-50 overflow-hidden">
+        <div className="absolute top-4 left-0 right-0 h-8 rounded-md bg-background overflow-hidden">
           {blocks.map((block, i) => (
             <div
               key={i}
-              className="absolute top-0 h-full rounded-sm opacity-80 hover:opacity-100 transition-opacity"
+              className="absolute top-0 h-full rounded-md hover:opacity-80 transition-opacity"
               style={{
                 left: `${block.left}%`,
                 width: `${Math.max(block.width, 0.3)}%`,
@@ -86,7 +86,7 @@ export function SceneTimeline({ rangeStart, rangeEnd }: Props) {
         {scenes.map((scene) => (
           <div key={scene.id} className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: scene.color }} />
-            <span className="text-xs text-gray-500">{scene.icon} {scene.name}</span>
+            <span className="text-xs text-muted-foreground">{scene.icon} {scene.name}</span>
           </div>
         ))}
       </div>
