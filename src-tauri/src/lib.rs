@@ -44,6 +44,7 @@ pub fn run() {
             Some(vec![]),
         ))
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
         .setup(|app| {
             let db_path = Database::app_db_path(&app.handle())?;
             let database = Database::open(&db_path)?;
@@ -236,6 +237,8 @@ pub fn run() {
             commands::app_cmd::extract_app_icon,
             commands::app_cmd::refresh_all_icons,
             commands::app_cmd::import_app_icon,
+            commands::data_cmd::export_data,
+            commands::data_cmd::import_data,
             commands::scene_cmd::create_scene,
             commands::scene_cmd::list_scenes,
             commands::scene_cmd::update_scene,

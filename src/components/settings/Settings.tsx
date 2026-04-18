@@ -3,7 +3,8 @@ import { useApps } from "../../hooks/useApps";
 import * as api from "../../lib/invoke";
 import { ThemeSettings } from "./ThemeSettings";
 import { enable as enableAutostart, disable as disableAutostart, isEnabled as isAutostartEnabled } from "@tauri-apps/plugin-autostart";
-import { open } from "@tauri-apps/plugin-dialog";
+import { open, save } from "@tauri-apps/plugin-dialog";
+import { writeFile, readFile } from "@tauri-apps/plugin-fs";
 
 interface SettingsProps {
   onClose: () => void;
@@ -129,6 +130,56 @@ export function Settings({ onClose }: SettingsProps) {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const dbJson = await api.exportData();
+      const exportObj = {
+        version: 1,
+        database: JSON.parse(dbJson),
+        localStorage: {
+          "scene-todo-settings": localStorage.getItem("scene-todo-settings"),
+          "scene-todo-widget-offsets": localStorage.getItem("scene-todo-widget-offsets"),
+          "scene-todo-theme": localStorage.getItem("scene-todo-theme"),
+        },
+      };
+      const content = JSON.stringify(exportObj, null, 2);
+      const path = await save({
+        defaultPath: "scenetodo-backup.json",
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      });
+      if (!path) return;
+      const encoder = new TextEncoder();
+      await writeFile(path, encoder.encode(content));
+    } catch (e) {
+      console.error("Export failed:", e);
+    }
+  };
+
+  const handleImport = async () => {
+    try {
+      const selected = await open({
+        multiple: false,
+        filters: [{ name: "JSON", extensions: ["json"] }],
+      });
+      if (!selected) return;
+      const bytes = await readFile(selected as string);
+      const decoder = new TextDecoder();
+      const text = decoder.decode(bytes);
+      const importObj = JSON.parse(text);
+      const dbData = importObj.database || importObj;
+      const dbJson = JSON.stringify(dbData);
+      await api.importData(dbJson);
+      if (importObj.localStorage) {
+        for (const [key, value] of Object.entries(importObj.localStorage)) {
+          if (value) localStorage.setItem(key, value as string);
+        }
+      }
+      window.location.reload();
+    } catch (e) {
+      console.error("Import failed:", e);
+    }
+  };
+
   return (
     <div className="p-6 max-w-lg">
       <div className="flex items-center justify-between mb-6">
@@ -165,6 +216,14 @@ export function Settings({ onClose }: SettingsProps) {
             <span className="text-xs text-gray-400">天</span>
           </div>
         </label>
+        <div className="flex items-center justify-between py-2">
+          <span className="text-sm text-foreground">数据备份</span>
+          <div className="flex items-center gap-2">
+            <button onClick={handleExport} className="text-xs text-gray-400 hover:text-blue-500">导出</button>
+            <span className="text-gray-300">|</span>
+            <button onClick={handleImport} className="text-xs text-gray-400 hover:text-blue-500">导入</button>
+          </div>
+        </div>
       </section>
 
       {/* Widget */}

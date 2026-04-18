@@ -2889,6 +2889,7 @@ dependencies = [
  "tauri-build",
  "tauri-plugin-autostart",
  "tauri-plugin-dialog",
+ "tauri-plugin-fs",
  "tempfile",
  "thiserror 1.0.69",
  "uuid",

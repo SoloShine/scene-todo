@@ -5,6 +5,9 @@
   "windows": ["main", "widget-*"],
   "permissions": [
     "core:default",
-    "dialog:allow-open"
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "fs:allow-read-file",
+    "fs:allow-write-file"
   ]
 }

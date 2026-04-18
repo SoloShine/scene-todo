@@ -167,3 +167,10 @@ export const refreshAllIcons = () =>
 
 export const importAppIcon = (appId: number, filePath: string) =>
   invoke<App>("import_app_icon", { appId, filePath });
+
+// Data port
+export const exportData = () =>
+  invoke<string>("export_data");
+
+export const importData = (json: string) =>
+  invoke<void>("import_data", { json });
