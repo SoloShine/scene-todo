@@ -194,9 +194,9 @@ function WeekTimeline({ sessions, sceneColorMap, scenes, rangeStart }: {
           {dayData.map((d, i) => {
             const date = new Date(d.day + "T00:00:00");
             const isToday = d.day === todayStr;
-            // Height proportional to max hours (cap at 12h = full height)
-            const maxDisplaySecs = Math.max(maxSecs, 3600); // at least 1h scale
-            const barPct = Math.min((d.totalSecs / maxDisplaySecs) * 100, 100);
+            // Scale: max day fills ~91% of bar height (1/1.1), with 10% headroom
+            const scaleMax = Math.max(maxSecs * 1.1, 3600);
+            const barPct = Math.min((d.totalSecs / scaleMax) * 100, 100);
             return (
               <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
                 <span className="text-[9px] text-muted-foreground">
