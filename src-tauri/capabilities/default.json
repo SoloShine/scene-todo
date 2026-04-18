@@ -1,0 +1,10 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-utils/schema.json/capability",
+  "identifier": "default",
+  "description": "Default permissions for the main window",
+  "windows": ["main", "widget-*"],
+  "permissions": [
+    "core:default",
+    "dialog:allow-open"
+  ]
+}
