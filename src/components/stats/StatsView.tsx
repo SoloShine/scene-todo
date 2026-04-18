@@ -140,7 +140,7 @@ export function StatsView() {
           </div>
 
           {/* Timeline */}
-          <SceneTimeline rangeStart={rangeStart} rangeEnd={rangeEnd} />
+          <SceneTimeline rangeStart={rangeStart} rangeEnd={rangeEnd} preset={preset} />
         </>
       )}
     </div>
