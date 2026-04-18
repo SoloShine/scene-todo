@@ -34,13 +34,13 @@ export function GroupList({ selectedGroupId, onSelectGroup, collapsed, onToggleC
               onBlur={() => { if (!newName.trim()) setShowInput(false); }}
               placeholder="分组名称..."
               autoFocus
-              className="w-full px-2 py-1 text-xs border border-gray-200 rounded mb-0.5"
+              className="w-full px-2 py-1 text-xs border border-surface-border bg-background focus:border-theme-border outline-none rounded-md mb-0.5"
             />
           )}
           <button
             onClick={() => onSelectGroup(null)}
             className={`w-full flex items-center gap-2 px-2 py-1 text-xs rounded transition-colors ${
-              selectedGroupId === null ? "bg-blue-50 text-blue-700" : "hover:bg-gray-100 text-gray-600"
+              selectedGroupId === null ? "bg-theme-bg text-theme" : "hover:bg-accent text-muted-foreground"
             }`}
           >
             全部待办
@@ -49,7 +49,7 @@ export function GroupList({ selectedGroupId, onSelectGroup, collapsed, onToggleC
             <div
               key={group.id}
               className={`group flex items-center gap-2 px-2 py-1 text-xs rounded cursor-pointer transition-colors ${
-                selectedGroupId === group.id ? "bg-blue-50 text-blue-700" : "hover:bg-gray-100 text-gray-600"
+                selectedGroupId === group.id ? "bg-theme-bg text-theme" : "hover:bg-accent text-muted-foreground"
               }`}
               onClick={() => onSelectGroup(group.id)}
             >
@@ -57,7 +57,7 @@ export function GroupList({ selectedGroupId, onSelectGroup, collapsed, onToggleC
               <span className="flex-1 truncate">{group.name}</span>
               <button
                 onClick={(e) => { e.stopPropagation(); remove(group.id); }}
-                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 text-[10px]"
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground/70 hover:text-destructive text-[10px]"
               >
                 ✕
               </button>

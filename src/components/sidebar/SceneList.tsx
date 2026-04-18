@@ -35,7 +35,7 @@ export function SceneList({ selectedSceneId, onSelectScene, onEditScene, collaps
               onBlur={() => { if (!newName.trim()) setShowInput(false); }}
               placeholder="场景名称..."
               autoFocus
-              className="w-full px-2 py-1 text-xs border border-gray-200 rounded mb-1"
+              className="w-full px-2 py-1 text-xs border border-surface-border bg-background focus:border-theme-border outline-none rounded-md mb-1"
             />
           )}
           <div className="flex flex-wrap gap-1">
@@ -46,8 +46,8 @@ export function SceneList({ selectedSceneId, onSelectScene, onEditScene, collaps
                 onContextMenu={(e) => { e.preventDefault(); onEditScene(scene.id); }}
                 className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full transition-colors ${
                   selectedSceneId === scene.id
-                    ? "bg-blue-100 text-blue-700 ring-1 ring-blue-200"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    ? "bg-theme-bg text-theme ring-1 ring-theme-border"
+                    : "bg-muted text-muted-foreground hover:bg-accent"
                 }`}
               >
                 <span>{scene.icon || "📁"}</span>

@@ -48,9 +48,12 @@ export function Sidebar({
   };
 
   return (
-    <aside className="w-60 border-r border-gray-200 bg-white flex flex-col">
-      <div className="p-3 border-b border-gray-200">
-        <h1 className="text-sm font-bold text-gray-800">SceneTodo</h1>
+    <aside className="w-60 border-r border-sidebar-border bg-sidebar flex flex-col">
+      <div className="p-3 border-b border-sidebar-border">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-md bg-gradient-to-br from-theme to-theme-light flex items-center justify-center text-white text-[11px] font-bold">S</div>
+          <h1 className="text-sm font-bold text-foreground">SceneTodo</h1>
+        </div>
       </div>
       <nav className="flex-1 overflow-y-auto p-1 space-y-2">
         <SmartViews onSmartView={onSmartView} />
@@ -74,17 +77,17 @@ export function Sidebar({
           onToggleCollapse={() => toggleSection("tags")}
         />
       </nav>
-      <div className="p-2 border-t border-gray-200 flex gap-1">
+      <div className="p-2 border-t border-sidebar-border flex gap-1">
         <button
           onClick={onOpenStats}
-          className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs text-gray-500 rounded hover:bg-gray-100 transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground rounded-md hover:bg-accent transition-colors"
         >
           <span>📊</span>
           <span>统计</span>
         </button>
         <button
           onClick={onOpenSettings}
-          className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs text-gray-500 rounded hover:bg-gray-100 transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs text-muted-foreground rounded-md hover:bg-accent transition-colors"
         >
           <span>⚙</span>
           <span>设置</span>

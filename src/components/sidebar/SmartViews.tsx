@@ -14,7 +14,7 @@ export function SmartViews({ onSmartView }: SmartViewsProps) {
         <button
           key={v.key}
           onClick={() => onSmartView(v.key)}
-          className="px-2 py-0.5 text-xs text-gray-600 rounded-full hover:bg-gray-100 hover:text-gray-800 transition-colors"
+          className="px-2 py-0.5 text-xs text-muted-foreground rounded-full hover:bg-accent hover:text-theme transition-colors"
         >
           {v.label}
         </button>

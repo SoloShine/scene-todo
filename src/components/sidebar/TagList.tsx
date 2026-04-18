@@ -34,7 +34,7 @@ export function TagList({ selectedTagIds, onToggleTag, collapsed, onToggleCollap
               onBlur={() => { if (!newName.trim()) setShowInput(false); }}
               placeholder="标签名称..."
               autoFocus
-              className="w-full px-2 py-1 text-xs border border-gray-200 rounded mb-1"
+              className="w-full px-2 py-1 text-xs border border-surface-border bg-background focus:border-theme-border outline-none rounded-md mb-1"
             />
           )}
           <div className="flex flex-wrap gap-1">
@@ -56,7 +56,7 @@ export function TagList({ selectedTagIds, onToggleTag, collapsed, onToggleCollap
                 <span>{tag.name}</span>
                 <button
                   onClick={(e) => { e.stopPropagation(); remove(tag.id); }}
-                  className="opacity-0 group-hover:opacity-100 ml-0.5 text-[9px] hover:text-red-500"
+                  className="opacity-0 group-hover:opacity-100 ml-0.5 text-[9px] hover:text-destructive"
                   style={{ color: tag.color + "80" }}
                 >
                   ✕
