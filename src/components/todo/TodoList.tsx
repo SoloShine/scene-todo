@@ -69,6 +69,16 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
   useEffect(() => { refreshSceneTodos(); }, [refreshSceneTodos]);
 
   const todos = selectedSceneId ? sceneTodos : filteredTodos;
+
+  const handleToggle = async (id: number, status: "pending" | "completed") => {
+    await toggleStatus(id, status);
+    if (selectedSceneId) refreshSceneTodos();
+  };
+
+  const handleDelete = async (id: number) => {
+    await remove(id);
+    if (selectedSceneId) refreshSceneTodos();
+  };
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchText, setSearchText] = useState("");
   const [filterPriority, setFilterPriority] = useState<string>("");
@@ -101,6 +111,9 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
   };
 
   const filtered = todos.filter((todo) => {
+    // Subtasks are rendered under their parent — skip them as top-level items
+    const parentInList = todo.parent_id && todos.some((t) => t.id === todo.parent_id);
+    if (parentInList) return false;
     if (matchesFilter(todo)) return true;
     return todo.sub_tasks.some((sub) => matchesFilter(sub));
   });
@@ -150,10 +163,10 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
           editing={editingId === todo.id}
           onStartEdit={() => setEditingId(todo.id)}
           onEndEdit={() => setEditingId(null)}
-          onToggle={toggleStatus}
-          onDelete={remove}
+          onToggle={handleToggle}
+          onDelete={handleDelete}
           onAddSubTask={handleAddSubTask}
-          onRefresh={refresh}
+          onRefresh={() => { refresh(); if (selectedSceneId) refreshSceneTodos(); }}
         />
         {visibleSubs.length > 0 && (
           <div className="ml-6">
@@ -164,10 +177,10 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
                 editing={editingId === sub.id}
                 onStartEdit={() => setEditingId(sub.id)}
                 onEndEdit={() => setEditingId(null)}
-                onToggle={toggleStatus}
-                onDelete={remove}
+                onToggle={handleToggle}
+                onDelete={handleDelete}
                 onAddSubTask={handleAddSubTask}
-                onRefresh={refresh}
+                onRefresh={() => { refresh(); if (selectedSceneId) refreshSceneTodos(); }}
               />
             ))}
           </div>

@@ -84,6 +84,7 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
   const [subTitle, setSubTitle] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
   const editRef = useRef<HTMLDivElement>(null);
+  const [menuUp, setMenuUp] = useState(false);
   const isCompleted = todo.status === "completed";
 
   useEffect(() => {
@@ -269,13 +270,19 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
           </button>
           <div className="relative" ref={menuRef}>
             <button
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={() => {
+                if (!showMenu && menuRef.current) {
+                  const rect = menuRef.current.getBoundingClientRect();
+                  setMenuUp(rect.bottom + 180 > window.innerHeight);
+                }
+                setShowMenu(!showMenu);
+              }}
               className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
             </button>
             {showMenu && (
-              <div className="absolute right-0 top-8 w-36 bg-card rounded-lg shadow-lg border border-surface-border py-1 z-50">
+              <div className={`absolute right-0 ${menuUp ? "bottom-8" : "top-8"} w-36 bg-card rounded-lg shadow-lg border border-surface-border py-1 z-50`}>
                 <button onClick={handleStartEdit} className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent flex items-center gap-2">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                   编辑
