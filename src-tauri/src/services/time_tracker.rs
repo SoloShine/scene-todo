@@ -33,7 +33,7 @@ impl TimeTracker {
             return;
         }
         self.end_current_session();
-        let now = chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string();
+        let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
         *self.current_session.lock().unwrap() = Some(PendingSession {
             scene_id,
             app_id,
@@ -45,11 +45,11 @@ impl TimeTracker {
     pub fn end_current_session(&self) {
         let mut session = self.current_session.lock().unwrap();
         if let Some(s) = session.take() {
-            let now = chrono::Utc::now();
+            let now = chrono::Local::now();
             let started =
                 chrono::NaiveDateTime::parse_from_str(&s.started_at, "%Y-%m-%d %H:%M:%S").ok();
             let duration_secs =
-                started.map(|t| (now.naive_utc() - t).num_seconds().max(0) as i64);
+                started.map(|t| (now.naive_local() - t).num_seconds().max(0) as i64);
 
             let conn = self.db.conn.lock().unwrap();
             let _ = conn.execute(

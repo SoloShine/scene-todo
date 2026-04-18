@@ -39,7 +39,7 @@ export function useTrackingStatus() {
     } catch {}
   }, []);
 
-  useEffect(() => { refresh(); const interval = setInterval(refresh, 5000); return () => clearInterval(interval); }, [refresh]);
+  useEffect(() => { refresh(); const interval = setInterval(refresh, 2000); return () => clearInterval(interval); }, [refresh]);
 
   const setPaused = async (paused: boolean) => {
     await api.setTrackingPaused(paused);
