@@ -314,6 +314,21 @@ pub fn get_time_sessions(db: &Database, range_start: &str, range_end: &str, limi
     Ok(rows.filter_map(|r| r.ok()).collect())
 }
 
+pub fn migrate_utc_to_local(db: &Database) -> Result<u64, String> {
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    // Get the local UTC offset in hours
+    let offset_secs = chrono::Local::now().offset().local_minus_utc();
+    let offset_hours = offset_secs / 3600;
+    let affected = conn.execute(
+        "UPDATE time_sessions \
+         SET started_at = datetime(started_at, '+' || ?1 || ' hours'), \
+             ended_at = datetime(ended_at, '+' || ?1 || ' hours') \
+         WHERE ended_at IS NOT NULL",
+        rusqlite::params![offset_hours],
+    ).map_err(|e| format!("Migrate UTC to local: {}", e))?;
+    Ok(affected as u64)
+}
+
 pub fn cleanup_old_sessions(db: &Database, retention_days: i64) -> Result<u64, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let affected = conn.execute(

@@ -8,6 +8,7 @@ use services::db::Database;
 use services::time_tracker::TimeTracker;
 use services::widget_manager::WidgetManager;
 use services::window_monitor::{ForegroundChanged, WindowMonitor, WindowMoved};
+use services::scene_repo;
 use tauri::{
     Listener, Manager,
     menu::{MenuBuilder, MenuItemBuilder},
@@ -47,6 +48,11 @@ pub fn run() {
             let database = Database::open(&db_path)?;
             let db_arc = Arc::new(database);
             app.manage(db_arc.clone());
+
+            // One-time migration: convert old UTC timestamps to local time
+            {
+                let _ = scene_repo::migrate_utc_to_local(&db_arc);
+            }
 
             let time_tracker = Arc::new(TimeTracker::new(db_arc.clone()));
             app.manage(time_tracker.clone());
@@ -225,6 +231,7 @@ pub fn run() {
             commands::scene_cmd::get_time_summary,
             commands::scene_cmd::get_time_detail,
             commands::scene_cmd::get_time_sessions,
+            commands::scene_cmd::migrate_utc_to_local,
             commands::scene_cmd::set_tracking_paused,
             commands::scene_cmd::get_tracking_status,
             commands::scene_cmd::get_active_scene,

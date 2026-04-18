@@ -72,6 +72,11 @@ pub fn get_time_sessions(db: State<'_, Arc<Database>>, range_start: String, rang
 }
 
 #[tauri::command]
+pub fn migrate_utc_to_local(db: State<'_, Arc<Database>>) -> Result<u64, String> {
+    scene_repo::migrate_utc_to_local(&db)
+}
+
+#[tauri::command]
 pub fn set_tracking_paused(
     time_tracker: State<'_, Arc<TimeTracker>>,
     paused: bool,

@@ -17,7 +17,7 @@ export function RealtimeOverview({ status, totalToday }: Props) {
   if (!status) return null;
 
   const sessionDuration = status.session_started_at
-    ? Math.floor((Date.now() - new Date(status.session_started_at + "Z").getTime()) / 1000)
+    ? Math.floor((Date.now() - new Date(status.session_started_at.replace(" ", "T")).getTime()) / 1000)
     : 0;
 
   return (
