@@ -190,25 +190,29 @@ function WeekTimeline({ sessions, sceneColorMap, scenes, rangeStart }: {
       {dayData.every((d) => d.totalSecs === 0) ? (
         <p className="text-muted-foreground text-center py-6 text-sm">暂无追踪记录</p>
       ) : (
-        <div className="flex items-end gap-1.5" style={{ height: 120 }}>
+        <div className="flex items-end gap-1.5" style={{ height: 140 }}>
           {dayData.map((d, i) => {
             const date = new Date(d.day + "T00:00:00");
             const isToday = d.day === todayStr;
-            const barHeight = Math.max((d.totalSecs / maxSecs) * 100, d.totalSecs > 0 ? 4 : 0);
+            // Height proportional to max hours (cap at 12h = full height)
+            const maxDisplaySecs = Math.max(maxSecs, 3600); // at least 1h scale
+            const barPct = Math.min((d.totalSecs / maxDisplaySecs) * 100, 100);
             return (
               <div key={d.day} className="flex-1 flex flex-col items-center gap-1">
                 <span className="text-[9px] text-muted-foreground">
                   {d.totalSecs > 0 ? formatDuration(d.totalSecs) : ""}
                 </span>
-                <div className="w-full flex flex-col-reverse rounded-md overflow-hidden" style={{ height: 100 }}>
-                  {d.totalSecs > 0 && d.segments.map((seg, si) => (
-                    <div
-                      key={si}
-                      className="w-full transition-opacity hover:opacity-80"
-                      style={{ height: `${seg.pct}%`, backgroundColor: seg.color, minHeight: 2 }}
-                      title={`${formatDuration(seg.secs)}`}
-                    />
-                  ))}
+                <div className="w-full flex items-end" style={{ flex: 1 }}>
+                  <div className="w-full flex flex-col-reverse rounded-md overflow-hidden" style={{ height: `${barPct}%`, minHeight: d.totalSecs > 0 ? 4 : 0 }}>
+                    {d.segments.map((seg, si) => (
+                      <div
+                        key={si}
+                        className="w-full transition-opacity hover:opacity-80"
+                        style={{ height: `${seg.pct}%`, backgroundColor: seg.color, minHeight: 2 }}
+                        title={`${formatDuration(seg.secs)}`}
+                      />
+                    ))}
+                  </div>
                 </div>
                 <span className={`text-[10px] ${isToday ? "text-theme font-semibold" : "text-muted-foreground"}`}>
                   {WEEKDAYS[date.getDay()]}
@@ -296,22 +300,15 @@ function MonthTimeline({ sessions, sceneColorMap, scenes, rangeStart }: {
         <p className="text-muted-foreground text-center py-6 text-sm">暂无追踪记录</p>
       ) : (
         <div className="overflow-x-auto">
-          {/* Month header */}
-          <div className="flex gap-0.5 mb-1 text-[9px] text-muted-foreground pl-0">
-            {weeks.map((w, wi) => {
-              const firstDate = w.find((d) => d.day);
-              if (!firstDate) return <div key={wi} className="w-3" />;
-              const d = new Date(firstDate.day + "T00:00:00");
-              const showLabel = d.getDate() <= 7;
-              return (
-                <div key={wi} className="flex gap-0.5 w-3">
-                  {showLabel ? `${d.getMonth() + 1}/${d.getDate()}` : ""}
-                </div>
-              );
-            })}
-          </div>
-          {/* Heatmap grid */}
+          {/* Heatmap grid with weekday labels on left */}
           <div className="flex gap-0.5">
+            {/* Weekday labels column */}
+            <div className="flex flex-col gap-0.5 flex-shrink-0">
+              {["一", "", "三", "", "五", "", "日"].map((label, i) => (
+                <div key={i} className="h-3 w-4 flex items-center justify-end text-[9px] text-muted-foreground">{label}</div>
+              ))}
+            </div>
+            {/* Week columns */}
             {weeks.map((w, wi) => (
               <div key={wi} className="flex flex-col gap-0.5">
                 {w.map((d, di) => {
@@ -327,12 +324,6 @@ function MonthTimeline({ sessions, sceneColorMap, scenes, rangeStart }: {
                   );
                 })}
               </div>
-            ))}
-          </div>
-          {/* Weekday labels */}
-          <div className="flex flex-col gap-0.5 text-[9px] text-muted-foreground mt-0.5">
-            {["一", "", "三", "", "五", "", "日"].map((label, i) => (
-              <div key={i} className="h-3 flex items-center">{label}</div>
             ))}
           </div>
         </div>
