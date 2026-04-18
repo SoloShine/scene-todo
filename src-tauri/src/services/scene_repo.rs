@@ -191,14 +191,12 @@ fn query_todo_ids_by_scene(conn: &rusqlite::Connection, scene_id: i64) -> Result
         "SELECT DISTINCT t.id FROM todos t \
          JOIN todo_scene_bindings tsb ON t.id = tsb.todo_id \
          WHERE tsb.scene_id = ?1 \
-           AND t.status = 'pending' \
            AND t.parent_id IS NULL \
          UNION \
          SELECT DISTINCT t2.id FROM todos t2 \
          JOIN todos parent ON t2.parent_id = parent.id \
          JOIN todo_scene_bindings tsb2 ON parent.id = tsb2.todo_id \
-         WHERE tsb2.scene_id = ?1 \
-           AND t2.status = 'pending'"
+         WHERE tsb2.scene_id = ?1"
     ).map_err(|e| format!("Prepare: {}", e))?;
     let ids: Vec<i64> = stmt.query_map(params![scene_id], |row| row.get(0))
         .map_err(|e| format!("Query: {}", e))?
