@@ -35,8 +35,15 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
       setColor(existingScene.color);
       setTrackTime(existingScene.track_time);
       api.listSceneApps(existingScene.id).then(setSceneApps);
+    } else if (!sceneId) {
+      // New scene — reset form
+      setName("");
+      setIcon("📁");
+      setColor("#6B7280");
+      setTrackTime(true);
+      setSceneApps([]);
     }
-  }, [sceneId]);
+  }, [sceneId, existingScene]);
 
   const handleSave = async () => {
     if (!name.trim()) return;
