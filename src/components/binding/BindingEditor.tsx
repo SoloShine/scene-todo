@@ -105,8 +105,8 @@ export function BindingEditor({ todoId, onClose, onRefresh }: BindingEditorProps
   }
 
   return (
-    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-80 p-4">
+    <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50" onClick={onClose}>
+      <div className="bg-white rounded-lg shadow-xl w-80 p-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-sm">关联场景</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">&times;</button>
