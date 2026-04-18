@@ -11,33 +11,104 @@
 - 统一配色、间距、圆角、阴影等设计 token
 - 增强 hover/active 交互反馈
 
-## 配色系统
+## 主题系统
 
-基于 Indigo 色系重新定义 OKLCH CSS 变量：
+### 三层主题架构
 
-| Token | 值 | 用途 |
-|-------|------|------|
-| primary | #6366f1 (indigo-500) | 主操作、活跃状态、强调 |
-| primary-light | #818cf8 (indigo-400) | 次要强调 |
-| primary-bg | #eef2ff (indigo-50) | 活跃项背景 |
-| primary-border | #c7d2fe (indigo-200) | 边框、复选框 |
-| background | #fafafe | 页面背景（微蓝白） |
-| card | #ffffff | 卡片背景 |
-| card-border | #eef2ff | 卡片边框 |
-| text-primary | #1e1b4b | 主文字 |
-| text-secondary | #475569 | 次要文字 |
-| text-muted | #94a3b8 | 占位、辅助 |
-| divider | #f5f3ff | 分隔线 |
+```
+主题色 (Accent) × 明暗模式 (Mode) = 最终配色
+```
+
+用户可自由选择主题色（Indigo/Emerald/Rose/Slate/自定义），同时切换浅色/深色模式。两两组合产生最终配色。
+
+### 主题色预设
+
+| 预设名 | 主色 | 浅色变体 | 深色变体 |
+|--------|------|----------|----------|
+| Indigo | #6366f1 | #818cf8 | #4f46e5 |
+| Emerald | #10b981 | #34d399 | #059669 |
+| Rose | #f43f5e | #fb7185 | #e11d48 |
+| Slate | #475569 | #94a3b8 | #334155 |
+| Amber | #f59e0b | #fbbf24 | #d97706 |
+| Sky | #0ea5e9 | #38bdf8 | #0284c7 |
+
+### CSS 变量结构
+
+使用语义化变量名，通过 `data-theme` 和 `data-accent` 属性驱动切换：
+
+```css
+:root {
+  /* 明暗模式相关 — 浅色默认 */
+  --background: oklch(0.98 0.005 280);     /* #fafafe */
+  --card: oklch(1 0 0);                     /* #ffffff */
+  --card-border: oklch(0.94 0.02 280);      /* #eef2ff */
+  --text-primary: oklch(0.15 0.04 280);     /* #1e1b4b */
+  --text-secondary: oklch(0.40 0.02 260);   /* #475569 */
+  --text-muted: oklch(0.70 0.02 260);       /* #94a3b8 */
+  --divider: oklch(0.96 0.015 280);          /* #f5f3ff */
+
+  /* 主题色 — 默认 Indigo，通过 data-accent 切换 */
+  --accent: oklch(0.51 0.22 280);            /* primary */
+  --accent-light: oklch(0.65 0.20 280);      /* primary-light */
+  --accent-bg: oklch(0.96 0.04 280);         /* primary-bg */
+  --accent-border: oklch(0.87 0.08 280);     /* primary-border */
+  --accent-text: oklch(0.40 0.15 280);       /* primary 上文字 */
+
+  /* 固定语义色（不受主题色影响） */
+  --destructive: oklch(0.58 0.25 25);        /* 红 */
+  --warning: oklch(0.70 0.18 85);            /* 黄 */
+  --success: oklch(0.62 0.19 160);           /* 绿 */
+}
+
+/* 深色模式 */
+.dark {
+  --background: oklch(0.15 0.01 280);
+  --card: oklch(0.20 0.01 280);
+  --card-border: oklch(0.27 0.02 280);
+  --text-primary: oklch(0.95 0.01 280);
+  --text-secondary: oklch(0.75 0.01 260);
+  --text-muted: oklch(0.55 0.01 260);
+  --divider: oklch(0.25 0.015 280);
+
+  --accent-text: oklch(0.95 0.01 280);
+}
+
+/* 主题色切换示例 — 通过 data-accent 属性 */
+[data-accent="emerald"] {
+  --accent: oklch(0.57 0.19 160);
+  --accent-light: oklch(0.70 0.17 160);
+  --accent-bg: oklch(0.96 0.04 160);
+  --accent-border: oklch(0.87 0.08 160);
+  --accent-text: oklch(0.40 0.12 160);
+}
+/* ... 其他主题色预设类似 */
+```
+
+### 主题存储与切换
+
+- 主题偏好（accent + mode）存入 SQLite settings 表
+- React Context (`ThemeProvider`) 管理运行时主题状态
+- 切换时更新 `<html>` 的 `class`（dark）和 `data-accent` 属性
+- 支持 3 种模式选项：浅色、深色、跟随系统
+
+### 组件中引用主题色
+
+组件统一使用语义化 class，不硬编码颜色：
+- 活跃态：`bg-[var(--accent-bg)] text-[var(--accent)]`
+- 边框：`border-[var(--card-border)]`
+- 文字层次：`text-[var(--text-primary)]` / `text-[var(--text-secondary)]` / `text-[var(--text-muted)]`
+
+通过 Tailwind v4 的 `@theme` 将这些变量映射为工具类（如 `bg-primary`、`text-muted`），减少内联 `var()` 书写。
 
 场景色彩标识（保持现有场景自定义颜色的基础上提供默认值）：
 - 工作：#6366f1 (indigo)
 - 学习：#34d399 (emerald)
 - 生活：#fb923c (orange)
 
-优先级色彩（保持现有红黄绿体系）：
-- 高：#dc2626 bg #fef2f2
-- 中：#d97706 bg #fffbeb
-- 低：#059669 bg #ecfdf5
+优先级色彩（保持现有红黄绿体系，通过 CSS 变量适配深色模式）：
+- 高：var(--destructive)
+- 中：var(--warning)
+- 低：var(--success)
 
 ## 各组件改造方案
 
@@ -131,11 +202,11 @@
 
 ## 不在本次范围内
 
-- 暗色模式重新设计（保持现有暗色模式不变，后续单独优化）
 - 新增功能或组件
 - 布局结构大改（保持现有 flex/grid 布局）
 - 性能优化
+- 自定义主题色的颜色选择器 UI（先支持预设色，后续可扩展）
 
 ## 实施策略
 
-方案 B（组件重设计）：更新 CSS 变量 + 针对性组件视觉改造。不动组件 props/状态逻辑，只改 className 和样式。
+方案 B（组件重设计）：更新 CSS 变量 + 针对性组件视觉改造。不动组件 props/状态逻辑，只改 className 和样式。新增 ThemeProvider 管理主题色和明暗模式切换。
