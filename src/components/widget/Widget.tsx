@@ -36,6 +36,17 @@ export function Widget({ appId, scenes }: WidgetProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [quickAdd, setQuickAdd] = useState("");
   const [opacity, setOpacity] = useState(readOpacity);
+
+  // Listen for opacity changes from Settings page
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === "scene-todo-settings") {
+        setOpacity(readOpacity());
+      }
+    };
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
   const [passthrough, setPassthrough] = useState(false);
   const [showSceneDropdown, setShowSceneDropdown] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
@@ -198,8 +209,6 @@ export function Widget({ appId, scenes }: WidgetProps) {
   );
 
   const bgAlpha = opacity / 100;
-  // Ensure content area is always readable: blend between user opacity and minimum 0.85
-  const contentBgAlpha = Math.max(bgAlpha, 0.85);
 
   return (
     <div
@@ -220,8 +229,6 @@ export function Widget({ appId, scenes }: WidgetProps) {
         transition: "border 0.2s",
       }}
     >
-      {/* Content layer with guaranteed readability */}
-      <div style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, background: `rgba(255, 255, 255, ${contentBgAlpha})`, borderRadius: "inherit" }}>
       {/* Title bar */}
       <div
         ref={titleBarRef}
@@ -376,7 +383,6 @@ export function Widget({ appId, scenes }: WidgetProps) {
           />
         </div>
       )}
-      </div>
     </div>
   );
 }
