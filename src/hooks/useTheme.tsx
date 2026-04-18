@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export type AccentPreset = "indigo" | "emerald" | "rose" | "slate" | "amber" | "sky";
 export type ColorMode = "light" | "dark" | "system";
@@ -47,6 +48,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     el.setAttribute("data-accent", state.accent);
     el.classList.toggle("dark", resolvedMode === "dark");
     saveState(state);
+
+    // Sync native title bar theme
+    getCurrentWindow().setTheme(
+      resolvedMode === "dark" ? "dark" : "light"
+    ).catch(() => {});
   }, [state.accent, resolvedMode]);
 
   useEffect(() => {

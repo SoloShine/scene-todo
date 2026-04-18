@@ -49,12 +49,7 @@ export function Sidebar({
 
   return (
     <aside className="w-60 border-r border-sidebar-border bg-sidebar flex flex-col">
-      <div className="p-3 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-gradient-to-br from-theme to-theme-light flex items-center justify-center text-white text-[11px] font-bold">S</div>
-          <h1 className="text-sm font-bold text-foreground">SceneTodo</h1>
-        </div>
-      </div>
+      <div className="h-[34px] flex-shrink-0" />
       <nav className="flex-1 overflow-y-auto p-1 space-y-2">
         <SmartViews onSmartView={onSmartView} />
         <SceneList
