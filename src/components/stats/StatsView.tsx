@@ -35,6 +35,16 @@ function formatDuration(secs: number): string {
   return `${m}m`;
 }
 
+const DISTINCT_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#0ea5e9", "#8b5cf6", "#ec4899", "#14b8a6"];
+
+// Assign distinct colors when scene uses the default gray
+function resolveColor(color: string, index: number): string {
+  if (!color || color === "#6B7280") {
+    return DISTINCT_COLORS[index % DISTINCT_COLORS.length];
+  }
+  return color;
+}
+
 export function StatsView() {
   const [preset, setPreset] = useState<RangePreset>("today");
   const [customStart, setCustomStart] = useState("");
@@ -95,31 +105,34 @@ export function StatsView() {
         <>
           {/* Charts row */}
           <div className="grid grid-cols-2 gap-6 mb-6">
-            <TimeDistribution summary={summary} totalSecs={totalSecs} />
+            <TimeDistribution summary={summary.map((s, i) => ({ ...s, color: resolveColor(s.color, i) }))} totalSecs={totalSecs} />
 
             {/* Scene ranking list */}
             <div className="bg-card rounded-xl border border-surface-border p-4">
               <h3 className="text-sm font-semibold text-foreground mb-3">场景排行</h3>
-              <div className="space-y-2">
-                {summary.map((item) => (
-                  <div key={item.scene_id} className="flex items-center gap-3">
-                    <span
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className="text-sm flex-1 truncate">{item.scene_name}</span>
-                    <span className="text-sm text-muted-foreground">{formatDuration(item.total_secs)}</span>
-                    <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${item.percentage}%`, backgroundColor: item.color }}
-                      />
+              <div className="space-y-2.5">
+                {summary.map((item, i) => {
+                  const c = resolveColor(item.color, i);
+                  return (
+                    <div key={item.scene_id}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: c }} />
+                          <span className="text-sm text-foreground truncate">{item.scene_name}</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                          <span className="text-xs text-muted-foreground">{formatDuration(item.total_secs)}</span>
+                          <span className="text-xs text-muted-foreground w-12 text-right">{item.percentage.toFixed(1)}%</span>
+                        </div>
+                      </div>
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${item.percentage}%`, backgroundColor: c }} />
+                      </div>
                     </div>
-                    <span className="text-xs text-muted-foreground w-10 text-right">{item.percentage.toFixed(1)}%</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-              <div className="mt-3 pt-3 border-t flex items-center justify-between text-sm">
+              <div className="mt-3 pt-3 border-t border-surface-divider flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">总计</span>
                 <span className="font-semibold text-foreground">{formatDuration(totalSecs)}</span>
               </div>
