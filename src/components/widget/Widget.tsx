@@ -152,11 +152,17 @@ export function Widget({ appId, scenes }: WidgetProps) {
     }
     const el = todoListRef.current;
     if (!el) return;
-    const todoH = el.scrollHeight;
     const qaH = quickAddRef.current?.offsetHeight ?? 0;
+
+    // Collapse flex to measure true content height (avoid scrollHeight >= clientHeight feedback)
+    const savedFlex = el.style.flex;
+    el.style.flex = "none";
+    const todoH = el.scrollHeight;
+    el.style.flex = savedFlex;
+
     const needed = tbH + filterH + todoH + qaH + borderH;
     const minH = tbH + filterH + qaH + borderH + 20;
-    if (needed !== lastNeededH.current) {
+    if (Math.abs(needed - lastNeededH.current) > 1) {
       lastNeededH.current = needed;
       invoke("resize_widget", { appId, height: needed, minHeight: minH, maxHeight: needed });
     }
