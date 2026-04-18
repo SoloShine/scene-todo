@@ -97,6 +97,9 @@ export const setWidgetDefaultSize = (width: number, height: number) =>
 export const hideWidget = (appId: number) =>
   invoke<void>("hide_widget", { appId });
 
+export const setWidgetPassthrough = (appId: number, passthrough: boolean) =>
+  invoke<void>("set_widget_passthrough", { appId, passthrough });
+
 // Scene management
 export const createScene = (input: CreateScene) =>
   invoke<Scene>("create_scene", { input });

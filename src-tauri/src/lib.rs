@@ -46,13 +46,14 @@ pub fn run() {
 
             // System tray
             let show_item = MenuItemBuilder::with_id("show", "显示主窗口").build(app)?;
+            let unpassthrough_item = MenuItemBuilder::with_id("unpassthrough", "关闭浮窗穿透").build(app)?;
             let pause_widget_item = MenuItemBuilder::with_id("pause_widget", "暂停 Widget").build(app)?;
             let pause_tracking_item = MenuItemBuilder::with_id("pause_tracking", "暂停追踪").build(app)?;
             let separator = PredefinedMenuItem::separator(app)?;
             let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
 
             let menu = MenuBuilder::new(app)
-                .items(&[&show_item, &separator, &pause_widget_item, &pause_tracking_item, &separator, &quit_item])
+                .items(&[&show_item, &unpassthrough_item, &separator, &pause_widget_item, &pause_tracking_item, &separator, &quit_item])
                 .build()?;
 
             let _tray = TrayIconBuilder::new()
@@ -65,6 +66,15 @@ pub fn run() {
                             if let Some(win) = app.get_webview_window("main") {
                                 let _ = win.show();
                                 let _ = win.set_focus();
+                            }
+                        }
+                        "unpassthrough" => {
+                            // Disable passthrough on all widget windows
+                            for win in app.webview_windows().values() {
+                                let label = win.label();
+                                if label.starts_with("widget-app-") {
+                                    let _ = win.set_ignore_cursor_events(false);
+                                }
                             }
                         }
                         "pause_widget" => {
@@ -160,6 +170,7 @@ pub fn run() {
             commands::app_cmd::save_widget_offset,
             commands::app_cmd::set_widget_default_size,
             commands::app_cmd::hide_widget,
+            commands::app_cmd::set_widget_passthrough,
             commands::scene_cmd::create_scene,
             commands::scene_cmd::list_scenes,
             commands::scene_cmd::update_scene,

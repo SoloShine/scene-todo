@@ -5,6 +5,7 @@ use windows::Win32::Foundation::HWND;
 
 use crate::services::app_repo;
 use crate::services::process_matcher;
+use crate::services::scene_repo;
 use crate::services::todo_repo;
 use crate::services::window_monitor::ForegroundChanged;
 use crate::services::db::Database;
@@ -77,10 +78,19 @@ impl WidgetManager {
         let mut active = self.active_widgets.lock().unwrap();
 
         if !active.contains_key(&app_id) {
+            // Collect all scene names for this app
+            let scene_names = scene_repo::find_scenes_by_app_id(&self.db, app_id)
+                .unwrap_or_default()
+                .iter()
+                .map(|(s, _)| s.name.clone())
+                .collect::<Vec<_>>()
+                .join(",");
+
             let url = format!(
-                "/widget?app_id={}&app_name={}",
+                "/widget?app_id={}&app_name={}&scene_names={}",
                 app_id,
-                urlencoding(app_name)
+                urlencoding(app_name),
+                urlencoding(&scene_names)
             );
             let (w, h) = *self.default_size.lock().unwrap();
             let widget_window = WebviewWindow::builder(

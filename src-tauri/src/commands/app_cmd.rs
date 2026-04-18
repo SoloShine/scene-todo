@@ -179,3 +179,12 @@ pub fn hide_widget(app: tauri::AppHandle, app_id: i64) -> Result<(), String> {
     }
     Ok(())
 }
+
+#[tauri::command]
+pub fn set_widget_passthrough(app: tauri::AppHandle, app_id: i64, passthrough: bool) -> Result<(), String> {
+    let label = format!("widget-app-{}", app_id);
+    if let Some(win) = app.get_webview_window(&label) {
+        let _ = win.set_ignore_cursor_events(passthrough);
+    }
+    Ok(())
+}

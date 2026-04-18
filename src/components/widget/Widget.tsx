@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { listTodosByApp, updateTodo, createTodo, hideWidget, bindTodoToScene } from "../../lib/invoke";
+import { listTodosByApp, updateTodo, createTodo, hideWidget, bindTodoToScene, setWidgetPassthrough } from "../../lib/invoke";
 import type { TodoWithDetails } from "../../types";
 import { WidgetTodoItem } from "./WidgetTodoItem";
 
 interface WidgetProps {
   appId: number;
   appName: string;
+  sceneNames: string[];
 }
 
 function readOpacity(): number {
@@ -19,11 +20,12 @@ function readOpacity(): number {
   return 85;
 }
 
-export function Widget({ appId }: WidgetProps) {
+export function Widget({ appId, sceneNames }: WidgetProps) {
   const [todos, setTodos] = useState<TodoWithDetails[]>([]);
   const [collapsed, setCollapsed] = useState(false);
   const [quickAdd, setQuickAdd] = useState("");
   const [opacity, setOpacity] = useState(readOpacity);
+  const [passthrough, setPassthrough] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
@@ -68,11 +70,18 @@ export function Widget({ appId }: WidgetProps) {
     }
   };
 
+  const handlePassthrough = async () => {
+    const next = !passthrough;
+    setPassthrough(next);
+    await setWidgetPassthrough(appId, next);
+  };
+
   const pendingCount = todos.reduce(
     (sum, t) => sum + 1 + t.sub_tasks.filter((s) => s.status === "pending").length,
     0
   );
 
+  const title = sceneNames.length > 0 ? sceneNames.join(" · ") : "SceneTodo";
   const bgAlpha = opacity / 100;
 
   return (
@@ -81,31 +90,45 @@ export function Widget({ appId }: WidgetProps) {
       style={{
         width: "100%",
         height: "100%",
-        background: `rgba(255, 255, 255, ${bgAlpha})`,
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
+        background: passthrough ? "transparent" : `rgba(255, 255, 255, ${bgAlpha})`,
+        backdropFilter: passthrough ? "none" : "blur(12px)",
+        WebkitBackdropFilter: passthrough ? "none" : "blur(12px)",
         borderRadius: "10px",
-        border: "1px solid rgba(200, 200, 200, 0.3)",
+        border: passthrough ? "none" : "1px solid rgba(200, 200, 200, 0.3)",
       }}
     >
-      {/* Title bar */}
+      {/* Title bar — always visible and interactive */}
       <div
-        className="flex items-center justify-between px-3 py-1.5 cursor-move"
+        className="flex items-center justify-between px-2 py-1 cursor-move"
         data-tauri-drag-region
       >
-        <div className="flex items-center gap-2" data-tauri-drag-region>
+        <div className="flex items-center gap-1 min-w-0 flex-1" data-tauri-drag-region>
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="text-gray-400 hover:text-gray-600 text-xs"
+            className="text-gray-400 hover:text-gray-600 text-[10px] flex-shrink-0"
           >
             {collapsed ? "\u25B8" : "\u25BE"}
           </button>
-          <span className="text-[10px] text-gray-500">({pendingCount})</span>
+          <span className="text-[11px] text-gray-700 font-medium truncate" title={title}>
+            {title}
+          </span>
+          <span className="text-[10px] text-gray-400 flex-shrink-0">({pendingCount})</span>
         </div>
+        <button
+          onClick={handlePassthrough}
+          className={`text-[11px] px-1 rounded flex-shrink-0 transition-colors ${
+            passthrough
+              ? "text-blue-500 bg-blue-50 hover:bg-blue-100"
+              : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+          }`}
+          title={passthrough ? "点击穿透中（通过托盘菜单关闭）" : "开启点击穿透"}
+        >
+          {passthrough ? "📌" : "📍"}
+        </button>
       </div>
 
       {/* Todo list */}
-      {!collapsed && (
+      {!collapsed && !passthrough && (
         <div className="px-2 pb-1 space-y-0.5 max-h-48 overflow-y-auto">
           {todos.map((todo) => (
             <div key={todo.id}>
@@ -126,7 +149,7 @@ export function Widget({ appId }: WidgetProps) {
       )}
 
       {/* Quick add */}
-      {!collapsed && (
+      {!collapsed && !passthrough && (
         <div className="px-2 pb-2">
           <input
             value={quickAdd}
