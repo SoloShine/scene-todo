@@ -43,6 +43,7 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             Some(vec![]),
         ))
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             let db_path = Database::app_db_path(&app.handle())?;
             let database = Database::open(&db_path)?;
@@ -234,6 +235,7 @@ pub fn run() {
             commands::app_cmd::resize_widget,
             commands::app_cmd::extract_app_icon,
             commands::app_cmd::refresh_all_icons,
+            commands::app_cmd::import_app_icon,
             commands::scene_cmd::create_scene,
             commands::scene_cmd::list_scenes,
             commands::scene_cmd::update_scene,

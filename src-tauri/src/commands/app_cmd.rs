@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use base64::Engine;
 use tauri::{Manager, State};
 use crate::models::*;
 use crate::services::app_repo;
@@ -234,15 +235,15 @@ pub fn resize_widget(
     Ok(())
 }
 
+fn png_to_data_uri(png: &[u8]) -> String {
+    let b64 = base64::engine::general_purpose::STANDARD.encode(png);
+    format!("data:image/png;base64,{}", b64)
+}
+
 #[tauri::command]
-pub fn extract_app_icon(
-    app_handle: tauri::AppHandle,
-    db: State<'_, Arc<Database>>,
-    app_id: i64,
-) -> Result<App, String> {
+pub fn extract_app_icon(db: State<'_, Arc<Database>>, app_id: i64) -> Result<App, String> {
     let app = app_repo::get_app(&db, app_id)?;
 
-    // Resolve first process name to exe path
     let names: Vec<String> = serde_json::from_str(&app.process_names)
         .map_err(|e| format!("Parse process_names: {}", e))?;
     let proc_name = names.first().ok_or("No process names")?;
@@ -250,12 +251,8 @@ pub fn extract_app_icon(
     let exe_path = icon_extractor::get_exe_path_for_process(proc_name)
         .ok_or("Cannot resolve exe path — process may not be running")?;
 
-    let icon_dir = app_handle.path().app_data_dir()
-        .map_err(|e| format!("App data dir: {}", e))?
-        .join("icons");
-    let icon_dir_str = icon_dir.to_string_lossy().into_owned();
-
-    let saved_path = icon_extractor::extract_icon_to_png(&exe_path, &icon_dir_str, app_id)?;
+    let png = icon_extractor::extract_icon_bytes(&exe_path)?;
+    let data_uri = png_to_data_uri(&png);
 
     app_repo::update_app(&db, UpdateApp {
         id: app_id,
@@ -263,15 +260,12 @@ pub fn extract_app_icon(
         process_names: None,
         display_name: None,
         show_widget: None,
-        icon_path: Some(saved_path),
+        icon_path: Some(data_uri),
     })
 }
 
 #[tauri::command]
-pub fn refresh_all_icons(
-    app_handle: tauri::AppHandle,
-    db: State<'_, Arc<Database>>,
-) -> Result<Vec<App>, String> {
+pub fn refresh_all_icons(db: State<'_, Arc<Database>>) -> Result<Vec<App>, String> {
     let apps = app_repo::list_apps(&db)?;
     let mut updated = Vec::new();
 
@@ -279,21 +273,15 @@ pub fn refresh_all_icons(
         let names: Vec<String> = serde_json::from_str(&app.process_names).unwrap_or_default();
         if let Some(proc_name) = names.first() {
             if let Some(exe_path) = icon_extractor::get_exe_path_for_process(proc_name) {
-                let icon_dir = app_handle.path().app_data_dir()
-                    .map_err(|e| format!("App data dir: {}", e))?
-                    .join("icons");
-                if let Ok(saved_path) = icon_extractor::extract_icon_to_png(
-                    &exe_path,
-                    &icon_dir.to_string_lossy(),
-                    app.id,
-                ) {
+                if let Ok(png) = icon_extractor::extract_icon_bytes(&exe_path) {
+                    let data_uri = png_to_data_uri(&png);
                     if let Ok(updated_app) = app_repo::update_app(&db, UpdateApp {
                         id: app.id,
                         name: None,
                         process_names: None,
                         display_name: None,
                         show_widget: None,
-                        icon_path: Some(saved_path),
+                        icon_path: Some(data_uri),
                     }) {
                         updated.push(updated_app);
                         continue;
@@ -305,4 +293,41 @@ pub fn refresh_all_icons(
     }
 
     Ok(updated)
+}
+
+/// Import an icon from a file path (exe or image). For exe, extracts the icon.
+/// For image files, reads and converts to base64 data URI.
+#[tauri::command]
+pub fn import_app_icon(db: State<'_, Arc<Database>>, app_id: i64, file_path: String) -> Result<App, String> {
+    let lower = file_path.to_lowercase();
+
+    let data_uri = if lower.ends_with(".exe") {
+        let png = icon_extractor::extract_icon_bytes(&file_path)?;
+        png_to_data_uri(&png)
+    } else {
+        let bytes = std::fs::read(&file_path)
+            .map_err(|e| format!("Read file: {}", e))?;
+        let ext = lower.rsplit('.').next().unwrap_or("png");
+        let mime = match ext {
+            "png" => "image/png",
+            "jpg" | "jpeg" => "image/jpeg",
+            "gif" => "image/gif",
+            "bmp" => "image/bmp",
+            "ico" => "image/x-icon",
+            "svg" => "image/svg+xml",
+            "webp" => "image/webp",
+            _ => "image/png",
+        };
+        let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+        format!("data:{};base64,{}", mime, b64)
+    };
+
+    app_repo::update_app(&db, UpdateApp {
+        id: app_id,
+        name: None,
+        process_names: None,
+        display_name: None,
+        show_widget: None,
+        icon_path: Some(data_uri),
+    })
 }

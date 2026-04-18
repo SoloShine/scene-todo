@@ -164,3 +164,6 @@ export const extractAppIcon = (appId: number) =>
 
 export const refreshAllIcons = () =>
   invoke<App[]>("refresh_all_icons");
+
+export const importAppIcon = (appId: number, filePath: string) =>
+  invoke<App>("import_app_icon", { appId, filePath });

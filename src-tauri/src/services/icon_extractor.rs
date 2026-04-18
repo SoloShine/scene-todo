@@ -1,6 +1,5 @@
 use std::ffi::OsStr;
-use std::os::windows::ffi::{OsStrExt, OsStringExt};
-use std::path::PathBuf;
+use std::os::windows::ffi::OsStrExt;
 use windows::Win32::Foundation::*;
 use windows::Win32::Graphics::Gdi::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
@@ -11,6 +10,7 @@ pub fn get_exe_path_for_process(process_name: &str) -> Option<String> {
     use windows::Win32::System::Diagnostics::ToolHelp::*;
     use windows::Win32::System::Threading::*;
     use windows::core::PWSTR;
+    use std::os::windows::ffi::OsStringExt;
 
     unsafe {
         let snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0).ok()?;
@@ -56,16 +56,8 @@ pub fn get_exe_path_for_process(process_name: &str) -> Option<String> {
     }
 }
 
-/// Extract the icon from an exe file and save as PNG.
-/// Returns the path where the PNG was saved.
-pub fn extract_icon_to_png(exe_path: &str, output_dir: &str, app_id: i64) -> Result<String, String> {
-    use std::fs;
-
-    let dir = PathBuf::from(output_dir);
-    fs::create_dir_all(&dir).map_err(|e| format!("Create icon dir: {}", e))?;
-
-    let output_path = dir.join(format!("{}.png", app_id));
-
+/// Extract the icon from an exe path and return PNG bytes.
+pub fn extract_icon_bytes(exe_path: &str) -> Result<Vec<u8>, String> {
     unsafe {
         let exe_wide: Vec<u16> = OsStr::new(exe_path)
             .encode_wide()
@@ -89,6 +81,10 @@ pub fn extract_icon_to_png(exe_path: &str, output_dir: &str, app_id: i64) -> Res
 
         let width = bmp.bmWidth;
         let height = bmp.bmHeight;
+        if width <= 0 || height <= 0 {
+            let _ = DestroyIcon(icon);
+            return Err("Invalid icon dimensions".into());
+        }
 
         let hdc_screen = GetDC(None);
 
@@ -155,13 +151,8 @@ pub fn extract_icon_to_png(exe_path: &str, output_dir: &str, app_id: i64) -> Res
         let _ = DeleteObject(icon_info.hbmMask);
         let _ = DestroyIcon(icon);
 
-        let png_data = encode_png(width as u32, height as u32, &bits)?;
-
-        fs::write(&output_path, png_data)
-            .map_err(|e| format!("Write PNG: {}", e))?;
+        encode_png(width as u32, height as u32, &bits)
     }
-
-    Ok(output_path.to_string_lossy().into_owned())
 }
 
 fn encode_png(width: u32, height: u32, rgba: &[u8]) -> Result<Vec<u8>, String> {
@@ -253,4 +244,29 @@ fn adler32(data: &[u8]) -> u32 {
         b = (b + a) % 65521;
     }
     (b << 16) | a
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_find_explorer() {
+        let path = get_exe_path_for_process("explorer.exe");
+        assert!(path.is_some());
+        assert!(path.unwrap().to_lowercase().contains("explorer"));
+    }
+
+    #[test]
+    fn test_extract_explorer_icon_bytes() {
+        let path = get_exe_path_for_process("explorer.exe").unwrap();
+        let png = extract_icon_bytes(&path).unwrap();
+        assert!(png.len() > 100, "PNG should have content, got {} bytes", png.len());
+        assert_eq!(&png[0..4], &[0x89, 0x50, 0x4E, 0x47], "Should start with PNG magic");
+    }
+
+    #[test]
+    fn test_find_uppercase() {
+        assert!(get_exe_path_for_process("EXPLORER.EXE").is_some());
+    }
 }

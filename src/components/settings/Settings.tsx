@@ -3,7 +3,7 @@ import { useApps } from "../../hooks/useApps";
 import * as api from "../../lib/invoke";
 import { ThemeSettings } from "./ThemeSettings";
 import { enable as enableAutostart, disable as disableAutostart, isEnabled as isAutostartEnabled } from "@tauri-apps/plugin-autostart";
-import { convertFileSrc } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-dialog";
 
 interface SettingsProps {
   onClose: () => void;
@@ -30,7 +30,6 @@ export function Settings({ onClose }: SettingsProps) {
       setShowEmptyWidget(parsed.showEmptyWidget ?? false);
       setRetentionDays(parsed.retentionDays ?? 90);
     }
-    // Read autostart state from the OS plugin, not localStorage
     isAutostartEnabled().then((enabled) => setAutoStart(enabled)).catch(() => {});
     const savedOffsets = localStorage.getItem("scene-todo-widget-offsets");
     if (savedOffsets) {
@@ -42,7 +41,6 @@ export function Settings({ onClose }: SettingsProps) {
     const current = JSON.parse(localStorage.getItem("scene-todo-settings") || "{}");
     const updated = { ...current, ...updates };
     localStorage.setItem("scene-todo-settings", JSON.stringify(updated));
-    // Sync size to backend
     const size = updated.widgetSize ?? "medium";
     const sizeMap: Record<string, [number, number]> = {
       small: [200, 240],
@@ -111,6 +109,23 @@ export function Settings({ onClose }: SettingsProps) {
       console.error("Refresh icons failed:", e);
     } finally {
       setRefreshingIcons(false);
+    }
+  };
+
+  const handleImportIcon = async (appId: number) => {
+    try {
+      const selected = await open({
+        multiple: false,
+        filters: [{
+          name: "图标文件",
+          extensions: ["exe", "png", "jpg", "jpeg", "ico", "bmp", "svg", "webp"],
+        }],
+      });
+      if (!selected) return;
+      await api.importAppIcon(appId, selected as string);
+      refresh();
+    } catch (e) {
+      console.error("Import icon failed:", e);
     }
   };
 
@@ -197,7 +212,7 @@ export function Settings({ onClose }: SettingsProps) {
               disabled={refreshingIcons}
               className="text-xs text-gray-400 hover:text-blue-500 disabled:opacity-50"
             >
-              {refreshingIcons ? "刷新中..." : "刷新图标"}
+              {refreshingIcons ? "刷新中..." : "自动获取图标"}
             </button>
           )}
         </div>
@@ -217,7 +232,7 @@ export function Settings({ onClose }: SettingsProps) {
                     </button>
                     <div className="flex items-center gap-2">
                       {app.icon_path ? (
-                        <img src={convertFileSrc(app.icon_path)} alt="" className="w-5 h-5 rounded" />
+                        <img src={app.icon_path} alt="" className="w-5 h-5 rounded" />
                       ) : (
                         <div className="w-5 h-5 rounded bg-muted flex items-center justify-center text-[10px] text-muted-foreground">
                           {app.display_name?.[0] || app.name[0]}
@@ -268,6 +283,12 @@ export function Settings({ onClose }: SettingsProps) {
                         className="w-14 px-1 py-0.5 border rounded text-center text-xs"
                       />
                     </div>
+                    <button
+                      onClick={() => handleImportIcon(app.id)}
+                      className="text-xs text-gray-400 hover:text-blue-500"
+                    >
+                      手动导入图标...
+                    </button>
                   </div>
                 )}
               </div>
