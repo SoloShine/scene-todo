@@ -1,5 +1,6 @@
 import ReactDOM from "react-dom/client";
 import { Widget } from "./components/widget/Widget";
+import { ThemeProvider } from "./hooks/useTheme";
 import "./index.css";
 
 interface SceneInfo {
@@ -27,5 +28,7 @@ const scenes: SceneInfo[] = scenesRaw
       }));
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <Widget appId={appId} appName={appName} scenes={scenes} />
+  <ThemeProvider>
+    <Widget appId={appId} appName={appName} scenes={scenes} />
+  </ThemeProvider>
 );
