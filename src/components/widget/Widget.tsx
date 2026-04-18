@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useLayoutEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listTodosByApp, updateTodo, createTodo, hideWidget, bindTodoToScene, setWidgetPassthrough } from "../../lib/invoke";
+import { listTodosByApp, updateTodo, createTodo, hideWidget, bindTodoToScene, setWidgetPassthrough, saveWidgetOffset } from "../../lib/invoke";
 import type { TodoWithDetails } from "../../types";
 import { WidgetTodoItem } from "./WidgetTodoItem";
 
@@ -47,6 +47,18 @@ export function Widget({ appId, scenes }: WidgetProps) {
     window.addEventListener("storage", handler);
     return () => window.removeEventListener("storage", handler);
   }, []);
+
+  // Send saved offset to backend on mount so initial positioning uses it
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("scene-todo-widget-offsets");
+      if (saved) {
+        const all = JSON.parse(saved);
+        const off = all[appId];
+        if (off) saveWidgetOffset(appId, off.x, off.y);
+      }
+    } catch {}
+  }, [appId]);
   const [passthrough, setPassthrough] = useState(false);
   const [showSceneDropdown, setShowSceneDropdown] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
