@@ -6,11 +6,7 @@ import { enable as enableAutostart, disable as disableAutostart, isEnabled as is
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeFile, readFile } from "@tauri-apps/plugin-fs";
 
-interface SettingsProps {
-  onClose: () => void;
-}
-
-export function Settings({ onClose }: SettingsProps) {
+export function Settings() {
   const { apps, create, remove, refresh } = useApps();
   const [autoStart, setAutoStart] = useState(false);
   const [widgetOpacity, setWidgetOpacity] = useState(85);
@@ -212,13 +208,8 @@ export function Settings({ onClose }: SettingsProps) {
   };
 
   return (
-    <div className="p-6 max-w-lg">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold text-foreground">设置</h2>
-        <button onClick={onClose} className="text-gray-400 hover:text-muted-foreground">
-          &times;
-        </button>
-      </div>
+    <div className="p-6">
+      <h2 className="text-lg font-semibold text-foreground mb-6">设置</h2>
 
       <ThemeSettings />
 

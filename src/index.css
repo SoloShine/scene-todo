@@ -211,4 +211,10 @@
   html {
     @apply font-sans;
   }
+  input[type="range"] {
+    accent-color: var(--accent-base);
+  }
+  input[type="checkbox"] {
+    accent-color: var(--accent-base);
+  }
 }

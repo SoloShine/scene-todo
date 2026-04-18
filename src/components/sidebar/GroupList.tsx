@@ -53,7 +53,7 @@ export function GroupList({ selectedGroupId, onSelectGroup, collapsed, onToggleC
               }`}
               onClick={() => onSelectGroup(group.id)}
             >
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: group.color }} />
+              <span className="w-3 h-3 rounded-full flex-shrink-0 ring-1 ring-white/20" style={{ backgroundColor: group.color }} />
               <span className="flex-1 truncate">{group.name}</span>
               <button
                 onClick={(e) => { e.stopPropagation(); remove(group.id); }}

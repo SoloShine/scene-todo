@@ -4,7 +4,7 @@ import { TodoList } from "./components/todo/TodoList";
 import { Settings } from "./components/settings/Settings";
 import { SceneEditor } from "./components/scene/SceneEditor";
 import { StatsView } from "./components/stats/StatsView";
-import { startWindowMonitor, setWidgetDefaultSize, cleanupOldSessions } from "./lib/invoke";
+import { startWindowMonitor, setWidgetDefaultSize, cleanupOldSessions, saveWidgetOffset } from "./lib/invoke";
 import type { TodoFilters } from "./types";
 
 export default function App() {
@@ -38,6 +38,16 @@ export default function App() {
         const retentionDays = parsed.retentionDays ?? 90;
         if (typeof retentionDays === "number" && retentionDays > 0) {
           cleanupOldSessions(retentionDays).catch(() => {});
+        }
+      }
+
+      // Send saved widget offsets to backend on startup
+      const savedOffsets = localStorage.getItem("scene-todo-widget-offsets");
+      if (savedOffsets) {
+        const offsets = JSON.parse(savedOffsets);
+        for (const [appId, off] of Object.entries(offsets)) {
+          const { x, y } = off as { x: number; y: number };
+          saveWidgetOffset(Number(appId), x, y).catch(() => {});
         }
       }
     } catch {}
@@ -109,8 +119,9 @@ export default function App() {
       />
       <main className="flex-1 overflow-auto">
         {showSettings ? (
-          <Settings onClose={() => setShowSettings(false)} />
+          <Settings />
         ) : showStats ? (
+
           <StatsView />
         ) : (
           <TodoList filters={filters} selectedSceneId={selectedSceneId} />
