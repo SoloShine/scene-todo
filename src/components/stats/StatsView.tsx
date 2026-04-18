@@ -9,22 +9,26 @@ type RangePreset = "today" | "week" | "month" | "custom";
 function getDateRange(preset: RangePreset, customStart?: string, customEnd?: string): [string, string] {
   const now = new Date();
   const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const nextDay = (d: Date) => { const r = new Date(d); r.setDate(r.getDate() + 1); return fmt(r); };
 
   switch (preset) {
     case "today":
-      return [fmt(now), fmt(now)];
+      return [fmt(now), nextDay(now)];
     case "week": {
       const weekAgo = new Date(now);
       weekAgo.setDate(weekAgo.getDate() - 7);
-      return [fmt(weekAgo), fmt(now)];
+      return [fmt(weekAgo), nextDay(now)];
     }
     case "month": {
       const monthAgo = new Date(now);
       monthAgo.setDate(monthAgo.getDate() - 30);
-      return [fmt(monthAgo), fmt(now)];
+      return [fmt(monthAgo), nextDay(now)];
     }
-    case "custom":
-      return [customStart || fmt(now), customEnd || fmt(now)];
+    case "custom": {
+      const end = customEnd || fmt(now);
+      const endD = new Date(end + "T00:00:00");
+      return [customStart || fmt(now), nextDay(endD)];
+    }
   }
 }
 
