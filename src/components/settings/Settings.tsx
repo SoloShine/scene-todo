@@ -36,6 +36,18 @@ export function Settings() {
     }
   }, []);
 
+  useEffect(() => {
+    const sync = () => {
+      const saved = localStorage.getItem("scene-todo-settings");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.closeAction) setCloseAction(parsed.closeAction);
+      }
+    };
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, []);
+
   const saveSettings = (updates: Record<string, unknown>) => {
     const current = JSON.parse(localStorage.getItem("scene-todo-settings") || "{}");
     const updated = { ...current, ...updates };

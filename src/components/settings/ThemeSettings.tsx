@@ -20,7 +20,10 @@ export function ThemeSettings() {
 
   return (
     <section className="mb-6">
-      <h3 className="text-sm font-medium text-muted-foreground mb-3">外观</h3>
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+        <span className="w-1 h-4 rounded-full bg-theme" />
+        外观
+      </h3>
 
       <div className="mb-4">
         <label className="text-xs text-muted-foreground mb-2 block">明暗模式</label>

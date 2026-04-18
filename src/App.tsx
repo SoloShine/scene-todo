@@ -186,6 +186,7 @@ export default function App() {
                     const saved = JSON.parse(localStorage.getItem("scene-todo-settings") || "{}");
                     saved.closeAction = action;
                     localStorage.setItem("scene-todo-settings", JSON.stringify(saved));
+                    window.dispatchEvent(new Event("storage"));
                   }
                   setShowCloseDialog(false);
                   if (action === "exit") exitApp();
