@@ -78,19 +78,21 @@ impl WidgetManager {
         let mut active = self.active_widgets.lock().unwrap();
 
         if !active.contains_key(&app_id) {
-            // Collect all scene names for this app
-            let scene_names = scene_repo::find_scenes_by_app_id(&self.db, app_id)
-                .unwrap_or_default()
-                .iter()
-                .map(|(s, _)| s.name.clone())
-                .collect::<Vec<_>>()
-                .join(",");
+            let scenes_json = serde_json::to_string(
+                &scene_repo::find_scenes_by_app_id(&self.db, app_id)
+                    .unwrap_or_default()
+                    .iter()
+                    .map(|(s, _)| serde_json::json!({
+                        "id": s.id, "name": s.name, "icon": s.icon, "color": s.color,
+                    }))
+                    .collect::<Vec<_>>(),
+            ).unwrap_or_default();
 
             let url = format!(
-                "/widget?app_id={}&app_name={}&scene_names={}",
+                "/widget?app_id={}&app_name={}&scenes={}",
                 app_id,
                 urlencoding(app_name),
-                urlencoding(&scene_names)
+                urlencoding(&scenes_json)
             );
             let (w, h) = *self.default_size.lock().unwrap();
             let widget_window = WebviewWindow::builder(
