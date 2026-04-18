@@ -21,7 +21,10 @@ export function SceneTimeline({ rangeStart, rangeEnd }: Props) {
   const [scenes, setScenes] = useState<Scene[]>([]);
 
   useEffect(() => {
-    api.getTimeSessions(rangeStart, rangeEnd, 500).then(setSessions);
+    // Fetch sessions for today specifically
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    api.getTimeSessions(todayStr, todayStr, 500).then(setSessions);
     api.listScenes().then(setScenes);
   }, [rangeStart, rangeEnd]);
 
@@ -31,9 +34,10 @@ export function SceneTimeline({ rangeStart, rangeEnd }: Props) {
     return map;
   }, [scenes]);
 
-  // Group sessions by scene, calculate positions on 24-hour axis
-  // Use rangeStart as the day to display
-  const dayStart = new Date(rangeStart + "T00:00:00").getTime();
+  // Always show today's timeline regardless of selected range
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const dayStart = new Date(todayStr + "T00:00:00").getTime();
   const dayEnd = dayStart + 24 * 60 * 60 * 1000;
   const dayMs = dayEnd - dayStart;
 
@@ -63,10 +67,10 @@ export function SceneTimeline({ rangeStart, rangeEnd }: Props) {
 
   return (
     <div className="bg-card rounded-xl border border-surface-border p-4">
-      <h3 className="text-sm font-semibold text-foreground mb-3">时间线</h3>
+      <h3 className="text-sm font-semibold text-foreground mb-3">今日时间线</h3>
 
       {blocks.length === 0 ? (
-        <p className="text-muted-foreground text-center py-6 text-sm">当日无追踪记录</p>
+        <p className="text-muted-foreground text-center py-6 text-sm">今日暂无追踪记录</p>
       ) : (
         <>
           {/* Hour axis */}
