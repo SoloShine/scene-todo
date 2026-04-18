@@ -155,6 +155,12 @@ export function Settings({ onClose }: SettingsProps) {
     }
   };
 
+  const [importPreview, setImportPreview] = useState<{
+    dbData: Record<string, unknown>;
+    localStorage: Record<string, unknown> | null;
+    summary: string[];
+  } | null>(null);
+
   const handleImport = async () => {
     try {
       const selected = await open({
@@ -167,13 +173,38 @@ export function Settings({ onClose }: SettingsProps) {
       const text = decoder.decode(bytes);
       const importObj = JSON.parse(text);
       const dbData = importObj.database || importObj;
-      const dbJson = JSON.stringify(dbData);
+      const lsData = importObj.localStorage || null;
+
+      const summary: string[] = [];
+      const tableLabels: Record<string, string> = {
+        groups: "分组", tags: "标签", apps: "应用", scenes: "场景",
+        todos: "待办事项", todo_tags: "标签关联", scene_apps: "场景应用关联",
+        todo_app_bindings: "应用绑定", todo_scene_bindings: "场景绑定",
+        time_sessions: "时间记录",
+      };
+      for (const [key, label] of Object.entries(tableLabels)) {
+        const rows = (dbData as Record<string, unknown>)[key];
+        if (Array.isArray(rows) && rows.length > 0) {
+          summary.push(`${label}: ${rows.length} 条`);
+        }
+      }
+      setImportPreview({ dbData, localStorage: lsData, summary });
+    } catch (e) {
+      console.error("Import failed:", e);
+    }
+  };
+
+  const confirmImport = async () => {
+    if (!importPreview) return;
+    try {
+      const dbJson = JSON.stringify(importPreview.dbData);
       await api.importData(dbJson);
-      if (importObj.localStorage) {
-        for (const [key, value] of Object.entries(importObj.localStorage)) {
+      if (importPreview.localStorage) {
+        for (const [key, value] of Object.entries(importPreview.localStorage)) {
           if (value) localStorage.setItem(key, value as string);
         }
       }
+      setImportPreview(null);
       window.location.reload();
     } catch (e) {
       console.error("Import failed:", e);
@@ -363,6 +394,40 @@ export function Settings({ onClose }: SettingsProps) {
           {apps.length === 0 && <p className="text-xs text-gray-400 py-2">暂无关联软件</p>}
         </div>
       </section>
+
+      {/* Import confirmation dialog */}
+      {importPreview && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-xl border border-surface-border p-5 w-80 shadow-xl">
+            <h3 className="text-sm font-semibold text-foreground mb-3">确认导入数据</h3>
+            <div className="bg-background rounded-lg p-3 mb-3 space-y-1">
+              {importPreview.summary.map((s) => (
+                <p key={s} className="text-xs text-foreground">{s}</p>
+              ))}
+              {importPreview.summary.length === 0 && (
+                <p className="text-xs text-muted-foreground">备份文件中无数据</p>
+              )}
+            </div>
+            <p className="text-xs text-red-500 mb-4">
+              导入将覆盖当前所有数据，此操作不可撤销。
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setImportPreview(null)}
+                className="px-3 py-1.5 text-xs rounded-lg border border-surface-border hover:bg-accent"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmImport}
+                className="px-3 py-1.5 text-xs rounded-lg bg-red-500 text-white hover:bg-red-600"
+              >
+                确认导入
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
