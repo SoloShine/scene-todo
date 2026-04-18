@@ -6,6 +6,7 @@ use crate::services::db::Database;
 use crate::services::process_matcher;
 use crate::services::widget_manager::WidgetManager;
 use crate::services::window_monitor::WindowMonitor;
+use crate::services::icon_extractor;
 
 #[tauri::command]
 pub fn create_app(db: State<'_, Arc<Database>>, input: CreateApp) -> Result<App, String> {
@@ -231,4 +232,77 @@ pub fn resize_widget(
         ));
     }
     Ok(())
+}
+
+#[tauri::command]
+pub fn extract_app_icon(
+    app_handle: tauri::AppHandle,
+    db: State<'_, Arc<Database>>,
+    app_id: i64,
+) -> Result<App, String> {
+    let app = app_repo::get_app(&db, app_id)?;
+
+    // Resolve first process name to exe path
+    let names: Vec<String> = serde_json::from_str(&app.process_names)
+        .map_err(|e| format!("Parse process_names: {}", e))?;
+    let proc_name = names.first().ok_or("No process names")?;
+
+    let exe_path = icon_extractor::get_exe_path_for_process(proc_name)
+        .ok_or("Cannot resolve exe path — process may not be running")?;
+
+    let icon_dir = app_handle.path().app_data_dir()
+        .map_err(|e| format!("App data dir: {}", e))?
+        .join("icons");
+    let icon_dir_str = icon_dir.to_string_lossy().into_owned();
+
+    let saved_path = icon_extractor::extract_icon_to_png(&exe_path, &icon_dir_str, app_id)?;
+
+    app_repo::update_app(&db, UpdateApp {
+        id: app_id,
+        name: None,
+        process_names: None,
+        display_name: None,
+        show_widget: None,
+        icon_path: Some(saved_path),
+    })
+}
+
+#[tauri::command]
+pub fn refresh_all_icons(
+    app_handle: tauri::AppHandle,
+    db: State<'_, Arc<Database>>,
+) -> Result<Vec<App>, String> {
+    let apps = app_repo::list_apps(&db)?;
+    let mut updated = Vec::new();
+
+    for app in &apps {
+        let names: Vec<String> = serde_json::from_str(&app.process_names).unwrap_or_default();
+        if let Some(proc_name) = names.first() {
+            if let Some(exe_path) = icon_extractor::get_exe_path_for_process(proc_name) {
+                let icon_dir = app_handle.path().app_data_dir()
+                    .map_err(|e| format!("App data dir: {}", e))?
+                    .join("icons");
+                if let Ok(saved_path) = icon_extractor::extract_icon_to_png(
+                    &exe_path,
+                    &icon_dir.to_string_lossy(),
+                    app.id,
+                ) {
+                    if let Ok(updated_app) = app_repo::update_app(&db, UpdateApp {
+                        id: app.id,
+                        name: None,
+                        process_names: None,
+                        display_name: None,
+                        show_widget: None,
+                        icon_path: Some(saved_path),
+                    }) {
+                        updated.push(updated_app);
+                        continue;
+                    }
+                }
+            }
+        }
+        updated.push(app.clone());
+    }
+
+    Ok(updated)
 }

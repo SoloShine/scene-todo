@@ -157,3 +157,10 @@ export const setActiveScene = (sceneId: number) =>
 // Data cleanup
 export const cleanupOldSessions = (retentionDays: number) =>
   invoke<number>("cleanup_old_sessions", { retentionDays });
+
+// Icon extraction
+export const extractAppIcon = (appId: number) =>
+  invoke<App>("extract_app_icon", { appId });
+
+export const refreshAllIcons = () =>
+  invoke<App[]>("refresh_all_icons");

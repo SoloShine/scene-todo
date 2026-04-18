@@ -24,6 +24,7 @@ pub struct UpdateApp {
     pub process_names: Option<Vec<String>>,
     pub display_name: Option<String>,
     pub show_widget: Option<bool>,
+    pub icon_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

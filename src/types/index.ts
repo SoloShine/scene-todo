@@ -97,6 +97,7 @@ export interface UpdateApp {
   process_names?: string[] | null;
   display_name?: string | null;
   show_widget?: boolean | null;
+  icon_path?: string | null;
 }
 
 export interface TodoFilters {

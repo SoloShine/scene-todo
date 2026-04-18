@@ -232,6 +232,8 @@ pub fn run() {
             commands::app_cmd::hide_widget,
             commands::app_cmd::set_widget_passthrough,
             commands::app_cmd::resize_widget,
+            commands::app_cmd::extract_app_icon,
+            commands::app_cmd::refresh_all_icons,
             commands::scene_cmd::create_scene,
             commands::scene_cmd::list_scenes,
             commands::scene_cmd::update_scene,

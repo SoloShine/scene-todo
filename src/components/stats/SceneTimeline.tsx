@@ -57,7 +57,7 @@ export function SceneTimeline({ rangeStart, rangeEnd, preset }: Props) {
     return <WeekTimeline sessions={validSessions} sceneColorMap={sceneColorMap} scenes={scenes} rangeStart={rangeStart} rangeEnd={rangeEnd} />;
   }
   // month
-  return <MonthTimeline sessions={validSessions} sceneColorMap={sceneColorMap} scenes={scenes} rangeStart={rangeStart} />;
+  return <MonthTimeline sessions={validSessions} scenes={scenes} rangeStart={rangeStart} />;
 }
 
 // --- Shared legend ---
@@ -165,7 +165,6 @@ function WeekTimeline({ sessions, sceneColorMap, scenes, rangeStart, rangeEnd }:
     return days.map((day) => {
       const dayStart = new Date(day + "T00:00:00").getTime();
       const dayEnd = dayStart + 24 * 60 * 60 * 1000;
-      const dayMs = dayEnd - dayStart;
 
       const daySessions = sessions.filter((s) => {
         const start = new Date(s.started_at).getTime();
@@ -205,7 +204,7 @@ function WeekTimeline({ sessions, sceneColorMap, scenes, rangeStart, rangeEnd }:
         <p className="text-muted-foreground text-center py-6 text-sm">暂无追踪记录</p>
       ) : (
         <div className="flex items-end gap-1.5" style={{ height: 140 }}>
-          {dayData.map((d, i) => {
+          {dayData.map((d) => {
             const date = new Date(d.day + "T00:00:00");
             const isToday = d.day === todayStr;
             const barPx = Math.min((d.totalSecs / scaleMax) * BAR_AREA_HEIGHT, BAR_AREA_HEIGHT);
@@ -243,8 +242,8 @@ function WeekTimeline({ sessions, sceneColorMap, scenes, rangeStart, rangeEnd }:
 }
 
 // --- Month: 30-day heatmap ---
-function MonthTimeline({ sessions, sceneColorMap, scenes, rangeStart }: {
-  sessions: TimeSession[]; sceneColorMap: Map<number, string>; scenes: Scene[]; rangeStart: string;
+function MonthTimeline({ sessions, scenes, rangeStart }: {
+  sessions: TimeSession[]; scenes: Scene[]; rangeStart: string;
 }) {
   const days = useMemo(() => {
     const today = new Date();

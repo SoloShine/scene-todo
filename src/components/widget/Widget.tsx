@@ -18,7 +18,6 @@ interface WidgetProps {
 }
 
 const TITLE_BAR_H = 28;
-const QUICK_ADD_H = 32;
 
 function readOpacity(): number {
   try {

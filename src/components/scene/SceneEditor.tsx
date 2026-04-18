@@ -3,6 +3,7 @@ import { useScenes } from "../../hooks/useScenes";
 import { useApps } from "../../hooks/useApps";
 import * as api from "../../lib/invoke";
 import type { SceneApp } from "../../types";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
 interface SceneEditorProps {
   sceneId: number | null;
@@ -194,7 +195,16 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
                 const app = apps.find((a) => a.id === sa.app_id);
                 return (
                   <div key={sa.app_id} className="flex items-center justify-between px-2 py-1 bg-background rounded-lg text-sm">
-                    <span>{app?.display_name || app?.name || `App #${sa.app_id}`}</span>
+                    <div className="flex items-center gap-2">
+                      {app?.icon_path ? (
+                        <img src={convertFileSrc(app.icon_path)} alt="" className="w-4 h-4 rounded" />
+                      ) : (
+                        <div className="w-4 h-4 rounded bg-muted flex items-center justify-center text-[8px] text-muted-foreground">
+                          {(app?.display_name ?? app?.name ?? "?")[0]}
+                        </div>
+                      )}
+                      <span>{app?.display_name || app?.name || `App #${sa.app_id}`}</span>
+                    </div>
                     <button onClick={() => handleRemoveApp(sa.app_id)} className="text-muted-foreground hover:text-red-500">&times;</button>
                   </div>
                 );

@@ -3,6 +3,7 @@ import { useApps } from "../../hooks/useApps";
 import * as api from "../../lib/invoke";
 import { ThemeSettings } from "./ThemeSettings";
 import { enable as enableAutostart, disable as disableAutostart, isEnabled as isAutostartEnabled } from "@tauri-apps/plugin-autostart";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
 interface SettingsProps {
   onClose: () => void;
@@ -18,6 +19,7 @@ export function Settings({ onClose }: SettingsProps) {
   const [expandedApp, setExpandedApp] = useState<number | null>(null);
   const [offsets, setOffsets] = useState<Record<number, { x: number; y: number }>>({});
   const [capturing, setCapturing] = useState(false);
+  const [refreshingIcons, setRefreshingIcons] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("scene-todo-settings");
@@ -100,6 +102,18 @@ export function Settings({ onClose }: SettingsProps) {
     refresh();
   };
 
+  const handleRefreshIcons = async () => {
+    setRefreshingIcons(true);
+    try {
+      await api.refreshAllIcons();
+      refresh();
+    } catch (e) {
+      console.error("Refresh icons failed:", e);
+    } finally {
+      setRefreshingIcons(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-lg">
       <div className="flex items-center justify-between mb-6">
@@ -175,7 +189,18 @@ export function Settings({ onClose }: SettingsProps) {
 
       {/* App Management with per-app offset */}
       <section>
-        <h3 className="text-sm font-medium text-muted-foreground mb-3">已关联软件</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-muted-foreground">已关联软件</h3>
+          {apps.length > 0 && (
+            <button
+              onClick={handleRefreshIcons}
+              disabled={refreshingIcons}
+              className="text-xs text-gray-400 hover:text-blue-500 disabled:opacity-50"
+            >
+              {refreshingIcons ? "刷新中..." : "刷新图标"}
+            </button>
+          )}
+        </div>
         <div className="space-y-1">
           {apps.map((app) => {
             const isExpanded = expandedApp === app.id;
@@ -191,6 +216,13 @@ export function Settings({ onClose }: SettingsProps) {
                       {isExpanded ? "\u25BE" : "\u25B8"}
                     </button>
                     <div className="flex items-center gap-2">
+                      {app.icon_path ? (
+                        <img src={convertFileSrc(app.icon_path)} alt="" className="w-5 h-5 rounded" />
+                      ) : (
+                        <div className="w-5 h-5 rounded bg-muted flex items-center justify-center text-[10px] text-muted-foreground">
+                          {app.display_name?.[0] || app.name[0]}
+                        </div>
+                      )}
                       <span className="text-sm text-foreground">{app.display_name || app.name}</span>
                       <span className="text-xs text-gray-400">
                         {(() => { try { return JSON.parse(app.process_names).join(", "); } catch { return app.process_names; } })()}

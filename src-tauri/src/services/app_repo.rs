@@ -57,6 +57,7 @@ pub fn update_app(db: &Database, input: UpdateApp) -> Result<App, String> {
     }
     if let Some(ref v) = input.display_name { sets.push(format!("display_name = ?{}", pv.len() + 1)); pv.push(Box::new(v.clone())); }
     if let Some(v) = input.show_widget { sets.push(format!("show_widget = ?{}", pv.len() + 1)); pv.push(Box::new(v as i32)); }
+    if let Some(ref v) = input.icon_path { sets.push(format!("icon_path = ?{}", pv.len() + 1)); pv.push(Box::new(v.clone())); }
 
     if sets.is_empty() { drop(conn); return get_app(db, input.id); }
 

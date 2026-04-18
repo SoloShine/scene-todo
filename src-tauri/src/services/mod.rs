@@ -8,3 +8,4 @@ pub mod time_tracker;
 pub mod window_monitor;
 pub mod process_matcher;
 pub mod widget_manager;
+pub mod icon_extractor;
