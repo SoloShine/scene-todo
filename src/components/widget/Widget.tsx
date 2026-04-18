@@ -207,7 +207,7 @@ export function Widget({ appId, scenes }: WidgetProps) {
         flexDirection: "column",
         width: "100%",
         height: "100%",
-        background: `rgba(255, 255, 255, ${passthrough ? bgAlpha : 0.92})`,
+        background: `rgba(255, 255, 255, ${bgAlpha})`,
         backdropFilter: "blur(20px) saturate(180%)",
         WebkitBackdropFilter: "blur(20px) saturate(180%)",
         borderRadius: "14px",
