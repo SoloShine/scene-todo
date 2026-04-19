@@ -43,6 +43,28 @@ src/
   types/       — TypeScript interfaces (mirror Rust models)
 ```
 
+## E2E Testing
+
+- **Toolchain:** WebDriverIO 9 + Mocha + tauri-driver (Tauri's WebDriver bridge)
+- **Prerequisites:** `tauri-driver` (`cargo install tauri-driver --locked`), `msedgedriver` in PATH (Windows: `winget install Microsoft.EdgeDriver`)
+- **Test location:** `e2e/specs/*.spec.ts`
+- **Config:** `e2e/wdio.conf.ts` — auto-builds debug binary, spawns tauri-driver
+- **Running:** `cd e2e && npm test` (all) or `npm run test:todo` / `test:scene` / `test:settings`
+- **Element selection:** Use `data-testid` attributes (e.g., `[data-testid^="todo-title-"]`)
+- **Test data:** Use unique prefixed titles (`Date.now().toString(36)`) to avoid collision with persisted DB data
+- **Test case spec:** `docs/superpowers/specs/2026-04-19-e2e-testing-design.md` — TC-01 through TC-23
+
+### Adding new tests
+1. Add `data-testid="..."` to the target component if not present
+2. Create spec in `e2e/specs/`
+3. Use `waitForApp()` helper to wait for the app to load
+4. Use unique test data (timestamp prefix) for each test case
+
+### Adding new data-testid
+- Format: `data-testid="element-name"` or `data-testid={`element-name-${id}`}`
+- Add only the attribute — do not change any other code
+- Commit separately: `feat: add data-testid to ComponentName for e2e testing`
+
 ## Design Docs
 
 Scene tracking design: `docs/superpowers/specs/2026-04-18-scene-tracking-design.md`
