@@ -30,6 +30,7 @@ export const TodoForm = forwardRef<TodoFormHandle, TodoFormProps>(
       <div className="flex items-center gap-2 p-3 border-b border-surface-border">
         <span className="text-theme-border text-lg">+</span>
         <Input
+          data-testid="new-todo-input"
           ref={inputRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
