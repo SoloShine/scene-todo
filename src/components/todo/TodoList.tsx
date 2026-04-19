@@ -109,8 +109,17 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
   const [filterPriority, setFilterPriority] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<StatusFilter>("");
   const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [viewKey, setViewKey] = useState(0)
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<TodoGroup>>(new Set(["completed"]));
+
+  const switchView = (mode: "list" | "calendar") => {
+    if (mode !== viewMode) {
+      setViewMode(mode)
+      setViewKey((k) => k + 1)
+      setSelectedDate(null)
+    }
+  }
 
   const handleCreate = async (title: string) => {
     const todo = await create({ title, due_date: localTodayKey() + "T23:59" });
@@ -235,14 +244,14 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
           </div>
           <div className="flex items-center gap-0.5 bg-accent/50 rounded p-0.5">
             <button
-              onClick={() => { setViewMode("list"); setSelectedDate(null); }}
+              onClick={() => switchView("list")}
               className={`p-1 rounded transition-colors ${viewMode === "list" ? "bg-theme text-theme-text font-medium shadow-sm rounded-md" : "text-muted-foreground hover:bg-accent rounded-md"}`}
               title="列表视图"
             >
               <List size={14} />
             </button>
             <button
-              onClick={() => setViewMode("calendar")}
+              onClick={() => switchView("calendar")}
               className={`p-1 rounded transition-colors ${viewMode === "calendar" ? "bg-theme text-theme-text font-medium shadow-sm rounded-md" : "text-muted-foreground hover:bg-accent rounded-md"}`}
               title="日历视图"
             >
@@ -283,7 +292,8 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto" key={viewKey}>
+        <div className={viewKey > 0 ? "view-fade-enter" : ""}>
         {viewMode === "list" ? (
           filtered.length === 0 ? (
             todos.length === 0 ? (
@@ -333,6 +343,7 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
             )}
           </>
         )}
+        </div>
       </div>
       <ConfirmDialog
         open={deleteId !== null}
