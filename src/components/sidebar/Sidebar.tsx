@@ -4,7 +4,6 @@ import { SmartViews } from "./SmartViews";
 import { GroupList } from "./GroupList";
 import { TagList } from "./TagList";
 import { SceneList } from "./SceneList";
-import { Separator } from "@/components/ui/separator";
 
 const STORAGE_KEY = "scene-todo-sidebar-state";
 
@@ -91,14 +90,13 @@ export function Sidebar({
           onToggleCollapse={() => toggleSection("tags")}
         />
       </nav>
-      <div ref={menuRef} className="relative">
-        <Separator />
+      <div ref={menuRef} className="relative flex items-center justify-end px-2 py-1.5">
         <button
           data-testid="sidebar-menu-toggle"
           onClick={() => setMenuOpen((v) => !v)}
-          className="w-full flex items-center justify-center py-2 text-muted-foreground hover:bg-accent transition-colors"
+          className="p-1 rounded text-muted-foreground/50 hover:text-muted-foreground hover:bg-accent transition-colors"
         >
-          <MoreVertical size={16} />
+          <MoreVertical size={14} />
         </button>
         {menuOpen && (
           <div className="absolute bottom-full left-2 right-2 mb-1 bg-card rounded-lg border border-surface-border shadow-lg py-1 z-50">
