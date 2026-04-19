@@ -34,7 +34,7 @@ export function GeneralSettings({
       </h3>
       <Label className="flex items-center justify-between py-2">
         <span className="text-sm text-foreground">开机自启</span>
-        <Checkbox checked={autoStart} onCheckedChange={(v) => onAutoStart(!!v)} />
+        <Checkbox data-testid="setting-autostart" checked={autoStart} onCheckedChange={(v) => onAutoStart(!!v)} />
       </Label>
       <Label className="flex items-center justify-between py-2">
         <span className="text-sm text-foreground">关闭按钮行为</span>
@@ -66,9 +66,9 @@ export function GeneralSettings({
       <div className="flex items-center justify-between py-2">
         <span className="text-sm text-foreground">数据备份</span>
         <div className="flex items-center gap-2">
-          <button onClick={onExport} className="text-xs text-gray-400 hover:text-blue-500">导出</button>
+          <button data-testid="setting-export" onClick={onExport} className="text-xs text-gray-400 hover:text-blue-500">导出</button>
           <span className="text-gray-300">|</span>
-          <button onClick={onImport} className="text-xs text-gray-400 hover:text-blue-500">导入</button>
+          <button data-testid="setting-import" onClick={onImport} className="text-xs text-gray-400 hover:text-blue-500">导入</button>
         </div>
       </div>
     </section>

@@ -32,6 +32,7 @@ export function ThemeSettings() {
           {modes.map((m) => (
             <button
               key={m.key}
+              data-testid={`theme-mode-${m.key}`}
               onClick={() => setMode(m.key)}
               className={`px-3 py-1.5 text-xs rounded-md transition-colors flex items-center gap-1 ${
                 mode === m.key
@@ -52,6 +53,7 @@ export function ThemeSettings() {
           {accents.map((a) => (
             <button
               key={a.key}
+              data-testid={`theme-accent-${a.key}`}
               onClick={() => setAccent(a.key)}
               className={`w-8 h-8 rounded-full border-2 transition-all ${
                 accent === a.key
