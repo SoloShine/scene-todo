@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useLayoutEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listTodosByApp, updateTodo, createTodo, hideWidget, bindTodoToScene, setWidgetPassthrough, saveWidgetOffset } from "../../lib/invoke";
+import { notify } from "../../lib/toast";
+import { Skeleton } from "../ui/skeleton";
 import type { TodoWithDetails } from "../../types";
 import { WidgetTodoItem } from "./WidgetTodoItem";
 import { Input } from "@/components/ui/input"
@@ -35,11 +37,16 @@ function readOpacity(): number {
   return 85;
 }
 
+function isDarkMode(): boolean {
+  return document.documentElement.classList.contains("dark");
+}
+
 export function Widget({ appId, scenes }: WidgetProps) {
   const [todos, setTodos] = useState<TodoWithDetails[]>([]);
   const [collapsed, setCollapsed] = useState(false);
   const [quickAdd, setQuickAdd] = useState("");
   const [opacity, setOpacity] = useState(readOpacity);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   // Listen for opacity changes from Settings page
   useEffect(() => {
@@ -122,6 +129,7 @@ export function Widget({ appId, scenes }: WidgetProps) {
     try {
       const data = await listTodosByApp(appId);
       setTodos(data);
+      setInitialLoading(false);
       // Only hide if truly no todos (not just filtered out)
       if (data.length === 0) {
         await hideWidget(appId);
@@ -191,18 +199,26 @@ export function Widget({ appId, scenes }: WidgetProps) {
 
   // --- Handlers ---
   const handleToggle = async (id: number) => {
-    await updateTodo({ id, status: "completed" });
-    await refresh();
+    try {
+      await updateTodo({ id, status: "completed" });
+      await refresh();
+    } catch {
+      notify.error("切换状态失败");
+    }
   };
 
   const handleQuickAdd = async (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && quickAdd.trim()) {
-      const todo = await createTodo({ title: quickAdd.trim() });
-      if (effectiveDefaultSceneId !== null) {
-        await bindTodoToScene(todo.id, effectiveDefaultSceneId);
+      try {
+        const todo = await createTodo({ title: quickAdd.trim() });
+        if (effectiveDefaultSceneId !== null) {
+          await bindTodoToScene(todo.id, effectiveDefaultSceneId);
+        }
+        setQuickAdd("");
+        await refresh();
+      } catch {
+        notify.error("快速添加失败");
       }
-      setQuickAdd("");
-      await refresh();
     }
   };
 
@@ -220,6 +236,14 @@ export function Widget({ appId, scenes }: WidgetProps) {
 
   const bgAlpha = opacity / 100;
 
+  const dark = isDarkMode();
+  const bgBase = dark ? "30, 30, 40" : "255, 255, 255";
+  const textColor = dark ? "text-foreground" : "text-[#1e1b4b]";
+  const textColorMuted = dark ? "text-muted-foreground" : "text-gray-400";
+  const textColorSecondary = dark ? "text-muted-foreground" : "text-gray-600";
+  const hoverBg = dark ? "hover:bg-accent" : "hover:bg-gray-50";
+  const borderColor = dark ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.5)";
+
   return (
     <div
       ref={outerRef}
@@ -228,13 +252,13 @@ export function Widget({ appId, scenes }: WidgetProps) {
         flexDirection: "column",
         width: "100%",
         height: "100%",
-        background: `rgba(255, 255, 255, ${bgAlpha})`,
+        background: `rgba(${bgBase}, ${bgAlpha})`,
         backdropFilter: "blur(20px) saturate(180%)",
         WebkitBackdropFilter: "blur(20px) saturate(180%)",
         borderRadius: "14px",
         border: passthrough
           ? "1px dashed rgba(99, 102, 241, 0.4)"
-          : "1px solid rgba(255, 255, 255, 0.5)",
+          : `1px solid ${borderColor}`,
         boxShadow: "0 8px 32px rgba(99,102,241,0.12), 0 2px 8px rgba(0,0,0,0.06)",
         transition: "border 0.2s",
       }}
@@ -262,14 +286,14 @@ export function Widget({ appId, scenes }: WidgetProps) {
                   setShowSceneDropdown(!showSceneDropdown);
                 }
               }}
-              className={`text-xs font-semibold text-[#1e1b4b] truncate flex items-center gap-1 ${
+              className={`text-xs font-semibold ${textColor} truncate flex items-center gap-1 ${
                 scenes.length > 1 ? "cursor-pointer" : ""
               }`}
             >
               <div className="w-1.5 h-1.5 rounded-full bg-theme flex-shrink-0" />
               <span>{defaultScene?.name ?? "SceneTodo"}</span>
               {scenes.length > 1 && (
-                <span className="text-[9px] text-[#1e1b4b]/50 flex-shrink-0">▾</span>
+                <span className={`text-[9px] flex-shrink-0 ${dark ? "text-muted-foreground" : "text-[#1e1b4b]/50"}`}>▾</span>
               )}
               {remainingScenes > 0 && (
                 <span className="bg-theme-bg/50 text-theme text-[9px] px-1.5 rounded-full font-semibold flex-shrink-0">+{remainingScenes}</span>
@@ -285,8 +309,8 @@ export function Widget({ appId, scenes }: WidgetProps) {
                     setDefaultSceneId(scene.id);
                     setShowSceneDropdown(false);
                   }}
-                  className={`w-full text-left px-2 py-1 text-[11px] hover:bg-gray-50 flex items-center gap-1 rounded ${
-                    scene.id === effectiveDefaultSceneId ? "bg-blue-50 text-blue-600" : "text-gray-700"
+                  className={`w-full text-left px-2 py-1 text-[11px] ${hoverBg} flex items-center gap-1 rounded ${
+                    scene.id === effectiveDefaultSceneId ? "bg-accent text-accent-foreground" : textColor
                   }`}
                 >
                   {scene.id === effectiveDefaultSceneId && (
@@ -315,7 +339,7 @@ export function Widget({ appId, scenes }: WidgetProps) {
           <div className="px-2">
             <button
               onClick={() => setShowFilterPanel(!showFilterPanel)}
-              className="text-[10px] text-gray-400 hover:text-gray-600 flex items-center gap-0.5 w-full py-0.5"
+              className={`text-[10px] ${textColorMuted} hover:${dark ? "text-foreground" : "text-gray-600"} flex items-center gap-0.5 w-full py-0.5`}
             >
               {showFilterPanel ? "▾" : "▸"} 筛选场景
             </button>
@@ -337,7 +361,7 @@ export function Widget({ appId, scenes }: WidgetProps) {
                     className="w-3 h-3"
                   />
                   {scene.icon && <span className="text-[10px]">{scene.icon}</span>}
-                  <span className="text-[10px] text-gray-600">{scene.name}</span>
+                  <span className={`text-[10px] ${textColorSecondary}`}>{scene.name}</span>
                 </label>
               ))}
             </div>
@@ -352,21 +376,34 @@ export function Widget({ appId, scenes }: WidgetProps) {
           style={{ flex: 1, minHeight: 0, overflowY: "auto" }}
           className="px-2 pb-1.5 space-y-0.5"
         >
-          {filteredTodos.map(todo => (
-            <div key={todo.id}>
-              <WidgetTodoItem todo={todo} onToggle={handleToggle} />
-              {todo.sub_tasks.map(sub => (
-                <div key={sub.id} className="ml-4">
-                  <WidgetTodoItem todo={sub} onToggle={handleToggle} />
+          {initialLoading ? (
+            <>
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-2 py-1.5 px-2">
+                  <Skeleton className="h-3.5 w-3.5 rounded-[3px]" />
+                  <Skeleton className="h-3 w-20" />
                 </div>
               ))}
-            </div>
-          ))}
-          {filteredTodos.length === 0 && todos.length > 0 && (
-            <EmptyState icon={<CheckSquare />} title="当前筛选无待办" />
-          )}
-          {todos.length === 0 && (
-            <EmptyState icon={<CheckSquare />} title="当前场景没有待办" description="在主窗口中添加待办" />
+            </>
+          ) : (
+            <>
+              {filteredTodos.map(todo => (
+                <div key={todo.id}>
+                  <WidgetTodoItem todo={todo} onToggle={handleToggle} />
+                  {todo.sub_tasks.map(sub => (
+                    <div key={sub.id} className="ml-4">
+                      <WidgetTodoItem todo={sub} onToggle={handleToggle} />
+                    </div>
+                  ))}
+                </div>
+              ))}
+              {filteredTodos.length === 0 && todos.length > 0 && (
+                <EmptyState icon={<CheckSquare />} title="当前筛选无待办" />
+              )}
+              {todos.length === 0 && (
+                <EmptyState icon={<CheckSquare />} title="当前场景没有待办" description="在主窗口中添加待办" />
+              )}
+            </>
           )}
         </div>
       )}
@@ -379,7 +416,7 @@ export function Widget({ appId, scenes }: WidgetProps) {
             onChange={(e) => setQuickAdd(e.target.value)}
             onKeyDown={handleQuickAdd}
             placeholder="Quick add..."
-            className="w-full text-[11px] rounded-lg bg-theme-bg/20 border-dashed border-theme-border/60 text-[#1e1b4b] placeholder:text-theme-light/50"
+            className={`w-full text-[11px] rounded-lg bg-theme-bg/20 border-dashed border-theme-border/60 ${textColor} placeholder:text-theme-light/50`}
           />
         </div>
       )}

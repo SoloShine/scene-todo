@@ -3,6 +3,7 @@ import { useScenes } from "../../hooks/useScenes";
 import { useApps } from "../../hooks/useApps";
 import { ScenePicker } from "../scene/ScenePicker";
 import * as api from "../../lib/invoke";
+import { notify } from "../../lib/toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 
@@ -25,14 +26,18 @@ export function BindingEditor({ todoId, onClose, onRefresh }: BindingEditorProps
   }, [todoId]);
 
   const handleToggle = async (sceneId: number) => {
-    if (boundSceneIds.includes(sceneId)) {
-      await api.unbindTodoFromScene(todoId, sceneId);
-      setBoundSceneIds((prev) => prev.filter((id) => id !== sceneId));
-    } else {
-      await api.bindTodoToScene(todoId, sceneId);
-      setBoundSceneIds((prev) => [...prev, sceneId]);
+    try {
+      if (boundSceneIds.includes(sceneId)) {
+        await api.unbindTodoFromScene(todoId, sceneId);
+        setBoundSceneIds((prev) => prev.filter((id) => id !== sceneId));
+      } else {
+        await api.bindTodoToScene(todoId, sceneId);
+        setBoundSceneIds((prev) => [...prev, sceneId]);
+      }
+      onRefresh();
+    } catch {
+      notify.error("更新场景绑定失败");
     }
-    onRefresh();
   };
 
   const handleStartCapture = async () => {
@@ -89,6 +94,7 @@ export function BindingEditor({ todoId, onClose, onRefresh }: BindingEditorProps
       onRefresh();
     } catch (e) {
       console.error("Window capture failed:", e);
+      notify.error("窗口抓取失败");
     } finally {
       setCapturing(false);
     }

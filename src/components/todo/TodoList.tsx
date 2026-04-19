@@ -6,6 +6,8 @@ import type { TodoFormHandle } from "./TodoForm";
 import { TodoItem, parseDateLocal } from "./TodoItem";
 import { CalendarView } from "./CalendarView";
 import * as api from "../../lib/invoke";
+import { notify } from "../../lib/toast";
+import { Skeleton } from "../ui/skeleton";
 import { Input } from "@/components/ui/input"
 import { EmptyState } from "@/components/ui/empty-state"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
@@ -74,8 +76,12 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
 
   const refreshSceneTodos = useCallback(async () => {
     if (selectedSceneId) {
-      const data = await api.listTodosByScene(selectedSceneId);
-      setSceneTodos(data);
+      try {
+        const data = await api.listTodosByScene(selectedSceneId);
+        setSceneTodos(data);
+      } catch {
+        notify.error("加载场景待办失败");
+      }
     } else {
       setSceneTodos([]);
     }
@@ -122,18 +128,26 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
   }
 
   const handleCreate = async (title: string) => {
-    const todo = await create({ title, due_date: localTodayKey() + "T23:59" });
-    if (selectedSceneId) {
-      await api.bindTodoToScene(todo.id, selectedSceneId);
-      refreshSceneTodos();
+    try {
+      const todo = await create({ title, due_date: localTodayKey() + "T23:59" });
+      if (selectedSceneId) {
+        await api.bindTodoToScene(todo.id, selectedSceneId);
+        refreshSceneTodos();
+      }
+    } catch {
+      notify.error("创建待办失败");
     }
   };
 
   const handleAddSubTask = async (parentId: number, title: string) => {
-    const todo = await create({ title, parent_id: parentId, due_date: localTodayKey() + "T23:59" });
-    if (selectedSceneId) {
-      await api.bindTodoToScene(todo.id, selectedSceneId);
-      refreshSceneTodos();
+    try {
+      const todo = await create({ title, parent_id: parentId, due_date: localTodayKey() + "T23:59" });
+      if (selectedSceneId) {
+        await api.bindTodoToScene(todo.id, selectedSceneId);
+        refreshSceneTodos();
+      }
+    } catch {
+      notify.error("添加子任务失败");
     }
   };
 
@@ -176,7 +190,19 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
     : [];
 
   if (loading) {
-    return <div className="p-4 text-sm text-muted-foreground">加载中...</div>;
+    return (
+      <div className="p-3 space-y-2">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex items-center gap-3 py-2">
+            <Skeleton className="h-5 w-5 rounded-md" />
+            <div className="flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
   const statusOptions: { key: StatusFilter; label: string }[] = [

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { Todo, TodoWithDetails } from "../../types";
 import * as api from "../../lib/invoke";
+import { notify } from "../../lib/toast";
 import { BindingEditor } from "../binding/BindingEditor";
 import { TodoDetailEditor } from "./TodoDetailEditor";
 import { Input } from "@/components/ui/input";
@@ -119,14 +120,18 @@ export function TodoItem({ todo, editing, animatingOut = false, onStartEdit, onE
     const oldDate = todo.due_date || "";
     const dateChanged = newDate !== oldDate && (newDate !== "" || oldDate !== "");
     if (titleChanged || descChanged || prioChanged || dateChanged) {
-      await api.updateTodo({
-        id: todo.id,
-        title: editTitle.trim(),
-        description: editDesc.trim() || null,
-        priority: editPriority,
-        due_date: editDueDate || "",
-      });
-      onRefresh?.();
+      try {
+        await api.updateTodo({
+          id: todo.id,
+          title: editTitle.trim(),
+          description: editDesc.trim() || null,
+          priority: editPriority,
+          due_date: editDueDate || "",
+        });
+        onRefresh?.();
+      } catch {
+        notify.error("保存待办失败");
+      }
     }
     onEndEdit();
   };

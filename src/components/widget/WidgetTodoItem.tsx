@@ -23,8 +23,8 @@ export function WidgetTodoItem({ todo, onToggle }: WidgetTodoItemProps) {
       <span
         className={
           isCompleted
-            ? "text-[11px] text-gray-400 line-through"
-            : "text-[11px] text-[#1e1b4b]"
+            ? "text-[11px] text-muted-foreground line-through"
+            : "text-[11px] text-foreground"
         }
       >
         {todo.title}
