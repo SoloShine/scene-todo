@@ -3,6 +3,9 @@ import { useTimeStats, useTrackingStatus } from "../../hooks/useTimeStats";
 import { TimeDistribution } from "./TimeDistribution";
 import { SceneTimeline } from "./SceneTimeline";
 import { RealtimeOverview } from "./RealtimeOverview";
+import { Input } from "@/components/ui/input"
+import { EmptyState } from "@/components/ui/empty-state"
+import { BarChart3 } from "lucide-react"
 
 type RangePreset = "today" | "week" | "month" | "custom";
 
@@ -90,11 +93,11 @@ export function StatsView() {
           ))}
         </div>
         <div className="flex items-center gap-1">
-          <input type="date" value={customStart} onChange={(e) => { setCustomStart(e.target.value); setPreset("custom"); }}
-            className="px-2 py-1 text-sm border border-surface-border rounded" />
+          <Input type="date" value={customStart} onChange={(e) => { setCustomStart(e.target.value); setPreset("custom"); }}
+            className="px-2 py-1 text-sm w-36" />
           <span className="text-muted-foreground text-sm">~</span>
-          <input type="date" value={customEnd} onChange={(e) => { setCustomEnd(e.target.value); setPreset("custom"); }}
-            className="px-2 py-1 text-sm border border-surface-border rounded" />
+          <Input type="date" value={customEnd} onChange={(e) => { setCustomEnd(e.target.value); setPreset("custom"); }}
+            className="px-2 py-1 text-sm w-36" />
         </div>
       </div>
 
@@ -104,7 +107,7 @@ export function StatsView() {
       {loading ? (
         <p className="text-muted-foreground text-center py-8">加载中...</p>
       ) : summary.length === 0 ? (
-        <p className="text-muted-foreground text-center py-8">暂无追踪数据</p>
+        <EmptyState icon={<BarChart3 />} title="暂无统计数据" description="开始使用应用后将生成统计信息" />
       ) : (
         <>
           {/* Charts row */}
