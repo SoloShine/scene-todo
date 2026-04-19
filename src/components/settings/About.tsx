@@ -63,6 +63,21 @@ export function About() {
         </div>
       </section>
 
+      <section className="mb-6">
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span className="w-1 h-4 rounded-full bg-theme" />
+          键盘快捷键
+        </h3>
+        <div className="space-y-1 text-xs">
+          <ShortcutRow keys="Ctrl+N" desc="聚焦新建待办输入框" />
+          <ShortcutRow keys="Ctrl+F" desc="聚焦搜索框" />
+          <ShortcutRow keys="Ctrl+1" desc="切换到「全部」视图" />
+          <ShortcutRow keys="Ctrl+2" desc="切换到「今天」视图" />
+          <ShortcutRow keys="Ctrl+," desc="打开/关闭设置" />
+          <ShortcutRow keys="Esc" desc="关闭弹窗/取消编辑" />
+        </div>
+      </section>
+
       <section>
         <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
           <span className="w-1 h-4 rounded-full bg-theme" />
@@ -124,4 +139,15 @@ function ShortcutItem({ text, desc }: { text: string; desc: string }) {
       <p className="text-muted-foreground mt-0.5">{desc}</p>
     </div>
   );
+}
+
+function ShortcutRow({ keys, desc }: { keys: string; desc: string }) {
+  return (
+    <div className="flex items-center justify-between py-1 px-2 rounded hover:bg-accent">
+      <span className="text-muted-foreground">{desc}</span>
+      <kbd className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono text-[10px] border border-surface-border">
+        {keys}
+      </kbd>
+    </div>
+  )
 }
