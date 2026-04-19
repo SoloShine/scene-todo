@@ -235,3 +235,43 @@
     background: var(--accent-base);
   }
 }
+
+/* ===== List item animations ===== */
+.animate-in {
+  animation: animateIn 0.2s ease-out;
+}
+@keyframes animateIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-out {
+  animation: animateOut 0.15s ease-in forwards;
+}
+@keyframes animateOut {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-4px); }
+}
+
+/* Sidebar section collapse */
+.section-collapse {
+  transition: max-height 0.2s ease-out, opacity 0.2s ease-out;
+  overflow: hidden;
+}
+.section-collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+.section-expanded {
+  max-height: 500px;
+  opacity: 1;
+}
+
+/* View switch fade */
+.view-fade-enter {
+  animation: viewFadeIn 0.2s ease-out;
+}
+@keyframes viewFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
