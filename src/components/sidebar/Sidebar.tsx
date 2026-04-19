@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { BarChart3, Settings, Info, MoreVertical } from "lucide-react";
 import { SmartViews } from "./SmartViews";
 import { GroupList } from "./GroupList";
 import { TagList } from "./TagList";
@@ -95,11 +96,9 @@ export function Sidebar({
         <button
           data-testid="sidebar-menu-toggle"
           onClick={() => setMenuOpen((v) => !v)}
-          className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:bg-accent transition-colors"
+          className="w-full flex items-center justify-center py-2 text-muted-foreground hover:bg-accent transition-colors"
         >
-          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-theme to-theme-light flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0">S</div>
-          <span className="flex-1 text-left">SceneTodo</span>
-          <span className="text-[10px]">⋯</span>
+          <MoreVertical size={16} />
         </button>
         {menuOpen && (
           <div className="absolute bottom-full left-2 right-2 mb-1 bg-card rounded-lg border border-surface-border shadow-lg py-1 z-50">
@@ -108,21 +107,21 @@ export function Sidebar({
               onClick={() => { setMenuOpen(false); onOpenStats(); }}
               className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
             >
-              <span>📊</span>统计
+              <BarChart3 size={14} />统计
             </button>
             <button
               data-testid="sidebar-menu-settings"
               onClick={() => { setMenuOpen(false); onOpenSettings(); }}
               className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
             >
-              <span>⚙</span>设置
+              <Settings size={14} />设置
             </button>
             <button
               data-testid="sidebar-menu-about"
               onClick={() => { setMenuOpen(false); onOpenAbout(); }}
               className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
             >
-              <span>ℹ</span>关于
+              <Info size={14} />关于
             </button>
           </div>
         )}
