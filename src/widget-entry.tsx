@@ -1,4 +1,5 @@
 import ReactDOM from "react-dom/client";
+import { Toaster } from "sonner";
 import { Widget } from "./components/widget/Widget";
 import { ThemeProvider } from "./hooks/useTheme";
 import "./index.css";
@@ -30,5 +31,6 @@ const scenes: SceneInfo[] = scenesRaw
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <ThemeProvider>
     <Widget appId={appId} appName={appName} scenes={scenes} />
+    <Toaster position="bottom-center" richColors closeButton />
   </ThemeProvider>
 );
