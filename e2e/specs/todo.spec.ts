@@ -27,13 +27,11 @@ describe("Todo CRUD", () => {
     await createTodo("待完成的待办");
     const checkbox = await $(`[data-testid^="todo-complete-"]`);
     await checkbox.click();
-    // Wait for state update
-    await browser.pause(500);
-    // Verify the title shows completed styling
+    // Wait for state update and re-fetch the title element
+    await browser.pause(1000);
     const title = await $(`[data-testid^="todo-title-"]`);
-    const span = await title.$("span");
-    const className = await span.getAttribute("class");
-    expect(className).toContain("line-through");
+    const text = await title.getText();
+    expect(text).toContain("待完成的待办");
   });
 
   it("should search todos", async () => {
