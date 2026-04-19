@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { BarChart3, Settings, Info, MoreVertical } from "lucide-react";
+import { SceneTodoLogo } from "@/components/ui/logo";
 import { SmartViews } from "./SmartViews";
 import { GroupList } from "./GroupList";
 import { TagList } from "./TagList";
@@ -65,7 +66,7 @@ export function Sidebar({
   return (
     <aside className="w-60 border-r border-sidebar-border bg-sidebar flex flex-col">
       <div data-tauri-drag-region className="h-[34px] flex-shrink-0 flex items-center gap-2 px-3 select-none">
-        <div className="w-5 h-5 rounded bg-gradient-to-br from-theme to-theme-light flex items-center justify-center text-white text-[10px] font-bold">S</div>
+        <SceneTodoLogo size={20} />
         <span className="text-[10px] text-sidebar-foreground/50 tracking-wide">场景化任务管理</span>
       </div>
       <nav className="flex-1 overflow-y-auto p-1 space-y-2">
