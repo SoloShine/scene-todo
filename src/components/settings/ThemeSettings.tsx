@@ -1,4 +1,5 @@
 import { useTheme, type AccentPreset, type ColorMode } from "../../hooks/useTheme";
+import { Separator } from "@/components/ui/separator";
 
 const accents: { key: AccentPreset; label: string; color: string }[] = [
   { key: "indigo", label: "靛蓝", color: "#6366f1" },
@@ -63,6 +64,7 @@ export function ThemeSettings() {
           ))}
         </div>
       </div>
+      <Separator />
     </section>
   );
 }
