@@ -3,6 +3,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { listTodosByApp, updateTodo, createTodo, hideWidget, bindTodoToScene, setWidgetPassthrough, saveWidgetOffset } from "../../lib/invoke";
 import type { TodoWithDetails } from "../../types";
 import { WidgetTodoItem } from "./WidgetTodoItem";
+import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Popover, PopoverContent } from "@/components/ui/popover"
+import { EmptyState } from "@/components/ui/empty-state"
+import { CheckSquare } from "lucide-react"
 
 interface SceneInfo {
   id: number;
@@ -150,13 +155,7 @@ export function Widget({ appId, scenes }: WidgetProps) {
     };
   }, []);
 
-  // Close scene dropdown on outside click
-  useEffect(() => {
-    if (!showSceneDropdown) return;
-    const handler = () => setShowSceneDropdown(false);
-    document.addEventListener("click", handler);
-    return () => document.removeEventListener("click", handler);
-  }, [showSceneDropdown]);
+  // Scene dropdown uses Popover now — no manual click-outside needed
 
   // --- Auto-size ---
   useLayoutEffect(() => {
@@ -255,7 +254,7 @@ export function Widget({ appId, scenes }: WidgetProps) {
           </button>
 
           {/* Scene selector */}
-          <div className="relative min-w-0 flex-1">
+          <Popover open={showSceneDropdown && scenes.length > 1} onOpenChange={setShowSceneDropdown}>
             <button
               onClick={(e) => {
                 if (scenes.length > 1) {
@@ -278,32 +277,27 @@ export function Widget({ appId, scenes }: WidgetProps) {
               <span className="bg-theme-bg/50 text-theme text-[9px] px-1.5 rounded-full font-semibold flex-shrink-0">{pendingCount}</span>
             </button>
 
-            {showSceneDropdown && scenes.length > 1 && (
-              <div
-                className="absolute top-full left-0 mt-1 bg-white rounded-md shadow-lg border border-gray-200 z-50 py-0.5 min-w-[120px] max-w-[220px]"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {scenes.map(scene => (
-                  <button
-                    key={scene.id}
-                    onClick={() => {
-                      setDefaultSceneId(scene.id);
-                      setShowSceneDropdown(false);
-                    }}
-                    className={`w-full text-left px-2 py-1 text-[11px] hover:bg-gray-50 flex items-center gap-1 ${
-                      scene.id === effectiveDefaultSceneId ? "bg-blue-50 text-blue-600" : "text-gray-700"
-                    }`}
-                  >
-                    {scene.id === effectiveDefaultSceneId && (
-                      <span className="text-[9px]">✓</span>
-                    )}
-                    {scene.icon && <span>{scene.icon}</span>}
-                    <span className="truncate">{scene.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+            <PopoverContent className="min-w-[120px] max-w-[220px] p-0.5" align="start" sideOffset={4}>
+              {scenes.map(scene => (
+                <button
+                  key={scene.id}
+                  onClick={() => {
+                    setDefaultSceneId(scene.id);
+                    setShowSceneDropdown(false);
+                  }}
+                  className={`w-full text-left px-2 py-1 text-[11px] hover:bg-gray-50 flex items-center gap-1 rounded ${
+                    scene.id === effectiveDefaultSceneId ? "bg-blue-50 text-blue-600" : "text-gray-700"
+                  }`}
+                >
+                  {scene.id === effectiveDefaultSceneId && (
+                    <span className="text-[9px]">✓</span>
+                  )}
+                  {scene.icon && <span>{scene.icon}</span>}
+                  <span className="truncate">{scene.name}</span>
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
         </div>
 
         <button
@@ -330,10 +324,9 @@ export function Widget({ appId, scenes }: WidgetProps) {
             <div className="px-2 pb-1 flex flex-wrap gap-x-3 gap-y-0.5">
               {scenes.map(scene => (
                 <label key={scene.id} className="flex items-center gap-1 cursor-pointer">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={activeFilterIds.includes(scene.id)}
-                    onChange={() => {
+                    onCheckedChange={() => {
                       setFilterSceneIds(prev => {
                         const current = prev ?? scenes.map(s => s.id);
                         return current.includes(scene.id)
@@ -341,7 +334,7 @@ export function Widget({ appId, scenes }: WidgetProps) {
                           : [...current, scene.id];
                       });
                     }}
-                    className="w-3 h-3 rounded accent-blue-500"
+                    className="w-3 h-3"
                   />
                   {scene.icon && <span className="text-[10px]">{scene.icon}</span>}
                   <span className="text-[10px] text-gray-600">{scene.name}</span>
@@ -370,14 +363,10 @@ export function Widget({ appId, scenes }: WidgetProps) {
             </div>
           ))}
           {filteredTodos.length === 0 && todos.length > 0 && (
-            <p className="text-xs text-gray-400 text-center py-2">
-              当前筛选无待办
-            </p>
+            <EmptyState icon={<CheckSquare />} title="当前筛选无待办" />
           )}
           {todos.length === 0 && (
-            <p className="text-xs text-gray-400 text-center py-2">
-              No associated todos
-            </p>
+            <EmptyState icon={<CheckSquare />} title="当前场景没有待办" description="在主窗口中添加待办" />
           )}
         </div>
       )}
@@ -385,12 +374,12 @@ export function Widget({ appId, scenes }: WidgetProps) {
       {/* Quick add */}
       {!collapsed && !passthrough && (
         <div ref={quickAddRef} className="px-2 pb-2 flex-shrink-0">
-          <input
+          <Input
             value={quickAdd}
             onChange={(e) => setQuickAdd(e.target.value)}
             onKeyDown={handleQuickAdd}
             placeholder="Quick add..."
-            className="w-full px-2 py-1 text-[11px] rounded-lg bg-theme-bg/20 border border-dashed border-theme-border/60 text-[#1e1b4b] placeholder:text-theme-light/50 outline-none focus:border-theme"
+            className="w-full text-[11px] rounded-lg bg-theme-bg/20 border-dashed border-theme-border/60 text-[#1e1b4b] placeholder:text-theme-light/50"
           />
         </div>
       )}

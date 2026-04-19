@@ -5,6 +5,13 @@ import { ThemeSettings } from "./ThemeSettings";
 import { enable as enableAutostart, disable as disableAutostart, isEnabled as isAutostartEnabled } from "@tauri-apps/plugin-autostart";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeFile, readFile } from "@tauri-apps/plugin-fs";
+import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select"
 
 export function Settings() {
   const { apps, create, remove, refresh } = useApps();
@@ -233,26 +240,27 @@ export function Settings() {
           <span className="w-1 h-4 rounded-full bg-theme" />
           通用
         </h3>
-        <label className="flex items-center justify-between py-2">
+        <Label className="flex items-center justify-between py-2">
           <span className="text-sm text-foreground">开机自启</span>
-          <input type="checkbox" checked={autoStart} onChange={(e) => handleAutoStart(e.target.checked)} className="rounded" />
-        </label>
-        <label className="flex items-center justify-between py-2">
+          <Checkbox checked={autoStart} onCheckedChange={(v) => handleAutoStart(!!v)} />
+        </Label>
+        <Label className="flex items-center justify-between py-2">
           <span className="text-sm text-foreground">关闭按钮行为</span>
-          <select
-            value={closeAction}
-            onChange={(e) => { const v = e.target.value as "prompt" | "hide" | "exit"; setCloseAction(v); saveSettings({ closeAction: v }); }}
-            className="text-sm border rounded px-2 py-1"
-          >
-            <option value="prompt">每次询问</option>
-            <option value="hide">隐藏到托盘</option>
-            <option value="exit">退出程序</option>
-          </select>
-        </label>
-        <label className="flex items-center justify-between py-2">
+          <Select value={closeAction} onValueChange={(v) => { const val = v as "prompt" | "hide" | "exit"; setCloseAction(val); saveSettings({ closeAction: val }); }}>
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="prompt">每次询问</SelectItem>
+              <SelectItem value="hide">隐藏到托盘</SelectItem>
+              <SelectItem value="exit">退出程序</SelectItem>
+            </SelectContent>
+          </Select>
+        </Label>
+        <Label className="flex items-center justify-between py-2">
           <span className="text-sm text-foreground">数据保留天数</span>
           <div className="flex items-center gap-2">
-            <input
+            <Input
               type="number"
               min={1}
               max={3650}
@@ -262,11 +270,11 @@ export function Settings() {
                 setRetentionDays(v);
                 saveSettings({ retentionDays: v });
               }}
-              className="w-20 px-2 py-1 text-sm border rounded text-right"
+              className="w-20 text-right"
             />
             <span className="text-xs text-gray-400">天</span>
           </div>
-        </label>
+        </Label>
         <div className="flex items-center justify-between py-2">
           <span className="text-sm text-foreground">数据备份</span>
           <div className="flex items-center gap-2">
@@ -283,15 +291,13 @@ export function Settings() {
           <span className="w-1 h-4 rounded-full bg-theme" />
           Widget
         </h3>
-        <label className="flex items-center justify-between py-2">
+        <Label className="flex items-center justify-between py-2">
           <span className="text-sm text-foreground">无待办时显示浮窗</span>
-          <input
-            type="checkbox"
+          <Checkbox
             checked={showEmptyWidget}
-            onChange={(e) => { setShowEmptyWidget(e.target.checked); saveSettings({ showEmptyWidget: e.target.checked }); }}
-            className="rounded"
+            onCheckedChange={(v) => { setShowEmptyWidget(!!v); saveSettings({ showEmptyWidget: !!v }); }}
           />
-        </label>
+        </Label>
         <label className="flex items-center justify-between py-2">
           <span className="text-sm text-foreground">浮窗不透明度</span>
           <div className="flex items-center gap-2">
@@ -302,17 +308,19 @@ export function Settings() {
             <span className="text-xs text-muted-foreground w-8">{widgetOpacity}%</span>
           </div>
         </label>
-        <label className="flex items-center justify-between py-2">
+        <Label className="flex items-center justify-between py-2">
           <span className="text-sm text-foreground">默认尺寸</span>
-          <select value={widgetSize}
-            onChange={(e) => { const v = e.target.value as "small" | "medium" | "large"; setWidgetSize(v); saveSettings({ widgetSize: v }); }}
-            className="text-sm border rounded px-2 py-1"
-          >
-            <option value="small">小</option>
-            <option value="medium">中</option>
-            <option value="large">大</option>
-          </select>
-        </label>
+          <Select value={widgetSize} onValueChange={(v) => { const val = v as "small" | "medium" | "large"; setWidgetSize(val); saveSettings({ widgetSize: val }); }}>
+            <SelectTrigger className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="small">小</SelectItem>
+              <SelectItem value="medium">中</SelectItem>
+              <SelectItem value="large">大</SelectItem>
+            </SelectContent>
+          </Select>
+        </Label>
       </section>
 
       {/* App Management with per-app offset */}
@@ -361,15 +369,13 @@ export function Settings() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-1 cursor-pointer" title={app.show_widget ? "显示浮窗" : "隐藏浮窗"}>
-                      <input
-                        type="checkbox"
+                    <Label className="flex items-center gap-1 cursor-pointer" title={app.show_widget ? "显示浮窗" : "隐藏浮窗"}>
+                      <Checkbox
                         checked={app.show_widget}
-                        onChange={(e) => handleToggleShowWidget(app.id, e.target.checked)}
-                        className="rounded"
+                        onCheckedChange={(v) => handleToggleShowWidget(app.id, !!v)}
                       />
                       <span className="text-[10px] text-gray-400">浮窗</span>
-                    </label>
+                    </Label>
                     <button onClick={() => remove(app.id)} className="text-xs text-gray-400 hover:text-red-500">删除</button>
                   </div>
                 </div>
@@ -382,9 +388,9 @@ export function Settings() {
                         className="flex-1"
                       />
                       <span className="w-8 text-gray-400">{off.x}px</span>
-                      <input type="number" min={-200} max={500} value={off.x}
+                      <Input type="number" min={-200} max={500} value={off.x}
                         onChange={(e) => { const v = parseInt(e.target.value) || 0; handleOffsetChange(app.id, "x", v); }}
-                        className="w-14 px-1 py-0.5 border rounded text-center text-xs"
+                        className="w-14 text-center text-xs"
                       />
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
@@ -394,9 +400,9 @@ export function Settings() {
                         className="flex-1"
                       />
                       <span className="w-8 text-gray-400">{off.y}px</span>
-                      <input type="number" min={0} max={500} value={off.y}
+                      <Input type="number" min={0} max={500} value={off.y}
                         onChange={(e) => { const v = parseInt(e.target.value) || 0; handleOffsetChange(app.id, "y", v); }}
-                        className="w-14 px-1 py-0.5 border rounded text-center text-xs"
+                        className="w-14 text-center text-xs"
                       />
                     </div>
                     <button
@@ -421,39 +427,16 @@ export function Settings() {
         </div>
       </section>
 
-      {/* Import confirmation dialog */}
-      {importPreview && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card rounded-xl border border-surface-border p-5 w-80 shadow-xl">
-            <h3 className="text-sm font-semibold text-foreground mb-3">确认导入数据</h3>
-            <div className="bg-background rounded-lg p-3 mb-3 space-y-1">
-              {importPreview.summary.map((s) => (
-                <p key={s} className="text-xs text-foreground">{s}</p>
-              ))}
-              {importPreview.summary.length === 0 && (
-                <p className="text-xs text-muted-foreground">备份文件中无数据</p>
-              )}
-            </div>
-            <p className="text-xs text-red-500 mb-4">
-              导入将覆盖当前所有数据，此操作不可撤销。
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setImportPreview(null)}
-                className="px-3 py-1.5 text-xs rounded-lg border border-surface-border hover:bg-accent"
-              >
-                取消
-              </button>
-              <button
-                onClick={confirmImport}
-                className="px-3 py-1.5 text-xs rounded-lg bg-red-500 text-white hover:bg-red-600"
-              >
-                确认导入
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Import confirmation */}
+      <ConfirmDialog
+        open={!!importPreview}
+        title="导入数据"
+        description="当前数据将被替换为导入内容，此操作不可撤销。建议先导出备份。"
+        variant="danger"
+        confirmText="确认导入"
+        onConfirm={confirmImport}
+        onCancel={() => setImportPreview(null)}
+      />
     </div>
   );
 }

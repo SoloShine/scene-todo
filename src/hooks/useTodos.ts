@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { CreateTodo, UpdateTodo, TodoFilters, TodoWithDetails } from "../types";
 import * as api from "../lib/invoke";
+import { notify } from "../lib/toast";
 
 export function useTodos(filters: TodoFilters = {}) {
   const [todos, setTodos] = useState<TodoWithDetails[]>([]);
@@ -30,27 +31,50 @@ export function useTodos(filters: TodoFilters = {}) {
   }, [filters, refresh]);
 
   const create = async (input: CreateTodo) => {
-    const todo = await api.createTodo(input);
-    await refresh();
-    return todo;
+    try {
+      const todo = await api.createTodo(input);
+      await refresh();
+      notify.success("待办已创建");
+      return todo;
+    } catch (e) {
+      notify.error("创建待办失败");
+      throw e;
+    }
   };
 
   const update = async (input: UpdateTodo) => {
-    await api.updateTodo(input);
-    await refresh();
+    try {
+      await api.updateTodo(input);
+      await refresh();
+      notify.success("待办已更新");
+    } catch (e) {
+      notify.error("更新待办失败");
+      throw e;
+    }
   };
 
   const toggleStatus = async (id: number, status: "pending" | "completed") => {
-    await api.updateTodo({
-      id,
-      status: status === "pending" ? "completed" : "pending",
-    });
-    await refresh();
+    try {
+      await api.updateTodo({
+        id,
+        status: status === "pending" ? "completed" : "pending",
+      });
+      await refresh();
+    } catch (e) {
+      notify.error("操作失败");
+      throw e;
+    }
   };
 
   const remove = async (id: number) => {
-    await api.deleteTodo(id);
-    await refresh();
+    try {
+      await api.deleteTodo(id);
+      await refresh();
+      notify.success("待办已删除");
+    } catch (e) {
+      notify.error("删除待办失败");
+      throw e;
+    }
   };
 
   const getDetails = async (id: number) => {

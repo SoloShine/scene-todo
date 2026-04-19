@@ -3,6 +3,8 @@ import { useScenes } from "../../hooks/useScenes";
 import { useApps } from "../../hooks/useApps";
 import { ScenePicker } from "../scene/ScenePicker";
 import * as api from "../../lib/invoke";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 
 interface BindingEditorProps {
   todoId: number;
@@ -40,7 +42,6 @@ export function BindingEditor({ todoId, onClose, onRefresh }: BindingEditorProps
       const { process_name } = result;
       if (!process_name) return;
 
-      // Find matching app
       const existing = apps.find((a) => {
         try {
           return JSON.parse(a.process_names).some((p: string) => p.toLowerCase() === process_name.toLowerCase());
@@ -59,7 +60,6 @@ export function BindingEditor({ todoId, onClose, onRefresh }: BindingEditorProps
         appId = newApp.id;
       }
 
-      // Find scenes that contain this app
       const matchingScenes = await Promise.all(
         scenes.map(async (s) => {
           const sceneApps = await api.listSceneApps(s.id);
@@ -72,10 +72,8 @@ export function BindingEditor({ todoId, onClose, onRefresh }: BindingEditorProps
       if (matched.length === 1) {
         sceneId = matched[0]!.id;
       } else if (matched.length > 1) {
-        // Multiple scenes — pick the first one
         sceneId = matched[0]!.id;
       } else {
-        // No scene contains this app — create a new scene
         const displayName = apps.find((a) => a.id === appId)?.display_name || process_name.replace(/\.[^.]+$/, "");
         const newScene = await createScene({ name: displayName });
         await api.addAppToScene(newScene.id, appId, 0);
@@ -105,22 +103,16 @@ export function BindingEditor({ todoId, onClose, onRefresh }: BindingEditorProps
   }
 
   return (
-    <div className="fixed inset-0 bg-foreground/20 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-card rounded-2xl border border-surface-border shadow-xl w-80 p-4" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-sm text-foreground">关联场景</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground">&times;</button>
-        </div>
-
-        <button
-          onClick={handleStartCapture}
-          className="w-full py-2 mb-3 text-sm rounded-lg border border-dashed border-theme-border text-theme hover:bg-accent cursor-pointer transition-colors"
-        >
-          + 点击后选择目标窗口
-        </button>
-
+    <Dialog open onOpenChange={() => onClose()}>
+      <DialogContent className="w-80">
+        <DialogHeader>
+          <DialogTitle>关联场景</DialogTitle>
+        </DialogHeader>
+        <Button variant="outline" onClick={handleStartCapture} className="w-full mb-3" disabled={capturing}>
+          {capturing ? "点击目标窗口..." : "+ 点击后选择目标窗口"}
+        </Button>
         <ScenePicker boundSceneIds={boundSceneIds} onToggle={handleToggle} />
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Input } from "@/components/ui/input";
 
 interface TodoFormProps {
   onSubmit: (title: string) => void;
@@ -18,12 +19,12 @@ export function TodoForm({ onSubmit, placeholder = "添加待办，按回车提�
   return (
     <div className="flex items-center gap-2 p-3 border-b border-surface-border">
       <span className="text-theme-border text-lg">+</span>
-      <input
+      <Input
         value={value}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={handleSubmit}
         placeholder={placeholder}
-        className="flex-1 text-sm bg-transparent text-foreground placeholder:text-muted-foreground outline-none"
+        className="flex-1 text-sm bg-transparent border-0 shadow-none"
       />
     </div>
   );
