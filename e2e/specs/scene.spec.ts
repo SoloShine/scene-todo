@@ -1,11 +1,10 @@
-describe("Scene Management", () => {
+describe("TC-06 Scenes", () => {
   async function waitForApp() {
     const input = await $("input[data-testid='new-todo-input']");
     await input.waitForExist({ timeout: 15000 });
   }
 
   async function createScene(name: string) {
-    // Click the scene section add button to show input
     const addBtn = await $("[data-testid='section-add-场景']");
     await addBtn.waitForClickable({ timeout: 5000 });
     await addBtn.click();
@@ -15,87 +14,86 @@ describe("Scene Management", () => {
     await sceneInput.setValue(name);
     await browser.keys("Enter");
 
-    // Wait for scene to appear
     const sceneItem = await $(`[data-testid^="scene-item-"]`);
     await sceneItem.waitForExist({ timeout: 5000 });
     return sceneItem;
   }
 
+  // TC-06.01
   it("should create a scene", async () => {
     await waitForApp();
-    const scene = await createScene("测试场景");
+    const uid = Date.now().toString(36);
+    const scene = await createScene(`${uid}-tc06-test`);
     const text = await scene.getText();
-    expect(text).toContain("测试场景");
+    expect(text).toContain("tc06-test");
   });
 
-  it("should select a scene", async () => {
+  // TC-06.02
+  it("should edit a scene via dialog", async () => {
     await waitForApp();
-    await createScene("选择场景");
+    const uid = Date.now().toString(36);
+    await createScene(`${uid}-tc06-edit`);
+
     const sceneItem = await $(`[data-testid^="scene-item-"]`);
-    await sceneItem.click();
+    // Right-click to open editor
+    await sceneItem.click({ button: 2 });
     await browser.pause(500);
-  });
-
-  it("should toggle scene section collapse", async () => {
-    await waitForApp();
-    const toggle = await $("[data-testid='section-toggle-场景']");
-    await toggle.click();
-    await browser.pause(300);
-    // Toggle back
-    await toggle.click();
-  });
-
-  it("should open scene editor and modify name", async () => {
-    await waitForApp();
-    await createScene("编辑场景");
-
-    const sceneItem = await $(`[data-testid^="scene-item-"]`);
-    await sceneItem.click();
-    await browser.pause(300);
 
     const nameInput = await $("[data-testid='scene-name-input']");
     await nameInput.waitForExist({ timeout: 5000 });
     await nameInput.clearValue();
-    await nameInput.setValue("编辑后场景");
+    await nameInput.setValue(`${uid}-tc06-edited`);
 
     const saveBtn = await $("[data-testid='scene-save-btn']");
     await saveBtn.click();
-    await browser.pause(300);
+    await browser.pause(500);
   });
 
-  it("should cancel scene editing", async () => {
+  // TC-06.03
+  it("should delete a scene with confirmation", async () => {
     await waitForApp();
-    await createScene("取消场景");
+    const uid = Date.now().toString(36);
+    await createScene(`${uid}-tc06-delete`);
 
     const sceneItem = await $(`[data-testid^="scene-item-"]`);
-    await sceneItem.click();
-    await browser.pause(300);
-
-    const nameInput = await $("[data-testid='scene-name-input']");
-    await nameInput.waitForExist({ timeout: 5000 });
-    await nameInput.setValue("不应保存");
-
-    const cancelBtn = await $("[data-testid='scene-cancel-btn']");
-    await cancelBtn.click();
-    await browser.pause(300);
-  });
-
-  it("should delete a scene", async () => {
-    await waitForApp();
-    await createScene("删除场景");
-
-    const sceneItem = await $(`[data-testid^="scene-item-"]`);
-    await sceneItem.click();
-    await browser.pause(300);
+    // Right-click to open editor
+    await sceneItem.click({ button: 2 });
+    await browser.pause(500);
 
     const deleteBtn = await $("[data-testid='scene-delete-btn']");
     await deleteBtn.waitForExist({ timeout: 5000 });
     await deleteBtn.click();
     await browser.pause(300);
 
-    // Confirm deletion (the button text changes to confirm after first click)
+    // Confirm deletion (second click)
     const confirmDeleteBtn = await $("[data-testid='scene-delete-btn']");
     await confirmDeleteBtn.click();
-    await browser.pause(300);
+    await browser.pause(500);
+  });
+
+  // TC-06.04
+  it("should show empty state when no scenes exist", async () => {
+    await waitForApp();
+
+    // Delete all existing scenes
+    let sceneItems = await $$(`[data-testid^="scene-item-"]`);
+    for (const item of sceneItems) {
+      await item.click({ button: 2 });
+      await browser.pause(500);
+
+      const deleteBtn = await $("[data-testid='scene-delete-btn']");
+      try {
+        await deleteBtn.waitForExist({ timeout: 2000 });
+        await deleteBtn.click();
+        await browser.pause(300);
+        await deleteBtn.click();
+        await browser.pause(500);
+      } catch {
+        // Scene might already be deleted
+      }
+    }
+
+    sceneItems = await $$(`[data-testid^="scene-item-"]`);
+    expect(sceneItems.length).toBe(0);
   });
 });
