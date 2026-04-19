@@ -16,11 +16,15 @@ pub struct TimeTracker {
 
 impl TimeTracker {
     pub fn new(db: Arc<Database>) -> Self {
-        Self {
+        let tracker = Self {
             db,
             current_session: Arc::new(Mutex::new(None)),
             paused: Arc::new(Mutex::new(false)),
-        }
+        };
+
+        // Recover any orphaned session from a previous crash
+        tracker.recover_orphaned_session();
+        tracker
     }
 
     /// Start a new time session. Ends the previous one if exists.
@@ -33,12 +37,26 @@ impl TimeTracker {
             return;
         }
         self.end_current_session();
+
         let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-        *self.current_session.lock().unwrap() = Some(PendingSession {
+        let session = PendingSession {
             scene_id,
             app_id,
-            started_at: now,
-        });
+            started_at: now.clone(),
+        };
+
+        // Persist to database
+        let conn = self.db.conn.lock().unwrap();
+        let _ = conn.execute(
+            "DELETE FROM current_session",
+            [],
+        );
+        let _ = conn.execute(
+            "INSERT INTO current_session (id, scene_id, app_id, started_at) VALUES (1, ?1, ?2, ?3)",
+            rusqlite::params![scene_id, app_id, now],
+        );
+
+        *self.current_session.lock().unwrap() = Some(session);
     }
 
     /// End current session and write to DB
@@ -62,13 +80,45 @@ impl TimeTracker {
                     duration_secs,
                 ],
             );
+            // Remove persisted current session
+            let _ = conn.execute("DELETE FROM current_session", []);
         }
     }
 
-    /// Flush current session to DB without ending it (for periodic save / crash recovery)
-    pub fn flush(&self) {
-        // Current sessions live in memory only.
-        // This hook exists for future use (e.g. periodic WAL flush, crash recovery).
+    /// Recover an orphaned session from a previous crash.
+    /// Writes it to time_sessions with calculated duration, then clears it.
+    fn recover_orphaned_session(&self) {
+        let conn = self.db.conn.lock().unwrap();
+        let result: Option<(i64, i64, String)> = conn.query_row(
+            "SELECT scene_id, app_id, started_at FROM current_session WHERE id = 1",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        ).ok();
+
+        if let Some((scene_id, app_id, started_at)) = result {
+            let now = chrono::Local::now();
+            let started =
+                chrono::NaiveDateTime::parse_from_str(&started_at, "%Y-%m-%d %H:%M:%S").ok();
+            let duration_secs =
+                started.map(|t| (now.naive_local() - t).num_seconds().max(0) as i64);
+
+            let _ = conn.execute(
+                "INSERT INTO time_sessions (scene_id, app_id, started_at, ended_at, duration_secs) VALUES (?1, ?2, ?3, ?4, ?5)",
+                rusqlite::params![
+                    scene_id,
+                    app_id,
+                    started_at,
+                    now.format("%Y-%m-%d %H:%M:%S").to_string(),
+                    duration_secs,
+                ],
+            );
+            let _ = conn.execute("DELETE FROM current_session", []);
+
+            eprintln!(
+                "Recovered orphaned session: scene_id={}, app_id={}, duration={:?}s",
+                scene_id, app_id, duration_secs
+            );
+        }
     }
 
     pub fn set_paused(&self, paused: bool) {
