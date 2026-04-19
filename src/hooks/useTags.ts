@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Tag, CreateTag, UpdateTag } from "../types";
 import * as api from "../lib/invoke";
+import { notify } from "../lib/toast";
 
 export function useTags() {
   const [tags, setTags] = useState<Tag[]>([]);
@@ -18,18 +19,27 @@ export function useTags() {
   useEffect(() => { refresh(); }, [refresh]);
 
   const create = async (input: CreateTag) => {
-    await api.createTag(input);
-    await refresh();
+    try {
+      await api.createTag(input);
+      await refresh();
+      notify.success("标签已创建");
+    } catch (e) { notify.error("创建标签失败"); throw e; }
   };
 
   const update = async (input: UpdateTag) => {
-    await api.updateTag(input);
-    await refresh();
+    try {
+      await api.updateTag(input);
+      await refresh();
+      notify.success("标签已更新");
+    } catch (e) { notify.error("更新标签失败"); throw e; }
   };
 
   const remove = async (id: number) => {
-    await api.deleteTag(id);
-    await refresh();
+    try {
+      await api.deleteTag(id);
+      await refresh();
+      notify.success("标签已删除");
+    } catch (e) { notify.error("删除标签失败"); throw e; }
   };
 
   return { tags, loading, create, update, remove, refresh };

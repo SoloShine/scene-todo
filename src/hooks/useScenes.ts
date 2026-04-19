@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { Scene, CreateScene, UpdateScene } from "../types";
 import * as api from "../lib/invoke";
+import { notify } from "../lib/toast";
 
 const SCENES_CHANGED = "scenes-changed";
 
@@ -29,23 +30,32 @@ export function useScenes() {
   }, [refresh]);
 
   const create = async (input: CreateScene) => {
-    const scene = await api.createScene(input);
-    await refresh();
-    notifyScenesChanged();
-    return scene;
+    try {
+      const scene = await api.createScene(input);
+      await refresh();
+      notifyScenesChanged();
+      notify.success("场景已创建");
+      return scene;
+    } catch (e) { notify.error("创建场景失败"); throw e; }
   };
 
   const update = async (input: UpdateScene) => {
-    const scene = await api.updateScene(input);
-    await refresh();
-    notifyScenesChanged();
-    return scene;
+    try {
+      const scene = await api.updateScene(input);
+      await refresh();
+      notifyScenesChanged();
+      notify.success("场景已更新");
+      return scene;
+    } catch (e) { notify.error("更新场景失败"); throw e; }
   };
 
   const remove = async (id: number) => {
-    await api.deleteScene(id);
-    await refresh();
-    notifyScenesChanged();
+    try {
+      await api.deleteScene(id);
+      await refresh();
+      notifyScenesChanged();
+      notify.success("场景已删除");
+    } catch (e) { notify.error("删除场景失败"); throw e; }
   };
 
   return { scenes, loading, create, update, remove, refresh };

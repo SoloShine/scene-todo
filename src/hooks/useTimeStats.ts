@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { SceneTimeSummary, TrackingStatus } from "../types";
 import * as api from "../lib/invoke";
+import { notify } from "../lib/toast";
 
 export function useTimeStats(rangeStart: string, rangeEnd: string) {
   const [summary, setSummary] = useState<SceneTimeSummary[]>([]);
@@ -42,8 +43,11 @@ export function useTrackingStatus() {
   useEffect(() => { refresh(); const interval = setInterval(refresh, 2000); return () => clearInterval(interval); }, [refresh]);
 
   const setPaused = async (paused: boolean) => {
-    await api.setTrackingPaused(paused);
-    await refresh();
+    try {
+      await api.setTrackingPaused(paused);
+      await refresh();
+      notify.info(paused ? "追踪已暂停" : "追踪已恢复");
+    } catch (e) { notify.error("操作失败"); throw e; }
   };
 
   return { status, setPaused, refresh };
