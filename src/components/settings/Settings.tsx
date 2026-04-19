@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useApps } from "../../hooks/useApps";
 import * as api from "../../lib/invoke";
+import { notify } from "../../lib/toast";
 import { ThemeSettings } from "./ThemeSettings";
 import { enable as enableAutostart, disable as disableAutostart, isEnabled as isAutostartEnabled } from "@tauri-apps/plugin-autostart";
 import { open, save } from "@tauri-apps/plugin-dialog";
@@ -169,6 +170,7 @@ export function Settings() {
       await writeFile(path, encoder.encode(content));
     } catch (e) {
       console.error("Export failed:", e);
+      notify.error("导出数据失败");
     }
   };
 
@@ -208,6 +210,7 @@ export function Settings() {
       setImportPreview({ dbData, localStorage: lsData, summary });
     } catch (e) {
       console.error("Import failed:", e);
+      notify.error("读取备份文件失败");
     }
   };
 
@@ -225,6 +228,7 @@ export function Settings() {
       window.location.reload();
     } catch (e) {
       console.error("Import failed:", e);
+      notify.error("导入数据失败");
     }
   };
 
@@ -272,15 +276,15 @@ export function Settings() {
               }}
               className="w-20 text-right"
             />
-            <span className="text-xs text-gray-400">天</span>
+            <span className="text-xs text-muted-foreground">天</span>
           </div>
         </Label>
         <div className="flex items-center justify-between py-2">
           <span className="text-sm text-foreground">数据备份</span>
           <div className="flex items-center gap-2">
-            <button onClick={handleExport} className="text-xs text-gray-400 hover:text-blue-500">导出</button>
-            <span className="text-gray-300">|</span>
-            <button onClick={handleImport} className="text-xs text-gray-400 hover:text-blue-500">导入</button>
+            <button onClick={handleExport} className="text-xs text-muted-foreground hover:text-theme">导出</button>
+            <span className="text-muted-foreground/30">|</span>
+            <button onClick={handleImport} className="text-xs text-muted-foreground hover:text-theme">导入</button>
           </div>
         </div>
       </section>
@@ -334,7 +338,7 @@ export function Settings() {
             <button
               onClick={handleRefreshIcons}
               disabled={refreshingIcons}
-              className="text-xs text-gray-400 hover:text-blue-500 disabled:opacity-50"
+              className="text-xs text-muted-foreground hover:text-theme disabled:opacity-50"
             >
               {refreshingIcons ? "刷新中..." : "自动获取图标"}
             </button>
@@ -350,7 +354,7 @@ export function Settings() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setExpandedApp(isExpanded ? null : app.id)}
-                      className="text-gray-400 hover:text-muted-foreground text-xs w-4"
+                      className="text-muted-foreground/60 hover:text-muted-foreground text-xs w-4"
                     >
                       {isExpanded ? "\u25BE" : "\u25B8"}
                     </button>
@@ -363,7 +367,7 @@ export function Settings() {
                         </div>
                       )}
                       <span className="text-sm text-foreground">{app.display_name || app.name}</span>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-muted-foreground">
                         {(() => { try { return JSON.parse(app.process_names).join(", "); } catch { return app.process_names; } })()}
                       </span>
                     </div>
@@ -374,9 +378,9 @@ export function Settings() {
                         checked={app.show_widget}
                         onCheckedChange={(v) => handleToggleShowWidget(app.id, !!v)}
                       />
-                      <span className="text-[10px] text-gray-400">浮窗</span>
+                      <span className="text-[10px] text-muted-foreground">浮窗</span>
                     </Label>
-                    <button onClick={() => remove(app.id)} className="text-xs text-gray-400 hover:text-red-500">删除</button>
+                    <button onClick={() => remove(app.id)} className="text-xs text-muted-foreground hover:text-red-500">删除</button>
                   </div>
                 </div>
                 {isExpanded && (
@@ -387,7 +391,7 @@ export function Settings() {
                         onChange={(e) => handleOffsetChange(app.id, "x", parseInt(e.target.value))}
                         className="flex-1"
                       />
-                      <span className="w-8 text-gray-400">{off.x}px</span>
+                      <span className="w-8 text-muted-foreground">{off.x}px</span>
                       <Input type="number" min={-200} max={500} value={off.x}
                         onChange={(e) => { const v = parseInt(e.target.value) || 0; handleOffsetChange(app.id, "x", v); }}
                         className="w-14 text-center text-xs"
@@ -399,7 +403,7 @@ export function Settings() {
                         onChange={(e) => handleOffsetChange(app.id, "y", parseInt(e.target.value))}
                         className="flex-1"
                       />
-                      <span className="w-8 text-gray-400">{off.y}px</span>
+                      <span className="w-8 text-muted-foreground">{off.y}px</span>
                       <Input type="number" min={0} max={500} value={off.y}
                         onChange={(e) => { const v = parseInt(e.target.value) || 0; handleOffsetChange(app.id, "y", v); }}
                         className="w-14 text-center text-xs"
@@ -407,7 +411,7 @@ export function Settings() {
                     </div>
                     <button
                       onClick={() => handleImportIcon(app.id)}
-                      className="text-xs text-gray-400 hover:text-blue-500"
+                      className="text-xs text-muted-foreground hover:text-theme"
                     >
                       手动导入图标...
                     </button>
@@ -419,11 +423,11 @@ export function Settings() {
           <button
             onClick={handleCapture}
             disabled={capturing}
-            className="w-full py-2 mt-1 text-xs rounded border border-surface-border hover:border-blue-400 hover:text-blue-500 cursor-pointer transition-colors disabled:opacity-50"
+            className="w-full py-2 mt-1 text-xs rounded border border-surface-border hover:border-theme hover:text-theme cursor-pointer transition-colors disabled:opacity-50"
           >
             {capturing ? "点击目标窗口以抓取..." : "+ 抓取窗口添加关联软件"}
           </button>
-          {apps.length === 0 && <p className="text-xs text-gray-400 py-2">暂无关联软件</p>}
+          {apps.length === 0 && <p className="text-xs text-muted-foreground py-2">暂无关联软件</p>}
         </div>
       </section>
 
