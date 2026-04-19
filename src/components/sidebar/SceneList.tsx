@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useScenes } from "../../hooks/useScenes";
 import { SectionHeader } from "./SectionHeader";
+import { Input } from "@/components/ui/input"
+import { EmptyState } from "@/components/ui/empty-state"
+import { Layers } from "lucide-react"
 
 interface SceneListProps {
   selectedSceneId: number | null;
@@ -28,14 +31,21 @@ export function SceneList({ selectedSceneId, onSelectScene, onEditScene, collaps
       {!collapsed && (
         <div className="px-2 pb-1">
           {showInput && (
-            <input
+            <Input
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
               onBlur={() => { if (!newName.trim()) setShowInput(false); }}
               placeholder="场景名称..."
               autoFocus
-              className="w-full px-2 py-1 text-xs border border-surface-border bg-background focus:border-theme-border outline-none rounded-md mb-1"
+              className="w-full text-xs mb-1"
+            />
+          )}
+          {scenes.length === 0 && !showInput && (
+            <EmptyState
+              icon={<Layers />}
+              title="还没有场景"
+              description="点击上方 + 创建场景来关联应用"
             />
           )}
           <div className="flex flex-wrap gap-1">
