@@ -42,10 +42,17 @@ pub fn import_all(db: &Database, data: &ExportData) -> Result<(), String> {
         return Err(format!("Unsupported export version: {}", data.version));
     }
 
+    // Validate data before touching the database
+    crate::services::import_validator::validate_import_data(data)?;
+
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
 
+    // Wrap entire import in a transaction for atomicity
+    let tx = conn.unchecked_transaction()
+        .map_err(|e| format!("Begin transaction: {}", e))?;
+
     // Disable FK checks during import
-    conn.execute_batch("PRAGMA foreign_keys=OFF;")
+    tx.execute_batch("PRAGMA foreign_keys=OFF;")
         .map_err(|e| format!("Disable FK: {}", e))?;
 
     // Clear all tables (reverse dependency order)
@@ -54,26 +61,27 @@ pub fn import_all(db: &Database, data: &ExportData) -> Result<(), String> {
         "scene_apps", "todo_tags", "todos", "scenes", "apps", "tags", "groups",
     ];
     for t in &tables {
-        conn.execute(&format!("DELETE FROM {}", t), [])
+        tx.execute(&format!("DELETE FROM {}", t), [])
             .map_err(|e| format!("Clear {}: {}", t, e))?;
     }
 
     // Insert in dependency order
-    insert_rows(&conn, "groups", &data.groups)?;
-    insert_rows(&conn, "tags", &data.tags)?;
-    insert_rows(&conn, "apps", &data.apps)?;
-    insert_rows(&conn, "todos", &data.todos)?;
-    insert_rows(&conn, "todo_tags", &data.todo_tags)?;
-    insert_rows(&conn, "scenes", &data.scenes)?;
-    insert_rows(&conn, "scene_apps", &data.scene_apps)?;
-    insert_rows(&conn, "todo_app_bindings", &data.todo_app_bindings)?;
-    insert_rows(&conn, "todo_scene_bindings", &data.todo_scene_bindings)?;
-    insert_rows(&conn, "time_sessions", &data.time_sessions)?;
+    insert_rows_tx(&tx, "groups", &data.groups)?;
+    insert_rows_tx(&tx, "tags", &data.tags)?;
+    insert_rows_tx(&tx, "apps", &data.apps)?;
+    insert_rows_tx(&tx, "todos", &data.todos)?;
+    insert_rows_tx(&tx, "todo_tags", &data.todo_tags)?;
+    insert_rows_tx(&tx, "scenes", &data.scenes)?;
+    insert_rows_tx(&tx, "scene_apps", &data.scene_apps)?;
+    insert_rows_tx(&tx, "todo_app_bindings", &data.todo_app_bindings)?;
+    insert_rows_tx(&tx, "todo_scene_bindings", &data.todo_scene_bindings)?;
+    insert_rows_tx(&tx, "time_sessions", &data.time_sessions)?;
 
     // Re-enable FK checks
-    conn.execute_batch("PRAGMA foreign_keys=ON;")
+    tx.execute_batch("PRAGMA foreign_keys=ON;")
         .map_err(|e| format!("Enable FK: {}", e))?;
 
+    tx.commit().map_err(|e| format!("Commit: {}", e))?;
     Ok(())
 }
 
@@ -106,6 +114,45 @@ fn query_rows(conn: &rusqlite::Connection, sql: &str) -> Result<Vec<RowData>, St
     rows.filter_map(|r| r.ok()).collect::<Vec<_>>().into_iter()
         .map(Ok)
         .collect()
+}
+
+fn insert_rows_tx(tx: &rusqlite::Transaction, table: &str, rows: &[RowData]) -> Result<(), String> {
+    if rows.is_empty() {
+        return Ok(());
+    }
+
+    let cols: Vec<&String> = rows[0].keys().collect();
+    let col_list = cols.iter().map(|c| c.as_str()).collect::<Vec<_>>().join(", ");
+    let placeholders = cols.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+    let sql = format!("INSERT INTO {} ({}) VALUES ({})", table, col_list, placeholders);
+
+    for row in rows {
+        let mut vals: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+        for col in &cols {
+            let val = row.get(*col).cloned().unwrap_or(serde_json::Value::Null);
+            let boxed: Box<dyn rusqlite::types::ToSql> = match val {
+                serde_json::Value::Null => Box::new(Option::<String>::None),
+                serde_json::Value::Bool(b) => Box::new(b as i32),
+                serde_json::Value::Number(n) => {
+                    if let Some(i) = n.as_i64() {
+                        Box::new(i)
+                    } else if let Some(f) = n.as_f64() {
+                        Box::new(f)
+                    } else {
+                        Box::new(Option::<String>::None)
+                    }
+                },
+                serde_json::Value::String(s) => Box::new(s),
+                other => Box::new(other.to_string()),
+            };
+            vals.push(boxed);
+        }
+        let params: Vec<&dyn rusqlite::types::ToSql> = vals.iter().map(|v| v.as_ref()).collect();
+        tx.execute(&sql, params.as_slice())
+            .map_err(|e| format!("Insert into {}: {}", table, e))?;
+    }
+
+    Ok(())
 }
 
 fn insert_rows(conn: &rusqlite::Connection, table: &str, rows: &[RowData]) -> Result<(), String> {
