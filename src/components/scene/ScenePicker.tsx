@@ -1,4 +1,5 @@
 import { useScenes } from "../../hooks/useScenes";
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface ScenePickerProps {
   boundSceneIds: number[];
@@ -15,11 +16,9 @@ export function ScenePicker({ boundSceneIds, onToggle }: ScenePickerProps) {
           key={scene.id}
           className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-50 rounded cursor-pointer"
         >
-          <input
-            type="checkbox"
+          <Checkbox
             checked={boundSceneIds.includes(scene.id)}
-            onChange={() => onToggle(scene.id)}
-            className="rounded border-gray-300"
+            onCheckedChange={() => onToggle(scene.id)}
           />
           <span className="text-base">{scene.icon || "📁"}</span>
           <span className="text-sm">{scene.name}</span>
