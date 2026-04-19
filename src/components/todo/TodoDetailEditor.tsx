@@ -3,6 +3,9 @@ import { useGroups } from "../../hooks/useGroups";
 import { useTags } from "../../hooks/useTags";
 import * as api from "../../lib/invoke";
 import type { Tag } from "../../types";
+import { Popover, PopoverContent } from "@/components/ui/popover"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Separator } from "@/components/ui/separator"
 
 interface TodoDetailEditorProps {
   todoId: number;
@@ -40,12 +43,8 @@ export function TodoDetailEditor({ todoId, currentGroupId, onClose, onRefresh }:
   };
 
   return (
-    <div className="fixed inset-0 z-50" onClick={onClose}>
-      <div
-        className="absolute bg-card rounded-xl shadow-xl border border-surface-border w-56 p-3 space-y-3"
-        onClick={(e) => e.stopPropagation()}
-        style={{ top: "50%", left: "50%", transform: "translate(-50%, -50%)" }}
-      >
+    <Popover open onOpenChange={() => onClose()}>
+      <PopoverContent className="w-56 p-3 space-y-3" side="bottom" align="center">
         {/* Group selector */}
         <div>
           <h4 className="text-xs font-semibold text-muted-foreground mb-1">分组</h4>
@@ -73,7 +72,7 @@ export function TodoDetailEditor({ todoId, currentGroupId, onClose, onRefresh }:
           </div>
         </div>
 
-        <div className="border-t border-surface-border" />
+        <Separator />
 
         {/* Tag selector */}
         <div>
@@ -87,11 +86,9 @@ export function TodoDetailEditor({ todoId, currentGroupId, onClose, onRefresh }:
                 key={tag.id}
                 className="flex items-center gap-2 px-2 py-1 hover:bg-accent rounded cursor-pointer"
               >
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={todoTags.some((t) => t.id === tag.id)}
-                  onChange={() => handleTagToggle(tag.id)}
-                  className="rounded border-surface-border"
+                  onCheckedChange={() => handleTagToggle(tag.id)}
                 />
                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: tag.color }} />
                 <span className="text-xs">{tag.name}</span>
@@ -99,7 +96,7 @@ export function TodoDetailEditor({ todoId, currentGroupId, onClose, onRefresh }:
             ))}
           </div>
         </div>
-      </div>
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 }

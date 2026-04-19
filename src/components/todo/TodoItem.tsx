@@ -3,6 +3,7 @@ import type { Todo, TodoWithDetails } from "../../types";
 import * as api from "../../lib/invoke";
 import { BindingEditor } from "../binding/BindingEditor";
 import { TodoDetailEditor } from "./TodoDetailEditor";
+import { Input } from "@/components/ui/input";
 
 interface TodoItemProps {
   todo: TodoWithDetails | Todo;
@@ -152,20 +153,20 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
   if (editing) {
     return (
       <div ref={editRef} className="px-3 py-2 bg-blue-50/50 border-l-2 border-blue-400">
-        <input
+        <Input
           value={editTitle}
           onChange={(e) => setEditTitle(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") handleSaveEdit(); if (e.key === "Escape") onEndEdit(); }}
           placeholder="标题"
           autoFocus
-          className="w-full text-sm font-medium outline-none bg-transparent mb-1"
+          className="w-full text-sm font-medium border-0 shadow-none bg-transparent mb-1"
         />
-        <input
+        <Input
           value={editDesc}
           onChange={(e) => setEditDesc(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Escape") onEndEdit(); }}
           placeholder="描述（可选）"
-          className="w-full text-xs text-muted-foreground outline-none bg-transparent mb-2"
+          className="w-full text-xs text-muted-foreground border-0 shadow-none bg-transparent mb-2"
         />
         <div className="flex items-center gap-2 flex-wrap">
           {(["high", "medium", "low"] as const).map((p) => (
@@ -318,13 +319,13 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
 
       {showSubInput && (
         <div className="flex items-center gap-2 pl-10 pr-3 py-1.5 bg-background/50 border-b border-surface-divider">
-          <input
+          <Input
             value={subTitle}
             onChange={(e) => setSubTitle(e.target.value)}
             onKeyDown={handleAddSub}
             placeholder="子任务名称..."
             autoFocus
-            className="flex-1 px-2 py-1 text-sm border border-surface-border rounded shadow-sm outline-none focus:border-theme-border"
+            className="flex-1 text-sm"
           />
           <button onClick={() => { setSubTitle(""); setShowSubInput(false); }} className="text-xs text-muted-foreground hover:text-foreground whitespace-nowrap">取消</button>
         </div>
