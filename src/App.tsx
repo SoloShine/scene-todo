@@ -110,7 +110,7 @@ export default function App() {
   const todoListRef = useRef<TodoListHandle>(null)
 
   const shortcutActions = useCallback(() => ({
-    newTodo: () => todoListRef.current?.focusSearch(),
+    newTodo: () => todoListRef.current?.focusTodoForm(),
     search: () => todoListRef.current?.focusSearch(),
     viewAll: () => handleSmartView("all"),
     viewToday: () => handleSmartView("today"),

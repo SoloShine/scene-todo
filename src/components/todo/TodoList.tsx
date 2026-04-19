@@ -23,6 +23,7 @@ interface TodoListProps {
 
 export interface TodoListHandle {
   focusSearch: () => void
+  focusTodoForm: () => void
 }
 
 const GROUP_CONFIG: { key: TodoGroup; label: string; color: string }[] = [
@@ -72,6 +73,7 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
 
   useImperativeHandle(ref, () => ({
     focusSearch: () => searchInputRef.current?.focus(),
+    focusTodoForm: () => todoFormRef.current?.focus(),
   }))
 
   const refreshSceneTodos = useCallback(async () => {

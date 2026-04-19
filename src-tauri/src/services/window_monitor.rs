@@ -81,6 +81,9 @@ impl WindowMonitor {
 
         std::thread::spawn(move || {
             let mut last_tracked_pos: Option<(i32, i32)> = None;
+            let mut pending_hwnd: Option<isize> = None;
+            let mut pending_since: Option<Instant> = None;
+            let debounce = Duration::from_millis(500);
 
             loop {
                 {
@@ -92,6 +95,32 @@ impl WindowMonitor {
 
                 let foreground: HWND = unsafe { GetForegroundWindow() };
                 let current_hwnd = foreground.0 as isize;
+
+                // Debounce: wait for window to stay stable before acting
+                {
+                    let last = *last_hwnd.lock().unwrap();
+                    if current_hwnd != 0 && current_hwnd != last {
+                        if pending_hwnd != Some(current_hwnd) {
+                            pending_hwnd = Some(current_hwnd);
+                            pending_since = Some(Instant::now());
+                        }
+                        // Not yet stable — skip processing this cycle
+                        if pending_since.map(|t| t.elapsed()) < Some(debounce) {
+                            // Still check for window moves below
+                            pending_hwnd = None;
+                            pending_since = None;
+                            std::thread::sleep(Duration::from_millis(200));
+                            continue;
+                        }
+                        // Stable — proceed with the foreground change
+                        pending_hwnd = None;
+                        pending_since = None;
+                    } else {
+                        // Same window or zero — cancel any pending debounce
+                        pending_hwnd = None;
+                        pending_since = None;
+                    }
+                }
 
                 {
                     let mut last = last_hwnd.lock().unwrap();
