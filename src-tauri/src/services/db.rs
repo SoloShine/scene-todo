@@ -53,6 +53,7 @@ impl Database {
             (1, "001_init", include_str!("../../migrations/001_init.sql")),
             (2, "002_scene_tracking", include_str!("../../migrations/002_scene_tracking.sql")),
             (3, "003_show_widget", include_str!("../../migrations/003_show_widget.sql")),
+            (4, "004_current_session", include_str!("../../migrations/004_current_session.sql")),
         ];
 
         for (id, name, sql) in &migrations {

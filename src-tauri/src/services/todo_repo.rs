@@ -188,12 +188,118 @@ pub fn list_todos_by_app(db: &Database, app_id: i64) -> Result<Vec<TodoWithDetai
 
         result
     };
-    ids.iter().map(|&id| get_todo_with_details(db, id)).collect()
+
+    if ids.is_empty() {
+        return Ok(vec![]);
+    }
+
+    // Fetch the full todo rows for these IDs
+    let todos: Vec<Todo> = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let id_list = ids.iter().map(|id| id.to_string()).collect::<Vec<_>>().join(",");
+        let sql = format!(
+            "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at \
+             FROM todos WHERE id IN ({}) ORDER BY sort_order",
+            id_list
+        );
+        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare fetch todos: {}", e))?;
+        let rows: Vec<Todo> = stmt.query_map([], row_to_todo)
+            .map_err(|e| format!("Query fetch todos: {}", e))?
+            .filter_map(|r| r.ok()).collect();
+        drop(stmt);
+        drop(conn);
+        rows
+    };
+
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let id_list = ids.iter().map(|id| id.to_string()).collect::<Vec<_>>().join(",");
+    let tags = batch_query_tags(&conn, &id_list)?;
+    let subtasks = batch_query_subtasks(&conn, &id_list)?;
+    let scenes = batch_query_scene_bindings(&conn, &id_list, &todos)?;
+
+    Ok(todos.into_iter().map(|todo| {
+        let todo_tags = tags.get(&todo.id).cloned().unwrap_or_default();
+        let todo_subtasks = subtasks.get(&todo.id).cloned().unwrap_or_default();
+        let todo_scenes = scenes.get(&todo.id).cloned().unwrap_or_default();
+        TodoWithDetails {
+            todo,
+            tags: todo_tags,
+            sub_tasks: todo_subtasks,
+            bound_scene_ids: todo_scenes,
+        }
+    }).collect())
 }
 
 pub fn list_todos_with_details(db: &Database, filters: TodoFilters) -> Result<Vec<TodoWithDetails>, String> {
     let todos = list_todos(db, filters)?;
-    todos.iter().map(|t| get_todo_with_details(db, t.id)).collect()
+
+    if todos.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+
+    let ids: Vec<String> = todos.iter().map(|t| t.id.to_string()).collect();
+    let id_list = ids.join(",");
+
+    let tags = batch_query_tags(&conn, &id_list)?;
+    let subtasks = batch_query_subtasks(&conn, &id_list)?;
+    let scenes = batch_query_scene_bindings(&conn, &id_list, &todos)?;
+
+    Ok(todos.into_iter().map(|todo| {
+        let todo_tags = tags.get(&todo.id).cloned().unwrap_or_default();
+        let todo_subtasks = subtasks.get(&todo.id).cloned().unwrap_or_default();
+        let todo_scenes = scenes.get(&todo.id).cloned().unwrap_or_default();
+        TodoWithDetails {
+            todo,
+            tags: todo_tags,
+            sub_tasks: todo_subtasks,
+            bound_scene_ids: todo_scenes,
+        }
+    }).collect())
+}
+
+/// Batch-fetch TodoWithDetails for a list of todo IDs.
+/// Uses the same batch query strategy as list_todos_with_details.
+pub fn get_todos_with_details_by_ids(db: &Database, ids: &[i64]) -> Result<Vec<TodoWithDetails>, String> {
+    if ids.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let id_list = ids.iter().map(|id| id.to_string()).collect::<Vec<_>>().join(",");
+
+    let todos: Vec<Todo> = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let sql = format!(
+            "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at \
+             FROM todos WHERE id IN ({}) ORDER BY sort_order",
+            id_list
+        );
+        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {}", e))?;
+        let rows: Vec<Todo> = stmt.query_map([], row_to_todo)
+            .map_err(|e| format!("Query: {}", e))?
+            .filter_map(|r| r.ok()).collect();
+        drop(stmt);
+        drop(conn);
+        rows
+    };
+
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let tags = batch_query_tags(&conn, &id_list)?;
+    let subtasks = batch_query_subtasks(&conn, &id_list)?;
+    let scenes = batch_query_scene_bindings(&conn, &id_list, &todos)?;
+
+    Ok(todos.into_iter().map(|todo| {
+        let todo_tags = tags.get(&todo.id).cloned().unwrap_or_default();
+        let todo_subtasks = subtasks.get(&todo.id).cloned().unwrap_or_default();
+        let todo_scenes = scenes.get(&todo.id).cloned().unwrap_or_default();
+        TodoWithDetails {
+            todo,
+            tags: todo_tags,
+            sub_tasks: todo_subtasks,
+            bound_scene_ids: todo_scenes,
+        }
+    }).collect())
 }
 
 pub fn add_tag_to_todo(db: &Database, todo_id: i64, tag_id: i64) -> Result<(), String> {
@@ -234,6 +340,96 @@ fn row_to_todo(row: &Row) -> Result<Todo, rusqlite::Error> {
         created_at: row.get(9)?,
         completed_at: row.get(10)?,
     })
+}
+
+/// Batch-query tags for multiple todo IDs. Returns HashMap<todo_id, Vec<Tag>>.
+fn batch_query_tags(conn: &rusqlite::Connection, id_list: &str) -> Result<std::collections::HashMap<i64, Vec<Tag>>, String> {
+    let sql = format!(
+        "SELECT tt.todo_id, t.id, t.name, t.color FROM tags t JOIN todo_tags tt ON t.id = tt.tag_id WHERE tt.todo_id IN ({})",
+        id_list
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare batch tags: {}", e))?;
+    let mut map: std::collections::HashMap<i64, Vec<Tag>> = std::collections::HashMap::new();
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, i64>(0)?,
+            Tag {
+                id: row.get(1)?,
+                name: row.get(2)?,
+                color: row.get(3)?,
+            },
+        ))
+    }).map_err(|e| format!("Query batch tags: {}", e))?;
+
+    for r in rows {
+        let (todo_id, tag) = r.map_err(|e| format!("Row batch tags: {}", e))?;
+        map.entry(todo_id).or_default().push(tag);
+    }
+    Ok(map)
+}
+
+/// Batch-query subtasks for multiple parent todo IDs. Returns HashMap<parent_id, Vec<Todo>>.
+fn batch_query_subtasks(conn: &rusqlite::Connection, id_list: &str) -> Result<std::collections::HashMap<i64, Vec<Todo>>, String> {
+    let sql = format!(
+        "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at \
+         FROM todos WHERE parent_id IN ({}) ORDER BY sort_order",
+        id_list
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare batch subtasks: {}", e))?;
+    let mut map: std::collections::HashMap<i64, Vec<Todo>> = std::collections::HashMap::new();
+    let rows = stmt.query_map([], row_to_todo).map_err(|e| format!("Query batch subtasks: {}", e))?;
+
+    for r in rows {
+        let todo = r.map_err(|e| format!("Row batch subtasks: {}", e))?;
+        if let Some(pid) = todo.parent_id {
+            map.entry(pid).or_default().push(todo);
+        }
+    }
+    Ok(map)
+}
+
+/// Batch-query scene bindings for multiple todo IDs. Returns HashMap<todo_id, Vec<i64>>.
+/// Falls back to parent bindings when a todo has no direct bindings.
+fn batch_query_scene_bindings(
+    conn: &rusqlite::Connection,
+    id_list: &str,
+    todos: &[Todo],
+) -> Result<std::collections::HashMap<i64, Vec<i64>>, String> {
+    let sql = format!(
+        "SELECT todo_id, scene_id FROM todo_scene_bindings WHERE todo_id IN ({})",
+        id_list
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare batch scenes: {}", e))?;
+    let mut map: std::collections::HashMap<i64, Vec<i64>> = std::collections::HashMap::new();
+    let rows = stmt.query_map([], |row| {
+        Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))
+    }).map_err(|e| format!("Query batch scenes: {}", e))?;
+
+    for r in rows {
+        let (todo_id, scene_id) = r.map_err(|e| format!("Row batch scenes: {}", e))?;
+        map.entry(todo_id).or_default().push(scene_id);
+    }
+
+    for todo in todos {
+        if !map.contains_key(&todo.id) {
+            if let Some(parent_id) = todo.parent_id {
+                let parent_sql = format!(
+                    "SELECT scene_id FROM todo_scene_bindings WHERE todo_id = {}",
+                    parent_id
+                );
+                let mut parent_stmt = conn.prepare(&parent_sql)
+                    .map_err(|e| format!("Prepare parent batch: {}", e))?;
+                let parent_ids: Vec<i64> = parent_stmt.query_map([], |row| row.get(0))
+                    .map_err(|e| format!("Query parent batch: {}", e))?
+                    .filter_map(|r| r.ok()).collect();
+                if !parent_ids.is_empty() {
+                    map.insert(todo.id, parent_ids);
+                }
+            }
+        }
+    }
+
+    Ok(map)
 }
 
 #[cfg(test)]

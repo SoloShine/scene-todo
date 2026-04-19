@@ -224,9 +224,7 @@ pub fn list_todos_with_details_by_scene(db: &Database, scene_id: i64) -> Result<
     let ids = query_todo_ids_by_scene(&conn, scene_id)?;
     drop(conn);
 
-    ids.iter()
-        .map(|&id| crate::services::todo_repo::get_todo_with_details(db, id))
-        .collect()
+    crate::services::todo_repo::get_todos_with_details_by_ids(db, &ids)
 }
 
 // --- Time tracking queries ---

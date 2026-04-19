@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useScenes } from "../../hooks/useScenes";
 import { useApps } from "../../hooks/useApps";
 import * as api from "../../lib/invoke";
+import { notify } from "../../lib/toast";
 import type { SceneApp } from "../../types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -67,9 +68,13 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
 
   const handleAddApp = async (appId: number) => {
     if (!existingScene) return;
-    await api.addAppToScene(existingScene.id, appId, 0);
-    const updated = await api.listSceneApps(existingScene.id);
-    setSceneApps(updated);
+    try {
+      await api.addAppToScene(existingScene.id, appId, 0);
+      const updated = await api.listSceneApps(existingScene.id);
+      setSceneApps(updated);
+    } catch {
+      notify.error("添加应用到场景失败");
+    }
   };
 
   const handleCapture = async () => {
@@ -104,6 +109,7 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
       await refreshApps();
     } catch (e) {
       console.error("Window capture failed:", e);
+      notify.error("窗口抓取失败");
     } finally {
       setCapturing(false);
     }
@@ -111,8 +117,12 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
 
   const handleRemoveApp = async (appId: number) => {
     if (!existingScene) return;
-    await api.removeAppFromScene(existingScene.id, appId);
-    setSceneApps((prev) => prev.filter((sa) => sa.app_id !== appId));
+    try {
+      await api.removeAppFromScene(existingScene.id, appId);
+      setSceneApps((prev) => prev.filter((sa) => sa.app_id !== appId));
+    } catch {
+      notify.error("移除应用失败");
+    }
   };
 
   const boundAppIds = sceneApps.map((sa) => sa.app_id);

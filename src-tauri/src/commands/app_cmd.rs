@@ -10,8 +10,12 @@ use crate::services::window_monitor::WindowMonitor;
 use crate::services::icon_extractor;
 
 #[tauri::command]
-pub fn create_app(db: State<'_, Arc<Database>>, input: CreateApp) -> Result<App, String> {
-    app_repo::create_app(&db, input)
+pub fn create_app(db: State<'_, Arc<Database>>, input: CreateApp, app: tauri::AppHandle) -> Result<App, String> {
+    let result = app_repo::create_app(&db, input)?;
+    if let Some(monitor) = app.try_state::<WindowMonitor>() {
+        monitor.invalidate_app_cache();
+    }
+    Ok(result)
 }
 
 #[tauri::command]
@@ -20,12 +24,26 @@ pub fn list_apps(db: State<'_, Arc<Database>>) -> Result<Vec<App>, String> {
 }
 
 #[tauri::command]
-pub fn update_app(db: State<'_, Arc<Database>>, input: UpdateApp) -> Result<App, String> {
-    app_repo::update_app(&db, input)
+pub fn update_app(db: State<'_, Arc<Database>>, input: UpdateApp, app: tauri::AppHandle) -> Result<App, String> {
+    let result = app_repo::update_app(&db, input)?;
+    if let Some(monitor) = app.try_state::<WindowMonitor>() {
+        monitor.invalidate_app_cache();
+    }
+    Ok(result)
 }
 
 #[tauri::command]
-pub fn delete_app(db: State<'_, Arc<Database>>, id: i64) -> Result<(), String> {
+pub fn delete_app(
+    db: State<'_, Arc<Database>>,
+    id: i64,
+    app: tauri::AppHandle,
+) -> Result<(), String> {
+    if let Some(widget_mgr) = app.try_state::<WidgetManager>() {
+        widget_mgr.destroy_widget(&app, id);
+    }
+    if let Some(monitor) = app.try_state::<WindowMonitor>() {
+        monitor.invalidate_app_cache();
+    }
     app_repo::delete_app(&db, id)
 }
 

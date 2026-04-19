@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useApps } from "../../hooks/useApps";
 import * as api from "../../lib/invoke";
+import { notify } from "../../lib/toast";
 import { ThemeSettings } from "./ThemeSettings";
 import { GeneralSettings } from "./GeneralSettings";
 import { WidgetSettings } from "./WidgetSettings";
@@ -163,6 +164,7 @@ export function Settings() {
       await writeFile(path, encoder.encode(content));
     } catch (e) {
       console.error("Export failed:", e);
+      notify.error("导出数据失败");
     }
   };
 
@@ -202,6 +204,7 @@ export function Settings() {
       setImportPreview({ dbData, localStorage: lsData, summary });
     } catch (e) {
       console.error("Import failed:", e);
+      notify.error("读取备份文件失败");
     }
   };
 
@@ -219,6 +222,7 @@ export function Settings() {
       window.location.reload();
     } catch (e) {
       console.error("Import failed:", e);
+      notify.error("导入数据失败");
     }
   };
 

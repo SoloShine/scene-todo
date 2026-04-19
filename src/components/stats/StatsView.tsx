@@ -5,6 +5,7 @@ import { SceneTimeline } from "./SceneTimeline";
 import { RealtimeOverview } from "./RealtimeOverview";
 import { Input } from "@/components/ui/input"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Skeleton } from "../ui/skeleton";
 import { BarChart3 } from "lucide-react"
 
 type RangePreset = "today" | "week" | "month" | "custom";
@@ -105,7 +106,20 @@ export function StatsView() {
       <RealtimeOverview status={status} totalToday={totalSecs} />
 
       {loading ? (
-        <p className="text-muted-foreground text-center py-8">加载中...</p>
+        <>
+          <div className="grid grid-cols-4 gap-4 mb-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-card rounded-xl border border-surface-border p-4">
+                <Skeleton className="h-3 w-16 mb-2" />
+                <Skeleton className="h-6 w-20" />
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-6">
+            <Skeleton className="h-64 rounded-xl" />
+            <Skeleton className="h-64 rounded-xl" />
+          </div>
+        </>
       ) : summary.length === 0 ? (
         <EmptyState icon={<BarChart3 />} title="暂无统计数据" description="开始使用应用后将生成统计信息" />
       ) : (

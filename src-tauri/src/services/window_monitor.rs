@@ -1,9 +1,12 @@
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+use std::time::Instant;
 use tauri::{AppHandle, Emitter, Manager};
 use windows::Win32::Foundation::HWND;
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
 
+use crate::models::App;
 use crate::services::app_repo;
 use crate::services::db::Database;
 use crate::services::process_matcher;
@@ -34,6 +37,8 @@ pub struct WindowMonitor {
     last_active_scene_id: Arc<Mutex<Option<i64>>>,
     tracked_hwnd: Arc<Mutex<isize>>,
     our_pid: u32,
+    app_cache: Arc<Mutex<HashMap<String, App>>>,
+    app_cache_updated: Arc<Mutex<Instant>>,
 }
 
 impl WindowMonitor {
@@ -51,6 +56,8 @@ impl WindowMonitor {
             last_active_scene_id: Arc::new(Mutex::new(None)),
             tracked_hwnd: Arc::new(Mutex::new(0)),
             our_pid: std::process::id(),
+            app_cache: Arc::new(Mutex::new(HashMap::new())),
+            app_cache_updated: Arc::new(Mutex::new(Instant::now() - Duration::from_secs(300))),
         }
     }
 
@@ -69,9 +76,14 @@ impl WindowMonitor {
         let last_active_scene_id = self.last_active_scene_id.clone();
         let tracked_hwnd = self.tracked_hwnd.clone();
         let our_pid = self.our_pid;
+        let app_cache = self.app_cache.clone();
+        let app_cache_updated_arc = self.app_cache_updated.clone();
 
         std::thread::spawn(move || {
             let mut last_tracked_pos: Option<(i32, i32)> = None;
+            let mut pending_hwnd: Option<isize> = None;
+            let mut pending_since: Option<Instant> = None;
+            let debounce = Duration::from_millis(500);
 
             loop {
                 {
@@ -83,6 +95,32 @@ impl WindowMonitor {
 
                 let foreground: HWND = unsafe { GetForegroundWindow() };
                 let current_hwnd = foreground.0 as isize;
+
+                // Debounce: wait for window to stay stable before acting
+                {
+                    let last = *last_hwnd.lock().unwrap();
+                    if current_hwnd != 0 && current_hwnd != last {
+                        if pending_hwnd != Some(current_hwnd) {
+                            pending_hwnd = Some(current_hwnd);
+                            pending_since = Some(Instant::now());
+                        }
+                        // Not yet stable — skip processing this cycle
+                        if pending_since.map(|t| t.elapsed()) < Some(debounce) {
+                            // Still check for window moves below
+                            pending_hwnd = None;
+                            pending_since = None;
+                            std::thread::sleep(Duration::from_millis(200));
+                            continue;
+                        }
+                        // Stable — proceed with the foreground change
+                        pending_hwnd = None;
+                        pending_since = None;
+                    } else {
+                        // Same window or zero — cancel any pending debounce
+                        pending_hwnd = None;
+                        pending_since = None;
+                    }
+                }
 
                 {
                     let mut last = last_hwnd.lock().unwrap();
@@ -126,10 +164,24 @@ impl WindowMonitor {
                         if let Some(process_name) =
                             process_matcher::get_process_name_from_hwnd(foreground)
                         {
-                            let db_conn = db.conn.lock().unwrap();
-                            let matched_app =
-                                app_repo::find_app_by_process_conn(&db_conn, &process_name);
-                            drop(db_conn);
+                            // Use cached app lookup instead of per-call DB query
+                            {
+                                let mut updated = app_cache_updated_arc.lock().unwrap();
+                                if updated.elapsed() > Duration::from_secs(30) {
+                                    let apps = app_repo::list_apps(&db).unwrap_or_default();
+                                    let mut cache = HashMap::new();
+                                    for app in apps {
+                                        if let Ok(names) = serde_json::from_str::<Vec<String>>(&app.process_names) {
+                                            for name in names {
+                                                cache.insert(name.to_lowercase(), app.clone());
+                                            }
+                                        }
+                                    }
+                                    *app_cache.lock().unwrap() = cache;
+                                    *updated = Instant::now();
+                                }
+                            }
+                            let matched_app = app_cache.lock().unwrap().get(&process_name.to_lowercase()).cloned();
 
                             // Resolve scene from matched app
                             let resolved_scene =
@@ -256,5 +308,20 @@ impl WindowMonitor {
 
     pub fn get_tracked_hwnd(&self) -> isize {
         *self.tracked_hwnd.lock().unwrap()
+    }
+
+    /// Force-refresh the app cache (call after app CRUD operations).
+    pub fn invalidate_app_cache(&self) {
+        let apps = app_repo::list_apps(&self.db).unwrap_or_default();
+        let mut cache = HashMap::new();
+        for app in apps {
+            if let Ok(names) = serde_json::from_str::<Vec<String>>(&app.process_names) {
+                for name in names {
+                    cache.insert(name.to_lowercase(), app.clone());
+                }
+            }
+        }
+        *self.app_cache.lock().unwrap() = cache;
+        *self.app_cache_updated.lock().unwrap() = Instant::now();
     }
 }
