@@ -2,16 +2,13 @@ import { useState, useEffect } from "react";
 import { useApps } from "../../hooks/useApps";
 import * as api from "../../lib/invoke";
 import { ThemeSettings } from "./ThemeSettings";
+import { GeneralSettings } from "./GeneralSettings";
+import { WidgetSettings } from "./WidgetSettings";
+import { AppManagement } from "./AppManagement";
 import { enable as enableAutostart, disable as disableAutostart, isEnabled as isAutostartEnabled } from "@tauri-apps/plugin-autostart";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { writeFile, readFile } from "@tauri-apps/plugin-fs";
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select"
 
 export function Settings() {
   const { apps, create, remove, refresh } = useApps();
@@ -71,11 +68,8 @@ export function Settings() {
 
   const handleAutoStart = async (enabled: boolean) => {
     try {
-      if (enabled) {
-        await enableAutostart();
-      } else {
-        await disableAutostart();
-      }
+      if (enabled) await enableAutostart();
+      else await disableAutostart();
       setAutoStart(enabled);
     } catch (e) {
       console.error("Failed to toggle autostart:", e);
@@ -234,200 +228,41 @@ export function Settings() {
 
       <ThemeSettings />
 
-      {/* General */}
-      <section className="mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-          <span className="w-1 h-4 rounded-full bg-theme" />
-          通用
-        </h3>
-        <Label className="flex items-center justify-between py-2">
-          <span className="text-sm text-foreground">开机自启</span>
-          <Checkbox checked={autoStart} onCheckedChange={(v) => handleAutoStart(!!v)} />
-        </Label>
-        <Label className="flex items-center justify-between py-2">
-          <span className="text-sm text-foreground">关闭按钮行为</span>
-          <Select value={closeAction} onValueChange={(v) => { const val = v as "prompt" | "hide" | "exit"; setCloseAction(val); saveSettings({ closeAction: val }); }}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="prompt">每次询问</SelectItem>
-              <SelectItem value="hide">隐藏到托盘</SelectItem>
-              <SelectItem value="exit">退出程序</SelectItem>
-            </SelectContent>
-          </Select>
-        </Label>
-        <Label className="flex items-center justify-between py-2">
-          <span className="text-sm text-foreground">数据保留天数</span>
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              min={1}
-              max={3650}
-              value={retentionDays}
-              onChange={(e) => {
-                const v = Math.max(1, parseInt(e.target.value) || 90);
-                setRetentionDays(v);
-                saveSettings({ retentionDays: v });
-              }}
-              className="w-20 text-right"
-            />
-            <span className="text-xs text-gray-400">天</span>
-          </div>
-        </Label>
-        <div className="flex items-center justify-between py-2">
-          <span className="text-sm text-foreground">数据备份</span>
-          <div className="flex items-center gap-2">
-            <button onClick={handleExport} className="text-xs text-gray-400 hover:text-blue-500">导出</button>
-            <span className="text-gray-300">|</span>
-            <button onClick={handleImport} className="text-xs text-gray-400 hover:text-blue-500">导入</button>
-          </div>
-        </div>
-      </section>
+      <GeneralSettings
+        autoStart={autoStart}
+        onAutoStart={handleAutoStart}
+        closeAction={closeAction}
+        onCloseActionChange={(v) => { setCloseAction(v); saveSettings({ closeAction: v }); }}
+        retentionDays={retentionDays}
+        onRetentionDaysChange={(v) => { setRetentionDays(v); saveSettings({ retentionDays: v }); }}
+        onExport={handleExport}
+        onImport={handleImport}
+      />
 
-      {/* Widget */}
-      <section className="mb-6">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
-          <span className="w-1 h-4 rounded-full bg-theme" />
-          Widget
-        </h3>
-        <Label className="flex items-center justify-between py-2">
-          <span className="text-sm text-foreground">无待办时显示浮窗</span>
-          <Checkbox
-            checked={showEmptyWidget}
-            onCheckedChange={(v) => { setShowEmptyWidget(!!v); saveSettings({ showEmptyWidget: !!v }); }}
-          />
-        </Label>
-        <label className="flex items-center justify-between py-2">
-          <span className="text-sm text-foreground">浮窗不透明度</span>
-          <div className="flex items-center gap-2">
-            <input type="range" min={0} max={100} value={widgetOpacity}
-              onChange={(e) => { const v = parseInt(e.target.value); setWidgetOpacity(v); saveSettings({ widgetOpacity: v }); }}
-              className="w-24"
-            />
-            <span className="text-xs text-muted-foreground w-8">{widgetOpacity}%</span>
-          </div>
-        </label>
-        <Label className="flex items-center justify-between py-2">
-          <span className="text-sm text-foreground">默认尺寸</span>
-          <Select value={widgetSize} onValueChange={(v) => { const val = v as "small" | "medium" | "large"; setWidgetSize(val); saveSettings({ widgetSize: val }); }}>
-            <SelectTrigger className="w-24">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="small">小</SelectItem>
-              <SelectItem value="medium">中</SelectItem>
-              <SelectItem value="large">大</SelectItem>
-            </SelectContent>
-          </Select>
-        </Label>
-      </section>
+      <WidgetSettings
+        widgetOpacity={widgetOpacity}
+        onOpacityChange={(v) => { setWidgetOpacity(v); saveSettings({ widgetOpacity: v }); }}
+        widgetSize={widgetSize}
+        onSizeChange={(v) => { setWidgetSize(v); saveSettings({ widgetSize: v }); }}
+        showEmptyWidget={showEmptyWidget}
+        onShowEmptyWidgetChange={(v) => { setShowEmptyWidget(v); saveSettings({ showEmptyWidget: v }); }}
+      />
 
-      {/* App Management with per-app offset */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-            <span className="w-1 h-4 rounded-full bg-theme" />
-            已关联软件
-          </h3>
-          {apps.length > 0 && (
-            <button
-              onClick={handleRefreshIcons}
-              disabled={refreshingIcons}
-              className="text-xs text-gray-400 hover:text-blue-500 disabled:opacity-50"
-            >
-              {refreshingIcons ? "刷新中..." : "自动获取图标"}
-            </button>
-          )}
-        </div>
-        <div className="space-y-1">
-          {apps.map((app) => {
-            const isExpanded = expandedApp === app.id;
-            const off = offsets[app.id] ?? { x: 8, y: 32 };
-            return (
-              <div key={app.id}>
-                <div className="flex items-center justify-between py-1.5 px-2 hover:bg-accent rounded">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setExpandedApp(isExpanded ? null : app.id)}
-                      className="text-gray-400 hover:text-muted-foreground text-xs w-4"
-                    >
-                      {isExpanded ? "\u25BE" : "\u25B8"}
-                    </button>
-                    <div className="flex items-center gap-2">
-                      {app.icon_path ? (
-                        <img src={app.icon_path} alt="" className="w-5 h-5 rounded" />
-                      ) : (
-                        <div className="w-5 h-5 rounded bg-muted flex items-center justify-center text-[10px] text-muted-foreground">
-                          {app.display_name?.[0] || app.name[0]}
-                        </div>
-                      )}
-                      <span className="text-sm text-foreground">{app.display_name || app.name}</span>
-                      <span className="text-xs text-gray-400">
-                        {(() => { try { return JSON.parse(app.process_names).join(", "); } catch { return app.process_names; } })()}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Label className="flex items-center gap-1 cursor-pointer" title={app.show_widget ? "显示浮窗" : "隐藏浮窗"}>
-                      <Checkbox
-                        checked={app.show_widget}
-                        onCheckedChange={(v) => handleToggleShowWidget(app.id, !!v)}
-                      />
-                      <span className="text-[10px] text-gray-400">浮窗</span>
-                    </Label>
-                    <button onClick={() => remove(app.id)} className="text-xs text-gray-400 hover:text-red-500">删除</button>
-                  </div>
-                </div>
-                {isExpanded && (
-                  <div className="ml-6 px-2 py-2 bg-background rounded text-xs space-y-2">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <span className="w-14">X 偏移</span>
-                      <input type="range" min={-200} max={500} value={off.x}
-                        onChange={(e) => handleOffsetChange(app.id, "x", parseInt(e.target.value))}
-                        className="flex-1"
-                      />
-                      <span className="w-8 text-gray-400">{off.x}px</span>
-                      <Input type="number" min={-200} max={500} value={off.x}
-                        onChange={(e) => { const v = parseInt(e.target.value) || 0; handleOffsetChange(app.id, "x", v); }}
-                        className="w-14 text-center text-xs"
-                      />
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <span className="w-14">Y 偏移</span>
-                      <input type="range" min={0} max={500} value={off.y}
-                        onChange={(e) => handleOffsetChange(app.id, "y", parseInt(e.target.value))}
-                        className="flex-1"
-                      />
-                      <span className="w-8 text-gray-400">{off.y}px</span>
-                      <Input type="number" min={0} max={500} value={off.y}
-                        onChange={(e) => { const v = parseInt(e.target.value) || 0; handleOffsetChange(app.id, "y", v); }}
-                        className="w-14 text-center text-xs"
-                      />
-                    </div>
-                    <button
-                      onClick={() => handleImportIcon(app.id)}
-                      className="text-xs text-gray-400 hover:text-blue-500"
-                    >
-                      手动导入图标...
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          <button
-            onClick={handleCapture}
-            disabled={capturing}
-            className="w-full py-2 mt-1 text-xs rounded border border-surface-border hover:border-blue-400 hover:text-blue-500 cursor-pointer transition-colors disabled:opacity-50"
-          >
-            {capturing ? "点击目标窗口以抓取..." : "+ 抓取窗口添加关联软件"}
-          </button>
-          {apps.length === 0 && <p className="text-xs text-gray-400 py-2">暂无关联软件</p>}
-        </div>
-      </section>
+      <AppManagement
+        apps={apps}
+        expandedApp={expandedApp}
+        onExpandApp={setExpandedApp}
+        offsets={offsets}
+        onOffsetChange={handleOffsetChange}
+        capturing={capturing}
+        onCapture={handleCapture}
+        refreshingIcons={refreshingIcons}
+        onRefreshIcons={handleRefreshIcons}
+        onRemoveApp={remove}
+        onToggleShowWidget={handleToggleShowWidget}
+        onImportIcon={handleImportIcon}
+      />
 
-      {/* Import confirmation */}
       <ConfirmDialog
         open={!!importPreview}
         title="导入数据"
