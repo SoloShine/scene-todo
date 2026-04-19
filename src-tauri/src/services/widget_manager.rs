@@ -177,15 +177,18 @@ impl WidgetManager {
             }
         }
     }
+
+    /// Destroy all active widgets. Called on shutdown.
+    pub fn destroy_all_widgets(&self, app_handle: &AppHandle) {
+        let mut active = self.active_widgets.lock().unwrap();
+        for (_, label) in active.drain() {
+            if let Some(win) = app_handle.get_webview_window(&label) {
+                let _ = win.close();
+            }
+        }
+    }
 }
 
 fn urlencoding(s: &str) -> String {
-    s.bytes()
-        .flat_map(|b| match b {
-            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
-                vec![b as char]
-            }
-            _ => format!("%{:02X}", b).chars().collect(),
-        })
-        .collect()
+    percent_encoding::percent_encode(s.as_bytes(), percent_encoding::NON_ALPHANUMERIC).to_string()
 }
