@@ -1,10 +1,13 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { List, CalendarDays, ChevronDown, ChevronRight } from "lucide-react";
+import { List, CalendarDays, ChevronDown, ChevronRight, ClipboardList, Search as SearchIcon } from "lucide-react";
 import { useTodos } from "../../hooks/useTodos";
 import { TodoForm } from "./TodoForm";
 import { TodoItem, parseDateLocal } from "./TodoItem";
 import { CalendarView } from "./CalendarView";
 import * as api from "../../lib/invoke";
+import { Input } from "@/components/ui/input"
+import { EmptyState } from "@/components/ui/empty-state"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import type { TodoFilters, TodoWithDetails } from "../../types";
 
 type StatusFilter = "" | "pending" | "overdue" | "completed";
@@ -79,6 +82,7 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
     await remove(id);
     if (selectedSceneId) refreshSceneTodos();
   };
+  const [deleteId, setDeleteId] = useState<number | null>(null);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchText, setSearchText] = useState("");
   const [filterPriority, setFilterPriority] = useState<string>("");
@@ -164,7 +168,7 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
           onStartEdit={() => setEditingId(todo.id)}
           onEndEdit={() => setEditingId(null)}
           onToggle={handleToggle}
-          onDelete={handleDelete}
+          onDelete={(id) => setDeleteId(id)}
           onAddSubTask={handleAddSubTask}
           onRefresh={() => { refresh(); if (selectedSceneId) refreshSceneTodos(); }}
         />
@@ -178,7 +182,7 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
                 onStartEdit={() => setEditingId(sub.id)}
                 onEndEdit={() => setEditingId(null)}
                 onToggle={handleToggle}
-                onDelete={handleDelete}
+                onDelete={(id) => setDeleteId(id)}
                 onAddSubTask={handleAddSubTask}
                 onRefresh={() => { refresh(); if (selectedSceneId) refreshSceneTodos(); }}
               />
@@ -198,11 +202,11 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
         <div className="flex items-center gap-2">
           <div className="flex-1 relative">
             <svg className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            <input
+            <Input
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               placeholder="搜索..."
-              className="w-full pl-7 pr-2 py-1 text-xs border border-surface-border bg-background rounded-md outline-none focus:border-theme-border"
+              className="w-full pl-7 pr-2 py-1 text-xs"
             />
           </div>
           <div className="flex items-center gap-0.5 bg-accent/50 rounded p-0.5">
@@ -258,9 +262,11 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
       <div className="flex-1 overflow-y-auto">
         {viewMode === "list" ? (
           filtered.length === 0 ? (
-            <div className="p-4 text-sm text-muted-foreground text-center">
-              {todos.length === 0 ? "没有待办事项" : "没有匹配的待办"}
-            </div>
+            todos.length === 0 ? (
+              <EmptyState icon={<ClipboardList />} title="还没有待办事项" description="在上方输入框按回车快速添加" />
+            ) : (
+              <EmptyState icon={<SearchIcon />} title="没有找到匹配的待办" description="试试换个关键词搜索" />
+            )
           ) : (
             GROUP_CONFIG.map(({ key, label, color }) => {
               const items = grouped.get(key);
@@ -295,7 +301,7 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
                   <button onClick={() => setSelectedDate(null)} className="text-xs text-muted-foreground hover:text-foreground">清除筛选</button>
                 </div>
                 {todosForDate.length === 0 ? (
-                  <div className="p-4 text-sm text-muted-foreground text-center">该日无待办</div>
+                  <EmptyState icon={<ClipboardList />} title="该日无待办" />
                 ) : (
                   todosForDate.map(renderTodo)
                 )}
@@ -304,6 +310,15 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
           </>
         )}
       </div>
+      <ConfirmDialog
+        open={deleteId !== null}
+        title="删除待办"
+        description="确定要删除此待办吗？此操作不可撤销。"
+        variant="danger"
+        confirmText="删除"
+        onConfirm={() => { if (deleteId) handleDelete(deleteId); setDeleteId(null); }}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }
