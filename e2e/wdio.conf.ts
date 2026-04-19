@@ -1,5 +1,6 @@
 import os from "os";
 import path from "path";
+import fs from "fs";
 import { spawn, spawnSync } from "child_process";
 import { fileURLToPath } from "url";
 
@@ -60,8 +61,12 @@ export const config = {
     timeout: 60000,
   },
 
-  // Build the Tauri debug binary before tests
+  // Build the Tauri debug binary before tests (skip if binary exists)
   onPrepare() {
+    if (fs.existsSync(application)) {
+      console.log("Debug binary exists, skipping build.");
+      return;
+    }
     console.log("Building Tauri debug binary...");
     const result = spawnSync(
       "npm",

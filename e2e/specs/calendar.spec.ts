@@ -71,8 +71,21 @@ describe("TC-02 Calendar View", () => {
     await calBtn.click();
     await browser.pause(500);
 
-    // Click today's date cell
+    // Navigate back to current month (TC-02.02 may have left it on next month)
+    const monthLabel = await $("[data-testid='cal-month-label']");
+    await monthLabel.waitForExist({ timeout: 3000 });
     const now = new Date();
+    const currentMonthLabel = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}`;
+    let monthText = await monthLabel.getText();
+    const prevBtn = await $("[data-testid='cal-prev-month']");
+    // Navigate back until we reach current month
+    while (monthText !== currentMonthLabel) {
+      await prevBtn.click();
+      await browser.pause(200);
+      monthText = await monthLabel.getText();
+    }
+
+    // Click today's date cell
     const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
     const todayCell = await $(`[data-testid='cal-date-${todayKey}']`);
     await todayCell.waitForExist({ timeout: 5000 });
@@ -90,7 +103,6 @@ describe("TC-02 Calendar View", () => {
     await browser.pause(300);
 
     // Calendar grid should be visible again without date filter
-    const monthLabel = await $("[data-testid='cal-month-label']");
     expect(await monthLabel.isExisting()).toBe(true);
 
     // Switch back to list view

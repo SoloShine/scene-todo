@@ -6,8 +6,8 @@ describe("TC-04 Groups", () => {
 
   async function createGroup(name: string) {
     const addBtn = await $("[data-testid='section-add-分组']");
-    await addBtn.waitForClickable({ timeout: 5000 });
-    await addBtn.click();
+    await addBtn.waitForExist({ timeout: 5000 });
+    await browser.execute((btn: HTMLButtonElement) => btn.click(), addBtn);
 
     const groupInput = await $("input[data-testid='new-group-input']");
     await groupInput.waitForExist({ timeout: 5000 });

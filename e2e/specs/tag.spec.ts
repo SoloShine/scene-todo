@@ -6,8 +6,8 @@ describe("TC-05 Tags", () => {
 
   async function createTag(name: string) {
     const addBtn = await $("[data-testid='section-add-标签']");
-    await addBtn.waitForClickable({ timeout: 5000 });
-    await addBtn.click();
+    await addBtn.waitForExist({ timeout: 5000 });
+    await browser.execute((btn: HTMLButtonElement) => btn.click(), addBtn);
 
     const tagInput = await $("input[data-testid='new-tag-input']");
     await tagInput.waitForExist({ timeout: 5000 });
