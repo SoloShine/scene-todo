@@ -91,10 +91,19 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
   };
 
   const handleDelete = async (id: number) => {
-    await remove(id);
-    if (selectedSceneId) refreshSceneTodos();
+    setDeletingIds((prev) => new Set(prev).add(id))
+    setTimeout(async () => {
+      await remove(id)
+      if (selectedSceneId) refreshSceneTodos()
+      setDeletingIds((prev) => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    }, 150)
   };
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deletingIds, setDeletingIds] = useState<Set<number>>(new Set())
   const [editingId, setEditingId] = useState<number | null>(null);
   const [searchText, setSearchText] = useState("");
   const [filterPriority, setFilterPriority] = useState<string>("");
@@ -177,6 +186,7 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
         <TodoItem
           todo={todo}
           editing={editingId === todo.id}
+          animatingOut={deletingIds.has(todo.id)}
           onStartEdit={() => setEditingId(todo.id)}
           onEndEdit={() => setEditingId(null)}
           onToggle={handleToggle}
@@ -191,6 +201,7 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
                 key={sub.id}
                 todo={sub}
                 editing={editingId === sub.id}
+                animatingOut={deletingIds.has(sub.id)}
                 onStartEdit={() => setEditingId(sub.id)}
                 onEndEdit={() => setEditingId(null)}
                 onToggle={handleToggle}

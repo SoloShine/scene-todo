@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 interface TodoItemProps {
   todo: TodoWithDetails | Todo;
   editing: boolean;
+  animatingOut?: boolean;
   onStartEdit: () => void;
   onEndEdit: () => void;
   onToggle: (id: number, status: "pending" | "completed") => void;
@@ -73,7 +74,7 @@ function formatTime(dateStr: string | null): string | null {
   return `${h}:${m}`;
 }
 
-export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDelete, onAddSubTask, onRefresh }: TodoItemProps) {
+export function TodoItem({ todo, editing, animatingOut = false, onStartEdit, onEndEdit, onToggle, onDelete, onAddSubTask, onRefresh }: TodoItemProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [showSubInput, setShowSubInput] = useState(false);
   const [showBinding, setShowBinding] = useState(false);
@@ -86,7 +87,10 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
   const menuRef = useRef<HTMLDivElement>(null);
   const editRef = useRef<HTMLDivElement>(null);
   const [menuUp, setMenuUp] = useState(false);
+  const [mounted, setMounted] = useState(false)
   const isCompleted = todo.status === "completed";
+
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     if (!showMenu) return;
@@ -217,7 +221,7 @@ export function TodoItem({ todo, editing, onStartEdit, onEndEdit, onToggle, onDe
 
   return (
     <>
-      <div className={`group flex items-start gap-2.5 px-3 py-2 hover:bg-accent/50 rounded-lg transition-colors relative ${isOverdue ? "bg-red-50/30" : ""}`}>
+      <div className={`group flex items-start gap-2.5 px-3 py-2 hover:bg-accent/50 rounded-lg transition-colors relative ${isOverdue ? "bg-red-50/30" : ""} ${mounted ? "" : "animate-in"} ${animatingOut ? "animate-out" : ""}`}>
         <button
           onClick={() => onToggle(todo.id, todo.status as "pending" | "completed")}
           className={`mt-0.5 w-5 h-5 rounded-md border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
