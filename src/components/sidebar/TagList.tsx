@@ -31,7 +31,7 @@ export function TagList({ selectedTagIds, onToggleTag, collapsed, onToggleCollap
   return (
     <div>
       <SectionHeader title="标签" count={tags.length} collapsed={collapsed} onToggle={onToggleCollapse} onAdd={() => setShowInput(true)} />
-      {!collapsed && (
+      <div className={`section-collapse ${collapsed ? "section-collapsed" : "section-expanded"}`}>
         <div className="px-2 pb-1">
           {showInput && (
             <Input
@@ -79,7 +79,7 @@ export function TagList({ selectedTagIds, onToggleTag, collapsed, onToggleCollap
             ))}
           </div>
         </div>
-      )}
+      </div>
       <ConfirmDialog
         open={deleteId !== null}
         title="删除标签"

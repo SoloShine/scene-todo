@@ -28,7 +28,7 @@ export function SceneList({ selectedSceneId, onSelectScene, onEditScene, collaps
   return (
     <div>
       <SectionHeader title="场景" count={scenes.length} collapsed={collapsed} onToggle={onToggleCollapse} onAdd={() => setShowInput(true)} />
-      {!collapsed && (
+      <div className={`section-collapse ${collapsed ? "section-collapsed" : "section-expanded"}`}>
         <div className="px-2 pb-1">
           {showInput && (
             <Input
@@ -66,7 +66,7 @@ export function SceneList({ selectedSceneId, onSelectScene, onEditScene, collaps
             ))}
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

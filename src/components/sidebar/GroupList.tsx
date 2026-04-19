@@ -31,7 +31,7 @@ export function GroupList({ selectedGroupId, onSelectGroup, collapsed, onToggleC
   return (
     <div>
       <SectionHeader title="分组" count={groups.length} collapsed={collapsed} onToggle={onToggleCollapse} onAdd={() => setShowInput(true)} />
-      {!collapsed && (
+      <div className={`section-collapse ${collapsed ? "section-collapsed" : "section-expanded"}`}>
         <div className="px-1 pb-1">
           {showInput && (
             <Input
@@ -78,7 +78,7 @@ export function GroupList({ selectedGroupId, onSelectGroup, collapsed, onToggleC
             </div>
           ))}
         </div>
-      )}
+      </div>
       <ConfirmDialog
         open={deleteId !== null}
         title="删除分组"
