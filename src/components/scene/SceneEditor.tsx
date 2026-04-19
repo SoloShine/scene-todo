@@ -136,7 +136,7 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
             <DialogTitle>{existingScene ? "编辑场景" : "新建场景"}</DialogTitle>
           </DialogHeader>
 
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="场景名称" className="mb-3" />
+          <Input data-testid="scene-name-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="场景名称" className="mb-3" />
 
           {/* Icon */}
           <div className="mb-3">
@@ -204,7 +204,7 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
                         )}
                         <span>{app?.display_name || app?.name || `App #${sa.app_id}`}</span>
                       </div>
-                      <button onClick={() => handleRemoveApp(sa.app_id)} className="text-muted-foreground hover:text-red-500">&times;</button>
+                      <button data-testid={`scene-remove-app-${sa.app_id}`} onClick={() => handleRemoveApp(sa.app_id)} className="text-muted-foreground hover:text-red-500">&times;</button>
                     </div>
                   );
                 })}
@@ -238,10 +238,10 @@ export function SceneEditor({ sceneId, onClose }: SceneEditorProps) {
 
           <DialogFooter>
             {existingScene && (
-              <Button variant="destructive" size="sm" onClick={() => setConfirmDelete(true)} className="mr-auto">删除场景</Button>
+              <Button data-testid="scene-delete-btn" variant="destructive" size="sm" onClick={() => setConfirmDelete(true)} className="mr-auto">删除场景</Button>
             )}
-            <Button variant="outline" size="sm" onClick={onClose}>取消</Button>
-            <Button size="sm" onClick={handleSave}>保存</Button>
+            <Button data-testid="scene-cancel-btn" variant="outline" size="sm" onClick={onClose}>取消</Button>
+            <Button data-testid="scene-save-btn" size="sm" onClick={handleSave}>保存</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
