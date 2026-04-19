@@ -6,15 +6,19 @@ describe("Todo CRUD", () => {
     return input;
   }
 
-  // Helper: create a todo and return its title element
+  // Helper: create a todo and return its title element (the last/newest one)
   async function createTodo(title: string) {
     const input = await waitForApp();
+    const beforeCount = (await $$(`[data-testid^="todo-title-"]`)).length;
     await input.setValue(title);
     await browser.keys("Enter");
-    // Wait for the new todo to appear
-    const todoTitle = await $(`[data-testid^="todo-title-"]`);
-    await todoTitle.waitForExist({ timeout: 5000 });
-    return todoTitle;
+    // Wait for a new todo to appear (count increases)
+    await browser.waitUntil(
+      async () => (await $$(`[data-testid^="todo-title-"]`)).length > beforeCount,
+      { timeout: 5000, timeoutMsg: "New todo did not appear" }
+    );
+    const titles = await $$(`[data-testid^="todo-title-"]`);
+    return titles[titles.length - 1];
   }
 
   it("should create a todo", async () => {
