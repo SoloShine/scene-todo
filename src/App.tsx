@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Sidebar } from "./components/sidebar/Sidebar";
 import { TodoList } from "./components/todo/TodoList";
 import { Settings } from "./components/settings/Settings";
@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import type { TodoFilters } from "./types";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import type { TodoListHandle } from "./components/todo/TodoList";
 
 type CloseAction = "prompt" | "hide" | "exit";
 
@@ -101,6 +103,25 @@ export default function App() {
     }
   };
 
+  const todoListRef = useRef<TodoListHandle>(null)
+
+  const shortcutActions = useCallback(() => ({
+    newTodo: () => todoListRef.current?.focusSearch(),
+    search: () => todoListRef.current?.focusSearch(),
+    viewAll: () => handleSmartView("all"),
+    viewToday: () => handleSmartView("today"),
+    settings: () => { setShowSettings((s) => !s); setShowStats(false); setShowAbout(false); },
+    escape: () => {
+      setShowSettings(false)
+      setShowStats(false)
+      setShowAbout(false)
+      setShowCloseDialog(false)
+      setEditingSceneId(null)
+    },
+  }), [handleSmartView])
+
+  useKeyboardShortcuts(shortcutActions())
+
   const handleSelectGroup = (groupId: number | null) => {
     setShowSettings(false);
     setShowStats(false);
@@ -160,7 +181,7 @@ export default function App() {
         ) : showStats ? (
           <StatsView />
         ) : (
-          <TodoList filters={filters} selectedSceneId={selectedSceneId} />
+          <TodoList ref={todoListRef} filters={filters} selectedSceneId={selectedSceneId} />
         )}
       </main>
       {editingSceneId !== null && (
