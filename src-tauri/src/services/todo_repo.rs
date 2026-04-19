@@ -259,6 +259,49 @@ pub fn list_todos_with_details(db: &Database, filters: TodoFilters) -> Result<Ve
     }).collect())
 }
 
+/// Batch-fetch TodoWithDetails for a list of todo IDs.
+/// Uses the same batch query strategy as list_todos_with_details.
+pub fn get_todos_with_details_by_ids(db: &Database, ids: &[i64]) -> Result<Vec<TodoWithDetails>, String> {
+    if ids.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let id_list = ids.iter().map(|id| id.to_string()).collect::<Vec<_>>().join(",");
+
+    let todos: Vec<Todo> = {
+        let conn = db.conn.lock().map_err(|e| e.to_string())?;
+        let sql = format!(
+            "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at \
+             FROM todos WHERE id IN ({}) ORDER BY sort_order",
+            id_list
+        );
+        let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare: {}", e))?;
+        let rows: Vec<Todo> = stmt.query_map([], row_to_todo)
+            .map_err(|e| format!("Query: {}", e))?
+            .filter_map(|r| r.ok()).collect();
+        drop(stmt);
+        drop(conn);
+        rows
+    };
+
+    let conn = db.conn.lock().map_err(|e| e.to_string())?;
+    let tags = batch_query_tags(&conn, &id_list)?;
+    let subtasks = batch_query_subtasks(&conn, &id_list)?;
+    let scenes = batch_query_scene_bindings(&conn, &id_list, &todos)?;
+
+    Ok(todos.into_iter().map(|todo| {
+        let todo_tags = tags.get(&todo.id).cloned().unwrap_or_default();
+        let todo_subtasks = subtasks.get(&todo.id).cloned().unwrap_or_default();
+        let todo_scenes = scenes.get(&todo.id).cloned().unwrap_or_default();
+        TodoWithDetails {
+            todo,
+            tags: todo_tags,
+            sub_tasks: todo_subtasks,
+            bound_scene_ids: todo_scenes,
+        }
+    }).collect())
+}
+
 pub fn add_tag_to_todo(db: &Database, todo_id: i64, tag_id: i64) -> Result<(), String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     conn.execute("INSERT OR IGNORE INTO todo_tags (todo_id, tag_id) VALUES (?1, ?2)", params![todo_id, tag_id])
