@@ -1,7 +1,8 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, useImperativeHandle, forwardRef } from "react";
 import { List, CalendarDays, ChevronDown, ChevronRight, ClipboardList, Search as SearchIcon } from "lucide-react";
 import { useTodos } from "../../hooks/useTodos";
 import { TodoForm } from "./TodoForm";
+import type { TodoFormHandle } from "./TodoForm";
 import { TodoItem, parseDateLocal } from "./TodoItem";
 import { CalendarView } from "./CalendarView";
 import * as api from "../../lib/invoke";
@@ -16,6 +17,10 @@ type TodoGroup = "overdue" | "today" | "upcoming" | "undated" | "completed";
 interface TodoListProps {
   filters: TodoFilters;
   selectedSceneId?: number | null;
+}
+
+export interface TodoListHandle {
+  focusSearch: () => void
 }
 
 const GROUP_CONFIG: { key: TodoGroup; label: string; color: string }[] = [
@@ -56,9 +61,16 @@ function localTodayKey(): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-export function TodoList({ filters, selectedSceneId }: TodoListProps) {
+export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
+  function TodoList({ filters, selectedSceneId }, ref) {
   const { todos: filteredTodos, loading, create, toggleStatus, remove, refresh } = useTodos(filters);
   const [sceneTodos, setSceneTodos] = useState<TodoWithDetails[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const todoFormRef = useRef<TodoFormHandle>(null)
+
+  useImperativeHandle(ref, () => ({
+    focusSearch: () => searchInputRef.current?.focus(),
+  }))
 
   const refreshSceneTodos = useCallback(async () => {
     if (selectedSceneId) {
@@ -195,7 +207,7 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
 
   return (
     <div className="flex flex-col h-full">
-      <TodoForm onSubmit={handleCreate} />
+      <TodoForm ref={todoFormRef} onSubmit={handleCreate} />
 
       {/* Filter bar */}
       <div className="px-3 py-1.5 border-b border-surface-divider bg-background/50 space-y-1.5">
@@ -203,6 +215,7 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
           <div className="flex-1 relative">
             <svg className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <Input
+              ref={searchInputRef}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               placeholder="搜索..."
@@ -321,4 +334,5 @@ export function TodoList({ filters, selectedSceneId }: TodoListProps) {
       />
     </div>
   );
-}
+  }
+)
