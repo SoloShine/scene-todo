@@ -13,6 +13,7 @@ export function SmartViews({ onSmartView }: SmartViewsProps) {
       {views.map((v) => (
         <button
           key={v.key}
+          data-testid={`smart-view-${v.key}`}
           onClick={() => onSmartView(v.key)}
           className="px-2 py-0.5 text-xs text-muted-foreground rounded-full hover:bg-accent hover:text-theme transition-colors"
         >

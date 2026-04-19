@@ -58,6 +58,7 @@ export function GroupList({ selectedGroupId, onSelectGroup, collapsed, onToggleC
           ) : (
             <>
               <button
+                data-testid="group-all"
                 onClick={() => onSelectGroup(null)}
                 className={`w-full flex items-center gap-2 px-2 py-1 text-xs rounded transition-colors ${
                   selectedGroupId === null ? "bg-theme-bg text-theme" : "hover:bg-accent text-muted-foreground"
@@ -84,6 +85,7 @@ export function GroupList({ selectedGroupId, onSelectGroup, collapsed, onToggleC
                   <span className="w-3 h-3 rounded-full flex-shrink-0 ring-1 ring-white/20" style={{ backgroundColor: group.color }} />
                   <span className="flex-1 truncate">{group.name}</span>
                   <button
+                    data-testid={`group-delete-${group.id}`}
                     onClick={(e) => { e.stopPropagation(); setDeleteId(group.id); }}
                     className="opacity-0 group-hover:opacity-100 text-muted-foreground/70 hover:text-destructive text-[10px]"
                   >

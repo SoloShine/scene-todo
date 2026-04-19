@@ -273,6 +273,7 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
           </div>
           <div className="flex items-center gap-0.5 bg-accent/50 rounded p-0.5">
             <button
+              data-testid="view-toggle-list"
               onClick={() => switchView("list")}
               className={`p-1 rounded transition-colors ${viewMode === "list" ? "bg-theme text-theme-text font-medium shadow-sm rounded-md" : "text-muted-foreground hover:bg-accent rounded-md"}`}
               title="列表视图"
@@ -280,6 +281,7 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
               <List size={14} />
             </button>
             <button
+              data-testid="view-toggle-calendar"
               onClick={() => switchView("calendar")}
               className={`p-1 rounded transition-colors ${viewMode === "calendar" ? "bg-theme text-theme-text font-medium shadow-sm rounded-md" : "text-muted-foreground hover:bg-accent rounded-md"}`}
               title="日历视图"
@@ -310,6 +312,7 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
             {(["", "high", "medium", "low"] as const).map((p) => (
               <button
                 key={p}
+                data-testid={`priority-filter-${p || "all"}`}
                 onClick={() => setFilterPriority(p)}
                 className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
                   filterPriority === p ? "bg-theme text-theme-text" : "text-muted-foreground hover:bg-accent"
@@ -327,9 +330,9 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
         {viewMode === "list" ? (
           filtered.length === 0 ? (
             todos.length === 0 ? (
-              <EmptyState icon={<ClipboardList />} title="还没有待办事项" description="在上方输入框按回车快速添加" />
+              <EmptyState data-testid="empty-state" icon={<ClipboardList />} title="还没有待办事项" description="在上方输入框按回车快速添加" />
             ) : (
-              <EmptyState icon={<SearchIcon />} title="没有找到匹配的待办" description="试试换个关键词搜索" />
+              <EmptyState data-testid="empty-state" icon={<SearchIcon />} title="没有找到匹配的待办" description="试试换个关键词搜索" />
             )
           ) : (
             GROUP_CONFIG.map(({ key, label, color }) => {
@@ -362,7 +365,7 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
               <div className="border-t border-surface-border">
                 <div className="flex items-center justify-between px-3 py-1.5 bg-background">
                   <span className="text-xs font-medium text-muted-foreground">{selectedDate} 的待办</span>
-                  <button onClick={() => setSelectedDate(null)} className="text-xs text-muted-foreground hover:text-foreground">清除筛选</button>
+                  <button data-testid="cal-clear-filter" onClick={() => setSelectedDate(null)} className="text-xs text-muted-foreground hover:text-foreground">清除筛选</button>
                 </div>
                 {todosForDate.length === 0 ? (
                   <EmptyState icon={<ClipboardList />} title="该日无待办" />

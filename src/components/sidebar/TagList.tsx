@@ -36,6 +36,7 @@ export function TagList({ selectedTagIds, onToggleTag, collapsed, onToggleCollap
         <div className="px-2 pb-1">
           {showInput && (
             <Input
+              data-testid="new-tag-input"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
@@ -64,6 +65,7 @@ export function TagList({ selectedTagIds, onToggleTag, collapsed, onToggleCollap
                 {tags.map((tag) => (
                   <span
                     key={tag.id}
+                    data-testid={`tag-item-${tag.id}`}
                     className={`group inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[11px] rounded-full cursor-pointer transition-colors ${
                       selectedTagIds.includes(tag.id)
                         ? "ring-1 ring-offset-0.5"

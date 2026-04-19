@@ -76,11 +76,11 @@ export function CalendarView({ todos, onDateSelect, selectedDate }: CalendarView
     <div className="select-none">
       {/* Month navigation */}
       <div className="flex items-center justify-between px-3 py-2">
-        <button onClick={prevMonth} className="p-1 rounded hover:bg-accent text-muted-foreground">
+        <button data-testid="cal-prev-month" onClick={prevMonth} className="p-1 rounded hover:bg-accent text-muted-foreground">
           <ChevronLeft size={16} />
         </button>
-        <span className="text-sm font-medium text-foreground">{monthLabel}</span>
-        <button onClick={nextMonth} className="p-1 rounded hover:bg-accent text-muted-foreground">
+        <span data-testid="cal-month-label" className="text-sm font-medium text-foreground">{monthLabel}</span>
+        <button data-testid="cal-next-month" onClick={nextMonth} className="p-1 rounded hover:bg-accent text-muted-foreground">
           <ChevronRight size={16} />
         </button>
       </div>
@@ -107,6 +107,7 @@ export function CalendarView({ todos, onDateSelect, selectedDate }: CalendarView
           return (
             <div
               key={i}
+              data-testid={`cal-date-${dateKey}`}
               onClick={() => onDateSelect(isSelected ? null : dateKey)}
               className={`min-h-[72px] p-1 cursor-pointer transition-colors ${
                 isSelected

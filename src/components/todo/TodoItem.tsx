@@ -182,6 +182,7 @@ export function TodoItem({ todo, editing, animatingOut = false, onStartEdit, onE
           {(["high", "medium", "low"] as const).map((p) => (
             <button
               key={p}
+              data-testid={`todo-priority-${p}-${todo.id}`}
               onClick={() => setEditPriority(p)}
               className={`px-2 py-0.5 rounded text-xs ${editPriority === p ? priorityConfig[p].bg + " " + priorityConfig[p].color + " font-medium" : "text-muted-foreground hover:bg-accent"}`}
             >
@@ -191,6 +192,7 @@ export function TodoItem({ todo, editing, animatingOut = false, onStartEdit, onE
           <div className="flex items-center gap-1">
             <input
               type="datetime-local"
+              data-testid={`todo-due-date-${todo.id}`}
               value={editDueDate}
               onChange={(e) => setEditDueDate(e.target.value)}
               className="text-xs text-muted-foreground outline-none bg-transparent border-b border-surface-border px-1"
@@ -274,6 +276,7 @@ export function TodoItem({ todo, editing, animatingOut = false, onStartEdit, onE
 
         <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
           <button
+            data-testid={`todo-add-subtask-${todo.id}`}
             onClick={() => { setShowSubInput(!showSubInput); setSubTitle(""); }}
             className="w-7 h-7 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             title="添加子任务"
@@ -332,6 +335,7 @@ export function TodoItem({ todo, editing, animatingOut = false, onStartEdit, onE
       {showSubInput && (
         <div className="flex items-center gap-2 pl-10 pr-3 py-1.5 bg-background/50 border-b border-surface-divider">
           <Input
+            data-testid={`todo-subtask-input-${todo.id}`}
             value={subTitle}
             onChange={(e) => setSubTitle(e.target.value)}
             onKeyDown={handleAddSub}
