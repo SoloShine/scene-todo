@@ -36,6 +36,7 @@ export function GroupList({ selectedGroupId, onSelectGroup, collapsed, onToggleC
         <div className="px-1 pb-1">
           {showInput && (
             <Input
+              data-testid="new-group-input"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
@@ -74,6 +75,7 @@ export function GroupList({ selectedGroupId, onSelectGroup, collapsed, onToggleC
               {groups.map((group) => (
                 <div
                   key={group.id}
+                  data-testid={`group-item-${group.id}`}
                   className={`group flex items-center gap-2 px-2 py-1 text-xs rounded cursor-pointer transition-colors ${
                     selectedGroupId === group.id ? "bg-theme-bg text-theme" : "hover:bg-accent text-muted-foreground"
                   }`}

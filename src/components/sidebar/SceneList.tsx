@@ -33,6 +33,7 @@ export function SceneList({ selectedSceneId, onSelectScene, onEditScene, collaps
         <div className="px-2 pb-1">
           {showInput && (
             <Input
+              data-testid="new-scene-input"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleCreate(); }}
@@ -61,6 +62,7 @@ export function SceneList({ selectedSceneId, onSelectScene, onEditScene, collaps
                 {scenes.map((scene) => (
                   <button
                     key={scene.id}
+                    data-testid={`scene-item-${scene.id}`}
                     onClick={() => onSelectScene(scene.id)}
                     onContextMenu={(e) => { e.preventDefault(); onEditScene(scene.id); }}
                     className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full transition-colors ${

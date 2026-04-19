@@ -92,6 +92,7 @@ export function Sidebar({
       <div ref={menuRef} className="relative">
         <Separator />
         <button
+          data-testid="sidebar-menu-toggle"
           onClick={() => setMenuOpen((v) => !v)}
           className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:bg-accent transition-colors"
         >
@@ -102,18 +103,21 @@ export function Sidebar({
         {menuOpen && (
           <div className="absolute bottom-full left-2 right-2 mb-1 bg-card rounded-lg border border-surface-border shadow-lg py-1 z-50">
             <button
+              data-testid="sidebar-menu-stats"
               onClick={() => { setMenuOpen(false); onOpenStats(); }}
               className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
             >
               <span>📊</span>统计
             </button>
             <button
+              data-testid="sidebar-menu-settings"
               onClick={() => { setMenuOpen(false); onOpenSettings(); }}
               className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
             >
               <span>⚙</span>设置
             </button>
             <button
+              data-testid="sidebar-menu-about"
               onClick={() => { setMenuOpen(false); onOpenAbout(); }}
               className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-foreground hover:bg-accent transition-colors"
             >
