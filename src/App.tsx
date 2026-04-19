@@ -7,6 +7,13 @@ import { StatsView } from "./components/stats/StatsView";
 import { About } from "./components/settings/About";
 import { startWindowMonitor, setWidgetDefaultSize, cleanupOldSessions, saveWidgetOffset, exitApp, hideMainWindow } from "./lib/invoke";
 import { listen } from "@tauri-apps/api/event";
+import { Toaster } from "@/components/ui/sonner"
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import type { TodoFilters } from "./types";
 
 type CloseAction = "prompt" | "hide" | "exit";
@@ -22,6 +29,8 @@ export default function App() {
   const [selectedSceneId, setSelectedSceneId] = useState<number | null>(null);
   const [editingSceneId, setEditingSceneId] = useState<number | null>(null);
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  const [closeAction, setCloseAction] = useState<"hide" | "exit">("hide");
+  const [rememberClose, setRememberClose] = useState(false);
 
   useEffect(() => {
     startWindowMonitor().catch((e) =>
@@ -158,56 +167,43 @@ export default function App() {
         <SceneEditor sceneId={editingSceneId} onClose={() => setEditingSceneId(null)} />
       )}
 
-      {/* Close confirmation dialog */}
-      {showCloseDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-card rounded-xl border border-surface-border p-5 w-72 shadow-xl">
-            <h3 className="text-sm font-semibold text-foreground mb-3">关闭确认</h3>
-            <p className="text-xs text-muted-foreground mb-4">希望如何处理？</p>
-            <div className="space-y-2 mb-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="closeAction" value="hide" defaultChecked className="accent-[var(--accent-base)]" />
-                <span className="text-xs text-foreground">隐藏到系统托盘</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="radio" name="closeAction" value="exit" className="accent-[var(--accent-base)]" />
-                <span className="text-xs text-foreground">退出程序</span>
-              </label>
-            </div>
-            <label className="flex items-center gap-2 mb-4 cursor-pointer">
-              <input type="checkbox" id="rememberClose" className="accent-[var(--accent-base)]" />
-              <span className="text-[11px] text-muted-foreground">记住选择，不再询问</span>
-            </label>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setShowCloseDialog(false)}
-                className="px-3 py-1.5 text-xs rounded-lg border border-surface-border hover:bg-accent"
-              >
-                取消
-              </button>
-              <button
-                onClick={() => {
-                  const form = document.querySelector('input[name="closeAction"]:checked') as HTMLInputElement;
-                  const action = form?.value ?? "hide";
-                  const remember = (document.getElementById("rememberClose") as HTMLInputElement)?.checked;
-                  if (remember) {
-                    const saved = JSON.parse(localStorage.getItem("scene-todo-settings") || "{}");
-                    saved.closeAction = action;
-                    localStorage.setItem("scene-todo-settings", JSON.stringify(saved));
-                    window.dispatchEvent(new Event("storage"));
-                  }
-                  setShowCloseDialog(false);
-                  if (action === "exit") exitApp();
-                  else hideMainWindow();
-                }}
-                className="px-3 py-1.5 text-xs rounded-lg bg-theme text-theme-text hover:opacity-90"
-              >
-                确认
-              </button>
-            </div>
+      <Dialog open={showCloseDialog} onOpenChange={(v) => { if (!v) setShowCloseDialog(false); }}>
+        <DialogContent className="w-72">
+          <DialogHeader>
+            <DialogTitle className="text-sm">关闭确认</DialogTitle>
+          </DialogHeader>
+          <p className="text-xs text-muted-foreground">希望如何处理？</p>
+          <div className="space-y-2 my-2">
+            <Label className="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="closeAction" value="hide" checked={closeAction === "hide"} onChange={() => setCloseAction("hide")} className="accent-[var(--accent-base)]" />
+              <span className="text-xs text-foreground">隐藏到系统托盘</span>
+            </Label>
+            <Label className="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="closeAction" value="exit" checked={closeAction === "exit"} onChange={() => setCloseAction("exit")} className="accent-[var(--accent-base)]" />
+              <span className="text-xs text-foreground">退出程序</span>
+            </Label>
           </div>
-        </div>
-      )}
+          <Label className="flex items-center gap-2 cursor-pointer">
+            <Checkbox id="rememberClose" checked={rememberClose} onCheckedChange={(v) => setRememberClose(!!v)} />
+            <span className="text-[11px] text-muted-foreground">记住选择，不再询问</span>
+          </Label>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setShowCloseDialog(false)}>取消</Button>
+            <Button size="sm" onClick={() => {
+              if (rememberClose) {
+                const saved = JSON.parse(localStorage.getItem("scene-todo-settings") || "{}");
+                saved.closeAction = closeAction;
+                localStorage.setItem("scene-todo-settings", JSON.stringify(saved));
+                window.dispatchEvent(new Event("storage"));
+              }
+              setShowCloseDialog(false);
+              if (closeAction === "exit") exitApp();
+              else hideMainWindow();
+            }}>确认</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Toaster position="bottom-right" richColors closeButton />
     </div>
   );
 }
