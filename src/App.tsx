@@ -6,6 +6,7 @@ import { SceneEditor } from "./components/scene/SceneEditor";
 import { StatsView } from "./components/stats/StatsView";
 import { About } from "./components/settings/About";
 import { startWindowMonitor, setWidgetDefaultSize, cleanupOldSessions, saveWidgetOffset, exitApp, hideMainWindow } from "./lib/invoke";
+import { notify } from "./lib/toast";
 import { listen } from "@tauri-apps/api/event";
 import { Toaster } from "@/components/ui/sonner"
 import {
@@ -33,9 +34,10 @@ export default function App() {
   const [rememberClose, setRememberClose] = useState(false);
 
   useEffect(() => {
-    startWindowMonitor().catch((e) =>
-      console.error("Failed to start window monitor:", e)
-    );
+    startWindowMonitor().catch((e) => {
+      console.error("Failed to start window monitor:", e);
+      notify.error("窗口监控启动失败");
+    });
     try {
       const saved = localStorage.getItem("scene-todo-settings");
       if (saved) {
@@ -52,7 +54,9 @@ export default function App() {
         // Cleanup old time sessions based on retention setting
         const retentionDays = parsed.retentionDays ?? 90;
         if (typeof retentionDays === "number" && retentionDays > 0) {
-          cleanupOldSessions(retentionDays).catch(() => {});
+          cleanupOldSessions(retentionDays).catch(() => {
+            notify.error("清理历史数据失败");
+          });
         }
       }
 
