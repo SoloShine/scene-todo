@@ -53,9 +53,9 @@ export function SceneList({ selectedSceneId, onSelectScene, onEditScene, collaps
             <>
               {scenes.length === 0 && !showInput && (
                 <EmptyState
+                  compact
                   icon={<Layers />}
                   title="还没有场景"
-                  description="点击上方 + 创建场景来关联应用"
                 />
               )}
               <div className="flex flex-wrap gap-1">

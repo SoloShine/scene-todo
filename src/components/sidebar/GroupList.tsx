@@ -68,9 +68,9 @@ export function GroupList({ selectedGroupId, onSelectGroup, collapsed, onToggleC
               </button>
               {groups.length === 0 && !showInput && (
                 <EmptyState
+                  compact
                   icon={<FolderOpen />}
                   title="还没有分组"
-                  description="点击上方 + 创建分组来整理待办"
                 />
               )}
               {groups.map((group) => (

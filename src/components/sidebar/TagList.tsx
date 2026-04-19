@@ -56,9 +56,9 @@ export function TagList({ selectedTagIds, onToggleTag, collapsed, onToggleCollap
             <>
               {tags.length === 0 && !showInput && (
                 <EmptyState
+                  compact
                   icon={<Tag />}
                   title="还没有标签"
-                  description="点击上方 + 创建标签来标记待办"
                 />
               )}
               <div className="flex flex-wrap gap-1">
