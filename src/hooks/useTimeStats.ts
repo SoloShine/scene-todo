@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { SceneTimeSummary, TrackingStatus } from "../types";
 import * as api from "../lib/invoke";
 import { notify } from "../lib/toast";
+import { usePageVisibility } from "./usePageVisibility";
 
 export function useTimeStats(rangeStart: string, rangeEnd: string) {
   const [summary, setSummary] = useState<SceneTimeSummary[]>([]);
@@ -32,6 +33,7 @@ export function useTimeStats(rangeStart: string, rangeEnd: string) {
 
 export function useTrackingStatus() {
   const [status, setStatus] = useState<TrackingStatus | null>(null);
+  const visible = usePageVisibility();
 
   const refresh = useCallback(async () => {
     try {
@@ -40,7 +42,12 @@ export function useTrackingStatus() {
     } catch {}
   }, []);
 
-  useEffect(() => { refresh(); const interval = setInterval(refresh, 2000); return () => clearInterval(interval); }, [refresh]);
+  useEffect(() => {
+    if (!visible) return;
+    refresh();
+    const interval = setInterval(refresh, 2000);
+    return () => clearInterval(interval);
+  }, [refresh, visible]);
 
   const setPaused = async (paused: boolean) => {
     try {

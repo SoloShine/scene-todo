@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { CreateTodo, UpdateTodo, TodoFilters, TodoWithDetails } from "../types";
 import * as api from "../lib/invoke";
 import { notify } from "../lib/toast";
+import { usePageVisibility } from "./usePageVisibility";
 
 export function useTodos(filters: TodoFilters = {}) {
   const [todos, setTodos] = useState<TodoWithDetails[]>([]);
@@ -9,6 +10,7 @@ export function useTodos(filters: TodoFilters = {}) {
   const initialLoad = useRef(true);
   const filtersRef = useRef(filters);
   filtersRef.current = filters;
+  const visible = usePageVisibility();
 
   const refresh = useCallback(async () => {
     try {
@@ -23,12 +25,13 @@ export function useTodos(filters: TodoFilters = {}) {
   }, []);
 
   useEffect(() => {
+    if (!visible) return;
     initialLoad.current = true;
     setLoading(true);
     refresh();
     const interval = setInterval(refresh, 3000);
     return () => clearInterval(interval);
-  }, [filters, refresh]);
+  }, [filters, refresh, visible]);
 
   const create = async (input: CreateTodo) => {
     try {
