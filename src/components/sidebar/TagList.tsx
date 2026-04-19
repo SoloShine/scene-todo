@@ -4,6 +4,7 @@ import { SectionHeader } from "./SectionHeader";
 import { Input } from "@/components/ui/input"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Skeleton } from "../ui/skeleton";
 import { Tag } from "lucide-react"
 
 interface TagListProps {
@@ -14,7 +15,7 @@ interface TagListProps {
 }
 
 export function TagList({ selectedTagIds, onToggleTag, collapsed, onToggleCollapse }: TagListProps) {
-  const { tags, create, remove } = useTags();
+  const { tags, loading, create, remove } = useTags();
   const [newName, setNewName] = useState("");
   const [showInput, setShowInput] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
@@ -44,40 +45,50 @@ export function TagList({ selectedTagIds, onToggleTag, collapsed, onToggleCollap
               className="w-full text-xs mb-1"
             />
           )}
-          {tags.length === 0 && !showInput && (
-            <EmptyState
-              icon={<Tag />}
-              title="还没有标签"
-              description="点击上方 + 创建标签来标记待办"
-            />
+          {loading ? (
+            <div className="flex flex-wrap gap-1">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-5 w-12 rounded-full" />
+              ))}
+            </div>
+          ) : (
+            <>
+              {tags.length === 0 && !showInput && (
+                <EmptyState
+                  icon={<Tag />}
+                  title="还没有标签"
+                  description="点击上方 + 创建标签来标记待办"
+                />
+              )}
+              <div className="flex flex-wrap gap-1">
+                {tags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className={`group inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[11px] rounded-full cursor-pointer transition-colors ${
+                      selectedTagIds.includes(tag.id)
+                        ? "ring-1 ring-offset-0.5"
+                        : "hover:opacity-80"
+                    }`}
+                    style={{
+                      backgroundColor: tag.color + "20",
+                      color: tag.color,
+                      ...(selectedTagIds.includes(tag.id) ? { ringColor: tag.color } : {}),
+                    }}
+                    onClick={() => onToggleTag(tag.id)}
+                  >
+                    <span>{tag.name}</span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setDeleteId(tag.id); }}
+                      className="opacity-0 group-hover:opacity-100 ml-0.5 text-[9px] hover:text-destructive"
+                      style={{ color: tag.color + "80" }}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </>
           )}
-          <div className="flex flex-wrap gap-1">
-            {tags.map((tag) => (
-              <span
-                key={tag.id}
-                className={`group inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[11px] rounded-full cursor-pointer transition-colors ${
-                  selectedTagIds.includes(tag.id)
-                    ? "ring-1 ring-offset-0.5"
-                    : "hover:opacity-80"
-                }`}
-                style={{
-                  backgroundColor: tag.color + "20",
-                  color: tag.color,
-                  ...(selectedTagIds.includes(tag.id) ? { ringColor: tag.color } : {}),
-                }}
-                onClick={() => onToggleTag(tag.id)}
-              >
-                <span>{tag.name}</span>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setDeleteId(tag.id); }}
-                  className="opacity-0 group-hover:opacity-100 ml-0.5 text-[9px] hover:text-destructive"
-                  style={{ color: tag.color + "80" }}
-                >
-                  ✕
-                </button>
-              </span>
-            ))}
-          </div>
         </div>
       )}
       <ConfirmDialog
