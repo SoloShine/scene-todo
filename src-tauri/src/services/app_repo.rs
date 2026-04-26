@@ -2,6 +2,17 @@ use rusqlite::{params, Row};
 use crate::models::*;
 use crate::services::db::Database;
 
+fn validate_name(name: &str) -> Result<(), String> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Err("名称不能为空".into());
+    }
+    if trimmed.len() > 200 {
+        return Err("名称过长（最多200字符）".into());
+    }
+    Ok(())
+}
+
 fn row_to_app(row: &Row) -> Result<App, rusqlite::Error> {
     Ok(App {
         id: row.get(0)?,
@@ -14,6 +25,7 @@ fn row_to_app(row: &Row) -> Result<App, rusqlite::Error> {
 }
 
 pub fn create_app(db: &Database, input: CreateApp) -> Result<App, String> {
+    validate_name(&input.name)?;
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let process_json = serde_json::to_string(&input.process_names)
         .map_err(|e| format!("Serialize process_names: {}", e))?;
@@ -46,6 +58,9 @@ pub fn get_app(db: &Database, id: i64) -> Result<App, String> {
 }
 
 pub fn update_app(db: &Database, input: UpdateApp) -> Result<App, String> {
+    if let Some(ref name) = input.name {
+        validate_name(name)?;
+    }
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let mut sets = Vec::new();
     let mut pv: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();

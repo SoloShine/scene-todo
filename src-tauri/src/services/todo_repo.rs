@@ -2,7 +2,19 @@ use rusqlite::{params, Row};
 use crate::models::*;
 use crate::services::db::Database;
 
+fn validate_title(title: &str) -> Result<(), String> {
+    let trimmed = title.trim();
+    if trimmed.is_empty() {
+        return Err("标题不能为空".into());
+    }
+    if trimmed.len() > 500 {
+        return Err("标题过长（最多500字符）".into());
+    }
+    Ok(())
+}
+
 pub fn create_todo(db: &Database, input: CreateTodo) -> Result<Todo, String> {
+    validate_title(&input.title)?;
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let priority = input.priority.unwrap_or_else(|| "medium".into());
     conn.execute(
@@ -69,6 +81,9 @@ pub fn get_todo(db: &Database, id: i64) -> Result<Todo, String> {
 }
 
 pub fn update_todo(db: &Database, input: UpdateTodo) -> Result<Todo, String> {
+    if let Some(ref title) = input.title {
+        validate_title(title)?;
+    }
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let mut sets = Vec::new();
     let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();

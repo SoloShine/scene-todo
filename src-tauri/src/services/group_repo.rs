@@ -2,6 +2,17 @@ use rusqlite::{params, Row};
 use crate::models::*;
 use crate::services::db::Database;
 
+fn validate_name(name: &str) -> Result<(), String> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Err("名称不能为空".into());
+    }
+    if trimmed.len() > 200 {
+        return Err("名称过长（最多200字符）".into());
+    }
+    Ok(())
+}
+
 fn row_to_group(row: &Row) -> Result<Group, rusqlite::Error> {
     Ok(Group {
         id: row.get(0)?,
@@ -13,6 +24,7 @@ fn row_to_group(row: &Row) -> Result<Group, rusqlite::Error> {
 }
 
 pub fn create_group(db: &Database, input: CreateGroup) -> Result<Group, String> {
+    validate_name(&input.name)?;
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let color = input.color.unwrap_or_else(|| "#6B7280".into());
     let max_order: i64 = conn.query_row(
@@ -43,6 +55,9 @@ pub fn list_groups(db: &Database) -> Result<Vec<Group>, String> {
 }
 
 pub fn update_group(db: &Database, input: UpdateGroup) -> Result<Group, String> {
+    if let Some(ref name) = input.name {
+        validate_name(name)?;
+    }
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let mut sets = Vec::new();
     let mut pv: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();

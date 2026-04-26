@@ -2,11 +2,23 @@ use rusqlite::{params, Row};
 use crate::models::*;
 use crate::services::db::Database;
 
+fn validate_name(name: &str) -> Result<(), String> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() {
+        return Err("名称不能为空".into());
+    }
+    if trimmed.len() > 200 {
+        return Err("名称过长（最多200字符）".into());
+    }
+    Ok(())
+}
+
 fn row_to_tag(row: &Row) -> Result<Tag, rusqlite::Error> {
     Ok(Tag { id: row.get(0)?, name: row.get(1)?, color: row.get(2)? })
 }
 
 pub fn create_tag(db: &Database, input: CreateTag) -> Result<Tag, String> {
+    validate_name(&input.name)?;
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let color = input.color.unwrap_or_else(|| "#6B7280".into());
     conn.execute(
@@ -28,6 +40,9 @@ pub fn list_tags(db: &Database) -> Result<Vec<Tag>, String> {
 }
 
 pub fn update_tag(db: &Database, input: UpdateTag) -> Result<Tag, String> {
+    if let Some(ref name) = input.name {
+        validate_name(name)?;
+    }
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let mut sets = Vec::new();
     let mut pv: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();

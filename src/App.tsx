@@ -71,7 +71,7 @@ export default function App() {
           saveWidgetOffset(Number(appId), x, y).catch(() => {});
         }
       }
-    } catch {}
+    } catch (e) { console.warn("Failed to load settings:", e); }
   }, []);
 
   useEffect(() => {
@@ -89,7 +89,7 @@ export default function App() {
     return () => { unlisten.then((f) => f()); };
   }, []);
 
-  const handleSmartView = (view: string) => {
+  const handleSmartView = useCallback((view: string) => {
     setShowSettings(false);
     setShowStats(false);
     setShowAbout(false);
@@ -105,7 +105,7 @@ export default function App() {
         setFilters({ due_before: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}` });
         break;
     }
-  };
+  }, []);
 
   const todoListRef = useRef<TodoListHandle>(null)
 
