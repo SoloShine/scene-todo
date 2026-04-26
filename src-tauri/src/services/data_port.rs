@@ -122,7 +122,10 @@ fn insert_rows_tx(tx: &rusqlite::Transaction, table: &str, rows: &[RowData]) -> 
     }
 
     let cols: Vec<&String> = rows[0].keys().collect();
-    let col_list = cols.iter().map(|c| c.as_str()).collect::<Vec<_>>().join(", ");
+    let col_list = cols.iter()
+        .map(|c| format!("\"{}\"", c.replace('"', "\"\"")))
+        .collect::<Vec<_>>()
+        .join(", ");
     let placeholders = cols.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
     let sql = format!("INSERT INTO {} ({}) VALUES ({})", table, col_list, placeholders);
 
@@ -162,7 +165,10 @@ fn insert_rows(conn: &rusqlite::Connection, table: &str, rows: &[RowData]) -> Re
 
     // Get column names from first row
     let cols: Vec<&String> = rows[0].keys().collect();
-    let col_list = cols.iter().map(|c| c.as_str()).collect::<Vec<_>>().join(", ");
+    let col_list = cols.iter()
+        .map(|c| format!("\"{}\"", c.replace('"', "\"\"")))
+        .collect::<Vec<_>>()
+        .join(", ");
     let placeholders = cols.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
     let sql = format!("INSERT INTO {} ({}) VALUES ({})", table, col_list, placeholders);
 
