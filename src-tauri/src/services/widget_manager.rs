@@ -37,7 +37,7 @@ impl WidgetManager {
             Some(id) => id,
             None => {
                 // No app matched — hide all widgets
-                let active = self.active_widgets.lock().unwrap();
+                let active = self.active_widgets.lock().unwrap_or_else(|e| e.into_inner());
                 for (_, label) in active.iter() {
                     if let Some(win) = app_handle.get_webview_window(label) {
                         let _ = win.hide();
@@ -57,7 +57,7 @@ impl WidgetManager {
         let target_label = format!("widget-app-{}", app_id);
 
         // Hide widgets for other apps
-        let active = self.active_widgets.lock().unwrap();
+        let active = self.active_widgets.lock().unwrap_or_else(|e| e.into_inner());
         for (&id, label) in active.iter() {
             if id != app_id {
                 if let Some(win) = app_handle.get_webview_window(label) {
@@ -75,7 +75,7 @@ impl WidgetManager {
         }
 
         let app_name = event.app_name.as_deref().unwrap_or("Unknown");
-        let mut active = self.active_widgets.lock().unwrap();
+        let mut active = self.active_widgets.lock().unwrap_or_else(|e| e.into_inner());
 
         if !active.contains_key(&app_id) {
             let scenes_json = serde_json::to_string(
@@ -94,7 +94,7 @@ impl WidgetManager {
                 urlencoding(app_name),
                 urlencoding(&scenes_json)
             );
-            let (w, h) = *self.default_size.lock().unwrap();
+            let (w, h) = *self.default_size.lock().unwrap_or_else(|e| e.into_inner());
             let widget_window = WebviewWindow::builder(
                 app_handle,
                 &target_label,
@@ -140,7 +140,7 @@ impl WidgetManager {
             let (dx, dy) = self
                 .widget_offsets
                 .lock()
-                .unwrap()
+                .unwrap_or_else(|e| e.into_inner())
                 .get(&app_id)
                 .copied()
                 .unwrap_or((padding, title_bar_h));
@@ -152,11 +152,11 @@ impl WidgetManager {
     }
 
     pub fn save_offset(&self, app_id: i64, offset: (i32, i32)) {
-        self.widget_offsets.lock().unwrap().insert(app_id, offset);
+        self.widget_offsets.lock().unwrap_or_else(|e| e.into_inner()).insert(app_id, offset);
     }
 
     pub fn handle_window_moved(&self, app_handle: &AppHandle, hwnd: isize) {
-        let active = self.active_widgets.lock().unwrap();
+        let active = self.active_widgets.lock().unwrap_or_else(|e| e.into_inner());
         for (&app_id, label) in active.iter() {
             if let Some(win) = app_handle.get_webview_window(label) {
                 let target_hwnd = HWND(hwnd as *mut _);
@@ -166,11 +166,11 @@ impl WidgetManager {
     }
 
     pub fn set_default_size(&self, size: (f64, f64)) {
-        *self.default_size.lock().unwrap() = size;
+        *self.default_size.lock().unwrap_or_else(|e| e.into_inner()) = size;
     }
 
     pub fn destroy_widget(&self, app_handle: &AppHandle, app_id: i64) {
-        let mut active = self.active_widgets.lock().unwrap();
+        let mut active = self.active_widgets.lock().unwrap_or_else(|e| e.into_inner());
         if let Some(label) = active.remove(&app_id) {
             if let Some(win) = app_handle.get_webview_window(&label) {
                 let _ = win.close();
@@ -180,7 +180,7 @@ impl WidgetManager {
 
     /// Destroy all active widgets. Called on shutdown.
     pub fn destroy_all_widgets(&self, app_handle: &AppHandle) {
-        let mut active = self.active_widgets.lock().unwrap();
+        let mut active = self.active_widgets.lock().unwrap_or_else(|e| e.into_inner());
         for (_, label) in active.drain() {
             if let Some(win) = app_handle.get_webview_window(&label) {
                 let _ = win.close();

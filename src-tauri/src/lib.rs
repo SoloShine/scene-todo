@@ -25,15 +25,168 @@ impl PassthroughState {
         Self { active: std::sync::Mutex::new(HashSet::new()) }
     }
     pub fn set(&self, app_id: i64, passthrough: bool) {
-        let mut active = self.active.lock().unwrap();
+        let mut active = self.active.lock().unwrap_or_else(|e| e.into_inner());
         if passthrough { active.insert(app_id); } else { active.remove(&app_id); }
     }
     pub fn is_any_active(&self) -> bool {
-        !self.active.lock().unwrap().is_empty()
+        !self.active.lock().unwrap_or_else(|e| e.into_inner()).is_empty()
     }
     pub fn clear(&self) -> HashSet<i64> {
-        std::mem::take(&mut *self.active.lock().unwrap())
+        std::mem::take(&mut *self.active.lock().unwrap_or_else(|e| e.into_inner()))
     }
+}
+
+fn setup_database(app: &tauri::App) -> Result<Arc<Database>, Box<dyn std::error::Error>> {
+    let db_path = Database::app_db_path(&app.handle())?;
+    let database = Database::open(&db_path)?;
+    let db_arc = Arc::new(database);
+    app.manage(db_arc.clone());
+
+    // One-time migration: convert old UTC timestamps to local time
+    {
+        let conn = db_arc.conn.lock().map_err(|e| format!("DB lock: {}", e))?;
+        let done: bool = conn.query_row(
+            "SELECT COUNT(*) > 0 FROM _migrations WHERE name = 'utc_to_local'",
+            [],
+            |row| row.get(0),
+        ).unwrap_or(false);
+        drop(conn);
+        if !done {
+            let _ = scene_repo::migrate_utc_to_local(&db_arc);
+            let conn = db_arc.conn.lock().map_err(|e| format!("DB lock: {}", e))?;
+            let _ = conn.execute(
+                "INSERT INTO _migrations (name) VALUES ('utc_to_local')",
+                [],
+            );
+        }
+    }
+
+    Ok(db_arc)
+}
+
+fn setup_event_listeners(app: &tauri::App) {
+    let app_handle = app.handle().clone();
+    app.listen("foreground-changed", move |event| {
+        if let Ok(fg_event) = serde_json::from_str::<ForegroundChanged>(event.payload()) {
+            let widget_mgr = app_handle.state::<WidgetManager>();
+            widget_mgr.handle_foreground_change(&app_handle, &fg_event);
+        }
+    });
+
+    // Listen for window move events and reposition widgets
+    let move_app_handle = app.handle().clone();
+    app.listen("window-location-changed", move |event| {
+        if let Ok(moved) = serde_json::from_str::<WindowMoved>(event.payload()) {
+            let widget_mgr = move_app_handle.state::<WidgetManager>();
+            widget_mgr.handle_window_moved(&move_app_handle, moved.hwnd);
+        }
+    });
+}
+
+fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    let show_item = MenuItemBuilder::with_id("show", "显示主窗口").build(app)?;
+    let pause_widget_item = MenuItemBuilder::with_id("pause_widget", "暂停 Widget").build(app)?;
+    let pause_tracking_item = MenuItemBuilder::with_id("pause_tracking", "暂停追踪").build(app)?;
+    let separator = PredefinedMenuItem::separator(app)?;
+    let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
+
+    let menu = MenuBuilder::new(app)
+        .items(&[&show_item, &separator, &pause_widget_item, &pause_tracking_item, &separator, &quit_item])
+        .build()?;
+
+    let _tray = TrayIconBuilder::new()
+        .icon(app.default_window_icon().unwrap().clone())
+        .menu(&menu)
+        .tooltip("SceneTodo")
+        .show_menu_on_left_click(false)
+        .on_menu_event(move |app, event| {
+            match event.id().as_ref() {
+                "show" => {
+                    if let Some(win) = app.get_webview_window("main") {
+                        let _ = win.show();
+                        let _ = win.set_focus();
+                    }
+                }
+                "pause_widget" => {
+                    let monitor = app.state::<WindowMonitor>();
+                    if monitor.is_running() {
+                        monitor.stop();
+                        if let Some(tray) = app.tray_by_id("main") {
+                            let _ = tray.set_tooltip(Some("SceneTodo (Widget 已暂停)"));
+                        }
+                    } else {
+                        monitor.start();
+                        if let Some(tray) = app.tray_by_id("main") {
+                            let _ = tray.set_tooltip(Some("SceneTodo"));
+                        }
+                    }
+                }
+                "pause_tracking" => {
+                    let time_tracker = app.state::<Arc<TimeTracker>>();
+                    let current = time_tracker.is_paused();
+                    time_tracker.set_paused(!current);
+                    let new_label = if !current { "恢复追踪" } else { "暂停追踪" };
+                    if let Some(item) = app.menu().and_then(|m| m.get("pause_tracking")) {
+                        let _ = item.as_menuitem().map(|mi| mi.set_text(new_label));
+                    }
+                    if let Some(tray) = app.tray_by_id("main") {
+                        let tooltip = if !current { "SceneTodo (追踪已暂停)" } else { "SceneTodo" };
+                        let _ = tray.set_tooltip(Some(tooltip));
+                    }
+                }
+                "quit" => {
+                    app.exit(0);
+                }
+                _ => {}
+            }
+        })
+        .on_tray_icon_event(|tray, event| {
+            if let TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            } = event
+            {
+                let app = tray.app_handle();
+                let state = app.state::<PassthroughState>();
+
+                if state.is_any_active() {
+                    let app_ids = state.clear();
+                    for id in &app_ids {
+                        let label = format!("widget-app-{}", id);
+                        if let Some(win) = app.get_webview_window(&label) {
+                            let _ = win.set_ignore_cursor_events(false);
+                            let _ = win.eval("window.dispatchEvent(new Event('passthrough-disabled'));");
+                        }
+                    }
+                    if let Some(t) = app.tray_by_id("main") {
+                        let _ = t.set_tooltip(Some("SceneTodo"));
+                    }
+                } else {
+                    if let Some(win) = app.get_webview_window("main") {
+                        let _ = win.show();
+                        let _ = win.set_focus();
+                    }
+                }
+            }
+        })
+        .build(app)?;
+
+    Ok(())
+}
+
+fn setup_window_handlers(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    // Handle main window close — ask frontend what to do
+    if let Some(main_win) = app.get_webview_window("main") {
+        let app_handle = app.handle().clone();
+        main_win.on_window_event(move |event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = app_handle.emit("close-requested", ());
+            }
+        });
+    }
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -46,29 +199,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .setup(|app| {
-            let db_path = Database::app_db_path(&app.handle())?;
-            let database = Database::open(&db_path)?;
-            let db_arc = Arc::new(database);
-            app.manage(db_arc.clone());
-
-            // One-time migration: convert old UTC timestamps to local time
-            {
-                let conn = db_arc.conn.lock().unwrap();
-                let done: bool = conn.query_row(
-                    "SELECT COUNT(*) > 0 FROM _migrations WHERE name = 'utc_to_local'",
-                    [],
-                    |row| row.get(0),
-                ).unwrap_or(false);
-                drop(conn);
-                if !done {
-                    let _ = scene_repo::migrate_utc_to_local(&db_arc);
-                    let conn = db_arc.conn.lock().unwrap();
-                    let _ = conn.execute(
-                        "INSERT INTO _migrations (name) VALUES ('utc_to_local')",
-                        [],
-                    );
-                }
-            }
+            let db_arc = setup_database(app)?;
 
             let time_tracker = Arc::new(TimeTracker::new(db_arc.clone()));
             app.manage(time_tracker.clone());
@@ -82,122 +213,9 @@ pub fn run() {
             let monitor = WindowMonitor::new(app.handle().clone(), db_arc, time_tracker);
             app.manage(monitor);
 
-            let app_handle = app.handle().clone();
-            app.listen("foreground-changed", move |event| {
-                if let Ok(fg_event) = serde_json::from_str::<ForegroundChanged>(event.payload()) {
-                    let widget_mgr = app_handle.state::<WidgetManager>();
-                    widget_mgr.handle_foreground_change(&app_handle, &fg_event);
-                }
-            });
-
-            // Listen for window move events and reposition widgets
-            let move_app_handle = app.handle().clone();
-            app.listen("window-location-changed", move |event| {
-                if let Ok(moved) = serde_json::from_str::<WindowMoved>(event.payload()) {
-                    let widget_mgr = move_app_handle.state::<WidgetManager>();
-                    widget_mgr.handle_window_moved(&move_app_handle, moved.hwnd);
-                }
-            });
-
-            // System tray
-            let show_item = MenuItemBuilder::with_id("show", "显示主窗口").build(app)?;
-            let pause_widget_item = MenuItemBuilder::with_id("pause_widget", "暂停 Widget").build(app)?;
-            let pause_tracking_item = MenuItemBuilder::with_id("pause_tracking", "暂停追踪").build(app)?;
-            let separator = PredefinedMenuItem::separator(app)?;
-            let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
-
-            let menu = MenuBuilder::new(app)
-                .items(&[&show_item, &separator, &pause_widget_item, &pause_tracking_item, &separator, &quit_item])
-                .build()?;
-
-            let _tray = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
-                .menu(&menu)
-                .tooltip("SceneTodo")
-                .show_menu_on_left_click(false)
-                .on_menu_event(move |app, event| {
-                    match event.id().as_ref() {
-                        "show" => {
-                            if let Some(win) = app.get_webview_window("main") {
-                                let _ = win.show();
-                                let _ = win.set_focus();
-                            }
-                        }
-                        "pause_widget" => {
-                            let monitor = app.state::<WindowMonitor>();
-                            if monitor.is_running() {
-                                monitor.stop();
-                                if let Some(tray) = app.tray_by_id("main") {
-                                    let _ = tray.set_tooltip(Some("SceneTodo (Widget 已暂停)"));
-                                }
-                            } else {
-                                monitor.start();
-                                if let Some(tray) = app.tray_by_id("main") {
-                                    let _ = tray.set_tooltip(Some("SceneTodo"));
-                                }
-                            }
-                        }
-                        "pause_tracking" => {
-                            let time_tracker = app.state::<Arc<TimeTracker>>();
-                            let current = time_tracker.is_paused();
-                            time_tracker.set_paused(!current);
-                            let new_label = if !current { "恢复追踪" } else { "暂停追踪" };
-                            if let Some(item) = app.menu().and_then(|m| m.get("pause_tracking")) {
-                                let _ = item.as_menuitem().map(|mi| mi.set_text(new_label));
-                            }
-                            if let Some(tray) = app.tray_by_id("main") {
-                                let tooltip = if !current { "SceneTodo (追踪已暂停)" } else { "SceneTodo" };
-                                let _ = tray.set_tooltip(Some(tooltip));
-                            }
-                        }
-                        "quit" => {
-                            app.exit(0);
-                        }
-                        _ => {}
-                    }
-                })
-                .on_tray_icon_event(|tray, event| {
-                    if let TrayIconEvent::Click {
-                        button: MouseButton::Left,
-                        button_state: MouseButtonState::Up,
-                        ..
-                    } = event
-                    {
-                        let app = tray.app_handle();
-                        let state = app.state::<PassthroughState>();
-
-                        if state.is_any_active() {
-                            let app_ids = state.clear();
-                            for id in &app_ids {
-                                let label = format!("widget-app-{}", id);
-                                if let Some(win) = app.get_webview_window(&label) {
-                                    let _ = win.set_ignore_cursor_events(false);
-                                    let _ = win.eval("window.dispatchEvent(new Event('passthrough-disabled'));");
-                                }
-                            }
-                            if let Some(t) = app.tray_by_id("main") {
-                                let _ = t.set_tooltip(Some("SceneTodo"));
-                            }
-                        } else {
-                            if let Some(win) = app.get_webview_window("main") {
-                                let _ = win.show();
-                                let _ = win.set_focus();
-                            }
-                        }
-                    }
-                })
-                .build(app)?;
-
-            // Handle main window close — ask frontend what to do
-            if let Some(main_win) = app.get_webview_window("main") {
-                let app_handle = app.handle().clone();
-                main_win.on_window_event(move |event| {
-                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                        api.prevent_close();
-                        let _ = app_handle.emit("close-requested", ());
-                    }
-                });
-            }
+            setup_event_listeners(app);
+            setup_tray(app)?;
+            setup_window_handlers(app)?;
 
             Ok(())
         })

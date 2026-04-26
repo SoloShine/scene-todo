@@ -62,7 +62,7 @@ impl WindowMonitor {
     }
 
     pub fn start(&self) {
-        let mut running = self.running.lock().unwrap();
+        let mut running = self.running.lock().unwrap_or_else(|e| e.into_inner());
         if *running {
             return;
         }
@@ -87,7 +87,7 @@ impl WindowMonitor {
 
             loop {
                 {
-                    let r = running_flag.lock().unwrap();
+                    let r = running_flag.lock().unwrap_or_else(|e| e.into_inner());
                     if !*r {
                         break;
                     }
@@ -98,7 +98,7 @@ impl WindowMonitor {
 
                 // Debounce: wait for window to stay stable before acting
                 {
-                    let last = *last_hwnd.lock().unwrap();
+                    let last = *last_hwnd.lock().unwrap_or_else(|e| e.into_inner());
                     if current_hwnd != 0 && current_hwnd != last {
                         if pending_hwnd != Some(current_hwnd) {
                             pending_hwnd = Some(current_hwnd);
@@ -123,7 +123,7 @@ impl WindowMonitor {
                 }
 
                 {
-                    let mut last = last_hwnd.lock().unwrap();
+                    let mut last = last_hwnd.lock().unwrap_or_else(|e| e.into_inner());
                     if *last != current_hwnd && current_hwnd != 0 {
                         *last = current_hwnd;
 
@@ -142,9 +142,9 @@ impl WindowMonitor {
                                 .unwrap_or(false);
 
                             if is_main {
-                                *last_active_scene_id.lock().unwrap() = None;
+                                *last_active_scene_id.lock().unwrap_or_else(|e| e.into_inner()) = None;
                                 time_tracker.end_current_session();
-                                *tracked_hwnd.lock().unwrap() = 0;
+                                *tracked_hwnd.lock().unwrap_or_else(|e| e.into_inner()) = 0;
                                 last_tracked_pos = None;
 
                                 let event = ForegroundChanged {
@@ -166,7 +166,7 @@ impl WindowMonitor {
                         {
                             // Use cached app lookup instead of per-call DB query
                             {
-                                let mut updated = app_cache_updated_arc.lock().unwrap();
+                                let mut updated = app_cache_updated_arc.lock().unwrap_or_else(|e| e.into_inner());
                                 if updated.elapsed() > Duration::from_secs(30) {
                                     let apps = app_repo::list_apps(&db).unwrap_or_default();
                                     let mut cache = HashMap::new();
@@ -177,11 +177,11 @@ impl WindowMonitor {
                                             }
                                         }
                                     }
-                                    *app_cache.lock().unwrap() = cache;
+                                    *app_cache.lock().unwrap_or_else(|e| e.into_inner()) = cache;
                                     *updated = Instant::now();
                                 }
                             }
-                            let matched_app = app_cache.lock().unwrap().get(&process_name.to_lowercase()).cloned();
+                            let matched_app = app_cache.lock().unwrap_or_else(|e| e.into_inner()).get(&process_name.to_lowercase()).cloned();
 
                             // Resolve scene from matched app
                             let resolved_scene =
@@ -194,21 +194,21 @@ impl WindowMonitor {
                                     } else {
                                         // 1. Try last active scene
                                         let last_active =
-                                            *last_active_scene_id.lock().unwrap();
+                                            *last_active_scene_id.lock().unwrap_or_else(|e| e.into_inner());
                                         let chosen = scenes
                                             .iter()
                                             .find(|(s, _)| Some(s.id) == last_active)
                                             .or_else(|| scenes.first()) // 2. Fallback: highest priority (first, already sorted)
                                             .map(|(s, _)| s.clone());
                                         if let Some(ref scene) = chosen {
-                                            *last_active_scene_id.lock().unwrap() =
+                                            *last_active_scene_id.lock().unwrap_or_else(|e| e.into_inner()) =
                                                 Some(scene.id);
                                         }
                                         chosen
                                     }
                                 } else {
                                     // No matching app — clear active scene
-                                    *last_active_scene_id.lock().unwrap() = None;
+                                    *last_active_scene_id.lock().unwrap_or_else(|e| e.into_inner()) = None;
                                     time_tracker.end_current_session();
                                     None
                                 };
@@ -225,11 +225,11 @@ impl WindowMonitor {
 
                             // Track this hwnd for move events
                             if matched_app.is_some() {
-                                *tracked_hwnd.lock().unwrap() = current_hwnd;
+                                *tracked_hwnd.lock().unwrap_or_else(|e| e.into_inner()) = current_hwnd;
                                 last_tracked_pos = process_matcher::get_window_rect(foreground)
                                     .map(|(x, y, _, _)| (x, y));
                             } else {
-                                *tracked_hwnd.lock().unwrap() = 0;
+                                *tracked_hwnd.lock().unwrap_or_else(|e| e.into_inner()) = 0;
                                 last_tracked_pos = None;
                             }
 
@@ -249,7 +249,7 @@ impl WindowMonitor {
 
                 // Check if tracked window has moved
                 {
-                    let tracked = *tracked_hwnd.lock().unwrap();
+                    let tracked = *tracked_hwnd.lock().unwrap_or_else(|e| e.into_inner());
                     if tracked != 0 {
                         if let Some((x, y)) = process_matcher::get_window_rect(HWND(tracked as *mut _))
                             .map(|(x, y, _, _)| (x, y))
@@ -267,7 +267,7 @@ impl WindowMonitor {
                             }
                         } else {
                             // Window no longer exists
-                            *tracked_hwnd.lock().unwrap() = 0;
+                            *tracked_hwnd.lock().unwrap_or_else(|e| e.into_inner()) = 0;
                             last_tracked_pos = None;
                         }
                     }
@@ -282,20 +282,20 @@ impl WindowMonitor {
     }
 
     pub fn stop(&self) {
-        let mut running = self.running.lock().unwrap();
+        let mut running = self.running.lock().unwrap_or_else(|e| e.into_inner());
         *running = false;
     }
 
     pub fn is_running(&self) -> bool {
-        *self.running.lock().unwrap()
+        *self.running.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     pub fn get_last_active_scene_id(&self) -> Option<i64> {
-        *self.last_active_scene_id.lock().unwrap()
+        *self.last_active_scene_id.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     pub fn set_last_active_scene(&self, scene_id: i64) {
-        *self.last_active_scene_id.lock().unwrap() = Some(scene_id);
+        *self.last_active_scene_id.lock().unwrap_or_else(|e| e.into_inner()) = Some(scene_id);
     }
 
     pub fn get_time_tracker(&self) -> &Arc<TimeTracker> {
@@ -303,11 +303,11 @@ impl WindowMonitor {
     }
 
     pub fn set_tracked_hwnd(&self, hwnd: isize) {
-        *self.tracked_hwnd.lock().unwrap() = hwnd;
+        *self.tracked_hwnd.lock().unwrap_or_else(|e| e.into_inner()) = hwnd;
     }
 
     pub fn get_tracked_hwnd(&self) -> isize {
-        *self.tracked_hwnd.lock().unwrap()
+        *self.tracked_hwnd.lock().unwrap_or_else(|e| e.into_inner())
     }
 
     /// Force-refresh the app cache (call after app CRUD operations).
@@ -321,7 +321,7 @@ impl WindowMonitor {
                 }
             }
         }
-        *self.app_cache.lock().unwrap() = cache;
-        *self.app_cache_updated.lock().unwrap() = Instant::now();
+        *self.app_cache.lock().unwrap_or_else(|e| e.into_inner()) = cache;
+        *self.app_cache_updated.lock().unwrap_or_else(|e| e.into_inner()) = Instant::now();
     }
 }
