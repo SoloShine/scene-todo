@@ -163,6 +163,7 @@ export function RecurrenceEditor({ todoId, dueDate, rule, onRefresh }: Recurrenc
         {(["off", "simplified", "rrule"] as EditorMode[]).map((m) => (
           <button
             key={m}
+            data-testid={`recurrence-mode-${m}`}
             onClick={() => setMode(m)}
             className={`text-xs px-2 py-1 rounded ${
               mode === m
@@ -174,7 +175,7 @@ export function RecurrenceEditor({ todoId, dueDate, rule, onRefresh }: Recurrenc
           </button>
         ))}
         {rule && mode === "off" && (
-          <Button variant="ghost" size="xs" onClick={handleRemove} className="ml-auto text-destructive">
+          <Button variant="ghost" size="xs" data-testid="recurrence-remove" onClick={handleRemove} className="ml-auto text-destructive">
             移除重复
           </Button>
         )}
@@ -280,7 +281,7 @@ export function RecurrenceEditor({ todoId, dueDate, rule, onRefresh }: Recurrenc
             )}
           </div>
 
-          <Button size="xs" onClick={handleSaveSimplified} className="w-full">
+          <Button size="xs" data-testid="recurrence-save" onClick={handleSaveSimplified} className="w-full">
             保存
           </Button>
         </div>
@@ -291,6 +292,7 @@ export function RecurrenceEditor({ todoId, dueDate, rule, onRefresh }: Recurrenc
           <div>
             <label className="text-xs text-muted-foreground block mb-1">RRULE 表达式</label>
             <Input
+              data-testid="recurrence-rrule-input"
               value={rruleText}
               onChange={(e) => setRruleText(e.target.value)}
               placeholder="FREQ=DAILY;INTERVAL=2"
@@ -325,6 +327,7 @@ export function RecurrenceEditor({ todoId, dueDate, rule, onRefresh }: Recurrenc
 
           <Button
             size="xs"
+            data-testid="recurrence-rrule-save"
             onClick={handleSaveRrule}
             disabled={!rruleResult?.valid}
             className="w-full"

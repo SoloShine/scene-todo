@@ -261,7 +261,7 @@ export function TodoItem({ todo, editing, animatingOut = false, onStartEdit, onE
               {priorityConfig[todo.priority]?.label || ""}
             </span>
             {(todo as TodoWithDetails).recurrence_rule && (
-              <span className="text-[10px] text-muted-foreground" title="重复待办">🔁</span>
+              <span data-testid={`recurrence-indicator-${todo.id}`} className="text-[10px] text-muted-foreground" title="重复待办">🔁</span>
             )}
             {dueLabel && (
               <span className={`text-[10px] ${isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"}`}>

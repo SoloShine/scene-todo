@@ -115,8 +115,9 @@ export function ReminderEditor({ todoId, dueDate, reminders, onRefresh }: Remind
       {reminders.length > 0 && (
         <div className="space-y-1">
           {reminders.map((r) => (
-            <div key={r.id} className="flex items-center gap-2 px-2 py-1 hover:bg-accent rounded">
+            <div key={r.id} data-testid={`reminder-item-${r.id}`} className="flex items-center gap-2 px-2 py-1 hover:bg-accent rounded">
               <Checkbox
+                data-testid={`reminder-toggle-${r.id}`}
                 checked={r.enabled}
                 onCheckedChange={() => handleToggleEnabled(r)}
               />
@@ -129,6 +130,7 @@ export function ReminderEditor({ todoId, dueDate, reminders, onRefresh }: Remind
               <Button
                 variant="ghost"
                 size="icon-xs"
+                data-testid={`reminder-delete-${r.id}`}
                 onClick={() => handleDelete(r.id)}
                 className="text-muted-foreground hover:text-destructive"
               >
@@ -145,7 +147,7 @@ export function ReminderEditor({ todoId, dueDate, reminders, onRefresh }: Remind
 
       {/* Add button / inline form */}
       {!showForm ? (
-        <Button variant="ghost" size="xs" onClick={() => setShowForm(true)} className="w-full">
+        <Button variant="ghost" size="xs" data-testid="reminder-add-btn" onClick={() => setShowForm(true)} className="w-full">
           + 添加提醒
         </Button>
       ) : (
@@ -239,7 +241,7 @@ export function ReminderEditor({ todoId, dueDate, reminders, onRefresh }: Remind
 
           {/* Actions */}
           <div className="flex gap-1">
-            <Button size="xs" onClick={handleCreate} disabled={saving} className="flex-1">
+            <Button size="xs" data-testid="reminder-save" onClick={handleCreate} disabled={saving} className="flex-1">
               {saving ? "保存中..." : "添加"}
             </Button>
             <Button variant="outline" size="xs" onClick={resetForm} className="flex-1">
