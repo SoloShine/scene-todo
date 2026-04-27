@@ -17,6 +17,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import type { TodoFilters } from "./types";
 import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import { ReminderPopup } from "./components/todo/ReminderPopup";
 import type { TodoListHandle } from "./components/todo/TodoList";
 
 type CloseAction = "prompt" | "hide" | "exit";
@@ -229,6 +230,7 @@ export default function App() {
         </DialogContent>
       </Dialog>
       <Toaster position="bottom-right" richColors closeButton />
+      <ReminderPopup />
     </div>
   );
 }

@@ -136,7 +136,7 @@ export function CalendarView({ todos, onDateSelect, selectedDate }: CalendarView
                         : priorityColors[todo.priority] || "bg-muted text-foreground"
                     }`}
                   >
-                    {todo.title}
+                    {todo.recurrence_rule && <span>🔁</span>} {todo.title}
                   </div>
                 ))}
                 {dayTodos.length > 2 && (

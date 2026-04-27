@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/ui/empty-state"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import type { TodoFilters, TodoWithDetails } from "../../types";
 
-type StatusFilter = "" | "pending" | "overdue" | "completed";
+type StatusFilter = "" | "pending" | "overdue" | "completed" | "abandoned";
 type TodoGroup = "overdue" | "today" | "upcoming" | "undated" | "completed";
 
 interface TodoListProps {
@@ -35,7 +35,7 @@ const GROUP_CONFIG: { key: TodoGroup; label: string; color: string }[] = [
 ];
 
 function getGroup(todo: TodoWithDetails): TodoGroup {
-  if (todo.status === "completed") return "completed";
+  if (todo.status === "completed" || todo.status === "abandoned") return "completed";
   if (!todo.due_date) return "undated";
   const d = parseDateLocal(todo.due_date);
   if (!d) return "undated";
@@ -48,6 +48,7 @@ function getGroup(todo: TodoWithDetails): TodoGroup {
 
 function getEffectiveStatus(t: { status: string; due_date: string | null }): string {
   if (t.status === "completed") return "completed";
+  if (t.status === "abandoned") return "abandoned";
   if (t.due_date) {
     const d = parseDateLocal(t.due_date);
     if (d) {
@@ -212,6 +213,7 @@ export const TodoList = forwardRef<TodoListHandle, TodoListProps>(
     { key: "pending", label: "待办" },
     { key: "overdue", label: "过期" },
     { key: "completed", label: "完成" },
+    { key: "abandoned", label: "已放弃" },
   ];
 
   const renderTodo = (todo: TodoWithDetails) => {

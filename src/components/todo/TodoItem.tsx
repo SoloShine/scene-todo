@@ -90,6 +90,7 @@ export function TodoItem({ todo, editing, animatingOut = false, onStartEdit, onE
   const [menuUp, setMenuUp] = useState(false);
   const [mounted, setMounted] = useState(false)
   const isCompleted = todo.status === "completed";
+  const isAbandoned = todo.status === "abandoned";
 
   useEffect(() => { setMounted(true) }, [])
 
@@ -246,7 +247,11 @@ export function TodoItem({ todo, editing, animatingOut = false, onStartEdit, onE
 
         <div className="flex-1 min-w-0" data-testid={`todo-title-${todo.id}`} onDoubleClick={handleStartEdit}>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className={`text-sm ${isCompleted ? "line-through text-muted-foreground" : "text-foreground font-medium"} cursor-text`}>
+            <span className={`text-sm ${
+              isCompleted ? "line-through text-muted-foreground" :
+              isAbandoned ? "line-through text-muted-foreground italic" :
+              "text-foreground font-medium"
+            } cursor-text`}>
               {todo.title}
             </span>
             {isOverdue && (
@@ -255,6 +260,9 @@ export function TodoItem({ todo, editing, animatingOut = false, onStartEdit, onE
             <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${priorityConfig[todo.priority]?.color || ""} ${priorityConfig[todo.priority]?.bg || ""}`}>
               {priorityConfig[todo.priority]?.label || ""}
             </span>
+            {(todo as TodoWithDetails).recurrence_rule && (
+              <span className="text-[10px] text-muted-foreground" title="重复待办">🔁</span>
+            )}
             {dueLabel && (
               <span className={`text-[10px] ${isOverdue ? "text-red-500 font-medium" : "text-muted-foreground"}`}>
                 {dueLabel}
@@ -326,6 +334,9 @@ export function TodoItem({ todo, editing, animatingOut = false, onStartEdit, onE
           <TodoDetailEditor
             todoId={todo.id}
             currentGroupId={todo.group_id}
+            dueDate={todo.due_date}
+            recurrenceRule={(todo as TodoWithDetails).recurrence_rule ?? null}
+            reminders={(todo as TodoWithDetails).reminders ?? []}
             onClose={() => setShowDetail(false)}
             onRefresh={() => { onRefresh?.(); }}
           />

@@ -3,19 +3,24 @@ import { useGroups } from "../../hooks/useGroups";
 import { useTags } from "../../hooks/useTags";
 import * as api from "../../lib/invoke";
 import { notify } from "../../lib/toast";
-import type { Tag } from "../../types";
+import type { Tag, RecurrenceRule, Reminder } from "../../types";
 import { Popover, PopoverContent } from "@/components/ui/popover"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
+import { RecurrenceEditor } from "./RecurrenceEditor";
+import { ReminderEditor } from "./ReminderEditor";
 
 interface TodoDetailEditorProps {
   todoId: number;
   currentGroupId: number | null;
+  dueDate: string | null;
+  recurrenceRule: RecurrenceRule | null;
+  reminders: Reminder[];
   onClose: () => void;
   onRefresh: () => void;
 }
 
-export function TodoDetailEditor({ todoId, currentGroupId, onClose, onRefresh }: TodoDetailEditorProps) {
+export function TodoDetailEditor({ todoId, currentGroupId, dueDate, recurrenceRule, reminders, onClose, onRefresh }: TodoDetailEditorProps) {
   const { groups } = useGroups();
   const { tags: allTags } = useTags();
   const [todoTags, setTodoTags] = useState<Tag[]>([]);
@@ -55,7 +60,7 @@ export function TodoDetailEditor({ todoId, currentGroupId, onClose, onRefresh }:
 
   return (
     <Popover open onOpenChange={() => onClose()}>
-      <PopoverContent className="w-56 p-3 space-y-3" side="bottom" align="center">
+      <PopoverContent className="w-72 p-3 space-y-3" side="bottom" align="center">
         {/* Group selector */}
         <div>
           <h4 className="text-xs font-semibold text-muted-foreground mb-1">分组</h4>
@@ -107,6 +112,14 @@ export function TodoDetailEditor({ todoId, currentGroupId, onClose, onRefresh }:
             ))}
           </div>
         </div>
+
+        <Separator />
+
+        <RecurrenceEditor todoId={todoId} dueDate={dueDate} rule={recurrenceRule} onRefresh={onRefresh} />
+
+        <Separator />
+
+        <ReminderEditor todoId={todoId} dueDate={dueDate} reminders={reminders} onRefresh={onRefresh} />
       </PopoverContent>
     </Popover>
   );

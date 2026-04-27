@@ -56,12 +56,13 @@ export function useTodos(filters: TodoFilters = {}) {
     }
   };
 
-  const toggleStatus = async (id: number, status: "pending" | "completed") => {
+  const toggleStatus = async (id: number, status: "pending" | "completed" | "abandoned") => {
     try {
-      await api.updateTodo({
-        id,
-        status: status === "pending" ? "completed" : "pending",
-      });
+      if (status === "completed" || status === "abandoned") {
+        await api.completeTodo(id, status);
+      } else {
+        await api.updateTodo({ id, status: "completed" });
+      }
       await refresh();
     } catch (e) {
       notify.error("操作失败");
