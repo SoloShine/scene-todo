@@ -1,8 +1,14 @@
+export * from "./recurrence";
+export * from "./reminder";
+
+import type { RecurrenceRule } from "./recurrence";
+import type { Reminder } from "./reminder";
+
 export interface Todo {
   id: number;
   title: string;
   description: string | null;
-  status: "pending" | "completed";
+  status: "pending" | "completed" | "abandoned";
   priority: "high" | "medium" | "low";
   group_id: number | null;
   parent_id: number | null;
@@ -10,12 +16,15 @@ export interface Todo {
   due_date: string | null;
   created_at: string;
   completed_at: string | null;
+  recurrence_rule_id: number | null;
 }
 
 export interface TodoWithDetails extends Todo {
   tags: Tag[];
   sub_tasks: Todo[];
   bound_scene_ids: number[];
+  recurrence_rule: RecurrenceRule | null;
+  reminders: Reminder[];
 }
 
 export interface Group {
@@ -54,10 +63,11 @@ export interface UpdateTodo {
   id: number;
   title?: string | null;
   description?: string | null;
-  status?: "pending" | "completed" | null;
+  status?: "pending" | "completed" | "abandoned" | null;
   priority?: "high" | "medium" | "low" | null;
   group_id?: number | null;
   due_date?: string | null;
+  recurrence_rule_id?: number | null;
 }
 
 export interface CreateGroup {

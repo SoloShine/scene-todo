@@ -5,6 +5,8 @@ import type {
   CreateTag, UpdateTag, CreateApp, UpdateApp, TodoFilters,
   Scene, CreateScene, UpdateScene, SceneApp,
   TimeSession, SceneTimeSummary, AppTimeDetail, TrackingStatus,
+  RecurrenceRule, CreateRecurrenceRule, RruleDescribeResult, SimplifiedRecurrenceInput,
+  Reminder, CreateReminder, UpdateReminder, SnoozeInput,
 } from "../types";
 
 export const createTodo = (input: CreateTodo) =>
@@ -184,3 +186,45 @@ export const hideMainWindow = () =>
 
 export const setTitleBarDark = (dark: boolean) =>
   invoke<void>("set_title_bar_dark", { dark });
+
+// Recurrence
+export const createRecurrenceRule = (input: CreateRecurrenceRule) =>
+  invoke<RecurrenceRule>("create_recurrence_rule", { input });
+
+export const getRecurrenceRule = (id: number) =>
+  invoke<RecurrenceRule>("get_recurrence_rule", { id });
+
+export const deleteRecurrenceRule = (id: number) =>
+  invoke<void>("delete_recurrence_rule", { id });
+
+export const describeRrule = (rrule: string) =>
+  invoke<RruleDescribeResult>("describe_rrule", { rrule });
+
+export const simplifiedToRrule = (input: SimplifiedRecurrenceInput) =>
+  invoke<string>("simplified_to_rrule", { input });
+
+export const setTodoRecurrence = (todoId: number, input: CreateRecurrenceRule | null) =>
+  invoke<Todo>("set_todo_recurrence", { todoId, input });
+
+// Reminders
+export const createReminder = (input: CreateReminder) =>
+  invoke<Reminder>("create_reminder", { input });
+
+export const listRemindersByTodo = (todoId: number) =>
+  invoke<Reminder[]>("list_reminders_by_todo", { todoId });
+
+export const updateReminder = (input: UpdateReminder) =>
+  invoke<Reminder>("update_reminder", { input });
+
+export const deleteReminder = (id: number) =>
+  invoke<void>("delete_reminder", { id });
+
+export const snoozeReminder = (input: SnoozeInput) =>
+  invoke<void>("snooze_reminder", { input });
+
+export const dismissReminder = (id: number) =>
+  invoke<void>("dismiss_reminder", { id });
+
+// Complete with recurrence
+export const completeTodo = (id: number, status: "completed" | "abandoned") =>
+  invoke<Todo>("complete_todo", { id, status });
