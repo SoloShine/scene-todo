@@ -534,4 +534,126 @@ mod tests {
         delete_recurrence_rule(&db, rule_id).unwrap();
         assert!(get_recurrence_rule(&db, rule_id).is_err());
     }
+
+    #[test]
+    fn test_full_recurrence_lifecycle() {
+        let db = setup_db();
+        use crate::services::tag_repo;
+
+        let dtstart = "2000-01-01".to_string();
+        let due_day2 = "2000-01-02".to_string();
+        let due_day3 = "2000-01-03".to_string();
+        let due_day4 = "2000-01-04".to_string();
+
+        // Create a todo
+        let todo = todo_repo::create_todo(
+            &db,
+            CreateTodo {
+                title: "Recurring lifecycle task".to_string(),
+                description: Some("desc".to_string()),
+                priority: Some("high".to_string()),
+                group_id: None,
+                parent_id: None,
+                due_date: Some(dtstart.clone()),
+            },
+        )
+        .unwrap();
+
+        // Create a tag and bind it to the todo
+        let tag = tag_repo::create_tag(
+            &db,
+            CreateTag {
+                name: "test-tag".to_string(),
+                color: Some("#FF0000".to_string()),
+            },
+        )
+        .unwrap();
+        todo_repo::add_tag_to_todo(&db, todo.id, tag.id).unwrap();
+
+        // Insert rule with max_count=3 and known next_due
+        let conn = db.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO recurrence_rules (rrule, dtstart, next_due, end_date, max_count, completed_count, expired)
+             VALUES ('FREQ=DAILY', ?1, ?2, NULL, 3, 0, 0)",
+            params![dtstart, due_day2],
+        ).unwrap();
+        let rule_id = conn.last_insert_rowid();
+        // Assign rule to todo
+        conn.execute(
+            "UPDATE todos SET recurrence_rule_id = ?1 WHERE id = ?2",
+            params![rule_id, todo.id],
+        ).unwrap();
+        // Mark original as completed
+        conn.execute(
+            "UPDATE todos SET status = 'completed', completed_at = datetime('now') WHERE id = ?1",
+            params![todo.id],
+        ).unwrap();
+        drop(conn);
+
+        // --- Instance 1 ---
+        let id1 = generate_next_instance(&db, todo.id, rule_id).unwrap();
+        assert!(id1 > 0);
+        let t1 = todo_repo::get_todo(&db, id1).unwrap();
+        assert_eq!(t1.status, "pending");
+        assert_eq!(t1.due_date, Some(due_day3));
+        assert_eq!(t1.recurrence_rule_id, Some(rule_id));
+
+        // Verify tag was copied
+        let details1 = todo_repo::get_todo_with_details(&db, id1).unwrap();
+        assert_eq!(details1.tags.len(), 1);
+        assert_eq!(details1.tags[0].name, "test-tag");
+
+        // Verify rule state
+        let rule1 = get_recurrence_rule(&db, rule_id).unwrap();
+        assert_eq!(rule1.completed_count, 1);
+        assert!(!rule1.expired);
+
+        // --- Mark instance 1 as completed ---
+        let conn = db.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE todos SET status = 'completed', completed_at = datetime('now') WHERE id = ?1",
+            params![id1],
+        ).unwrap();
+        drop(conn);
+
+        // --- Instance 2 ---
+        let id2 = generate_next_instance(&db, id1, rule_id).unwrap();
+        assert!(id2 > 0);
+        let t2 = todo_repo::get_todo(&db, id2).unwrap();
+        assert_eq!(t2.due_date, Some(due_day4));
+        assert_eq!(t2.recurrence_rule_id, Some(rule_id));
+
+        // Verify tags on instance 2
+        let details2 = todo_repo::get_todo_with_details(&db, id2).unwrap();
+        assert_eq!(details2.tags.len(), 1);
+        assert_eq!(details2.tags[0].name, "test-tag");
+
+        let rule2 = get_recurrence_rule(&db, rule_id).unwrap();
+        assert_eq!(rule2.completed_count, 2);
+        assert!(!rule2.expired);
+
+        // --- Mark instance 2 as completed ---
+        let conn = db.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE todos SET status = 'completed', completed_at = datetime('now') WHERE id = ?1",
+            params![id2],
+        ).unwrap();
+        drop(conn);
+
+        // --- Instance 3 (should expire rule, max_count=3) ---
+        let id3 = generate_next_instance(&db, id2, rule_id).unwrap();
+        assert_eq!(id3, 0, "Should return 0 when rule is expired");
+
+        let expired_rule = get_recurrence_rule(&db, rule_id).unwrap();
+        assert!(expired_rule.expired);
+        assert_eq!(expired_rule.completed_count, 3);
+
+        // Verify all completed instances still have correct recurrence_rule_id
+        let original = todo_repo::get_todo(&db, todo.id).unwrap();
+        assert_eq!(original.recurrence_rule_id, Some(rule_id));
+        let inst1 = todo_repo::get_todo(&db, id1).unwrap();
+        assert_eq!(inst1.recurrence_rule_id, Some(rule_id));
+        let inst2 = todo_repo::get_todo(&db, id2).unwrap();
+        assert_eq!(inst2.recurrence_rule_id, Some(rule_id));
+    }
 }

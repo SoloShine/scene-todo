@@ -174,7 +174,49 @@ pub fn get_todo_with_details(db: &Database, id: i64) -> Result<TodoWithDetails, 
         bound_scene_ids
     };
 
-    Ok(TodoWithDetails { todo, tags, sub_tasks, bound_scene_ids, recurrence_rule: None, reminders: vec![] })
+    // Fetch recurrence rule if todo has one
+    let recurrence_rule = if let Some(rule_id) = todo.recurrence_rule_id {
+        let mut rule_stmt = conn.prepare(
+            "SELECT id, rrule, dtstart, next_due, end_date, max_count, completed_count, expired, created_at \
+             FROM recurrence_rules WHERE id = ?1"
+        ).map_err(|e| format!("Prepare recurrence: {}", e))?;
+        rule_stmt.query_row(params![rule_id], |row| {
+            Ok(RecurrenceRule {
+                id: row.get(0)?,
+                rrule: row.get(1)?,
+                dtstart: row.get(2)?,
+                next_due: row.get(3)?,
+                end_date: row.get(4)?,
+                max_count: row.get(5)?,
+                completed_count: row.get(6)?,
+                expired: row.get::<_, i64>(7)? != 0,
+                created_at: row.get(8)?,
+            })
+        }).ok()
+    } else {
+        None
+    };
+
+    // Fetch reminders for this todo
+    let mut rem_stmt = conn.prepare(
+        "SELECT id, todo_id, type, offset_minutes, absolute_at, label, notify_in_app, notify_system, enabled \
+         FROM reminders WHERE todo_id = ?1"
+    ).map_err(|e| format!("Prepare reminders: {}", e))?;
+    let reminders: Vec<Reminder> = rem_stmt.query_map(params![id], |row| {
+        Ok(Reminder {
+            id: row.get(0)?,
+            todo_id: row.get(1)?,
+            r#type: row.get(2)?,
+            offset_minutes: row.get(3)?,
+            absolute_at: row.get(4)?,
+            label: row.get(5)?,
+            notify_in_app: row.get::<_, i64>(6)? != 0,
+            notify_system: row.get::<_, i64>(7)? != 0,
+            enabled: row.get::<_, i64>(8)? != 0,
+        })
+    }).map_err(|e| format!("Query reminders: {}", e))?.filter_map(|r| r.ok()).collect();
+
+    Ok(TodoWithDetails { todo, tags, sub_tasks, bound_scene_ids, recurrence_rule, reminders })
 }
 
 pub fn list_todos_by_app(db: &Database, app_id: i64) -> Result<Vec<TodoWithDetails>, String> {
@@ -239,18 +281,22 @@ pub fn list_todos_by_app(db: &Database, app_id: i64) -> Result<Vec<TodoWithDetai
     let tags = batch_query_tags(&conn, &id_list)?;
     let subtasks = batch_query_subtasks(&conn, &id_list)?;
     let scenes = batch_query_scene_bindings(&conn, &id_list, &todos)?;
+    let recurrence_rules = batch_query_recurrence_rules(&conn, &id_list)?;
+    let reminders_map = batch_query_reminders(&conn, &id_list)?;
 
     Ok(todos.into_iter().map(|todo| {
         let todo_tags = tags.get(&todo.id).cloned().unwrap_or_default();
         let todo_subtasks = subtasks.get(&todo.id).cloned().unwrap_or_default();
         let todo_scenes = scenes.get(&todo.id).cloned().unwrap_or_default();
+        let todo_rule = recurrence_rules.get(&todo.id).cloned();
+        let todo_reminders = reminders_map.get(&todo.id).cloned().unwrap_or_default();
         TodoWithDetails {
             todo,
             tags: todo_tags,
             sub_tasks: todo_subtasks,
             bound_scene_ids: todo_scenes,
-            recurrence_rule: None,
-            reminders: vec![],
+            recurrence_rule: todo_rule,
+            reminders: todo_reminders,
         }
     }).collect())
 }
@@ -270,18 +316,22 @@ pub fn list_todos_with_details(db: &Database, filters: TodoFilters) -> Result<Ve
     let tags = batch_query_tags(&conn, &id_list)?;
     let subtasks = batch_query_subtasks(&conn, &id_list)?;
     let scenes = batch_query_scene_bindings(&conn, &id_list, &todos)?;
+    let recurrence_rules = batch_query_recurrence_rules(&conn, &id_list)?;
+    let reminders = batch_query_reminders(&conn, &id_list)?;
 
     Ok(todos.into_iter().map(|todo| {
         let todo_tags = tags.get(&todo.id).cloned().unwrap_or_default();
         let todo_subtasks = subtasks.get(&todo.id).cloned().unwrap_or_default();
         let todo_scenes = scenes.get(&todo.id).cloned().unwrap_or_default();
+        let todo_rule = recurrence_rules.get(&todo.id).cloned();
+        let todo_reminders = reminders.get(&todo.id).cloned().unwrap_or_default();
         TodoWithDetails {
             todo,
             tags: todo_tags,
             sub_tasks: todo_subtasks,
             bound_scene_ids: todo_scenes,
-            recurrence_rule: None,
-            reminders: vec![],
+            recurrence_rule: todo_rule,
+            reminders: todo_reminders,
         }
     }).collect())
 }
@@ -315,18 +365,22 @@ pub fn get_todos_with_details_by_ids(db: &Database, ids: &[i64]) -> Result<Vec<T
     let tags = batch_query_tags(&conn, &id_list)?;
     let subtasks = batch_query_subtasks(&conn, &id_list)?;
     let scenes = batch_query_scene_bindings(&conn, &id_list, &todos)?;
+    let recurrence_rules = batch_query_recurrence_rules(&conn, &id_list)?;
+    let reminders_map = batch_query_reminders(&conn, &id_list)?;
 
     Ok(todos.into_iter().map(|todo| {
         let todo_tags = tags.get(&todo.id).cloned().unwrap_or_default();
         let todo_subtasks = subtasks.get(&todo.id).cloned().unwrap_or_default();
         let todo_scenes = scenes.get(&todo.id).cloned().unwrap_or_default();
+        let todo_rule = recurrence_rules.get(&todo.id).cloned();
+        let todo_reminders = reminders_map.get(&todo.id).cloned().unwrap_or_default();
         TodoWithDetails {
             todo,
             tags: todo_tags,
             sub_tasks: todo_subtasks,
             bound_scene_ids: todo_scenes,
-            recurrence_rule: None,
-            reminders: vec![],
+            recurrence_rule: todo_rule,
+            reminders: todo_reminders,
         }
     }).collect())
 }
@@ -459,6 +513,83 @@ fn batch_query_scene_bindings(
         }
     }
 
+    Ok(map)
+}
+
+/// Batch-query recurrence rules for multiple todo IDs.
+/// Joins todos with recurrence_rules on todos.recurrence_rule_id.
+/// Returns HashMap<todo_id, RecurrenceRule>.
+fn batch_query_recurrence_rules(
+    conn: &rusqlite::Connection,
+    id_list: &str,
+) -> Result<std::collections::HashMap<i64, RecurrenceRule>, String> {
+    let sql = format!(
+        "SELECT t.id, r.id, r.rrule, r.dtstart, r.next_due, r.end_date, r.max_count, r.completed_count, r.expired, r.created_at \
+         FROM todos t \
+         JOIN recurrence_rules r ON t.recurrence_rule_id = r.id \
+         WHERE t.id IN ({})",
+        id_list
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare batch recurrence: {}", e))?;
+    let mut map: std::collections::HashMap<i64, RecurrenceRule> = std::collections::HashMap::new();
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, i64>(0)?,
+            RecurrenceRule {
+                id: row.get(1)?,
+                rrule: row.get(2)?,
+                dtstart: row.get(3)?,
+                next_due: row.get(4)?,
+                end_date: row.get(5)?,
+                max_count: row.get(6)?,
+                completed_count: row.get(7)?,
+                expired: row.get::<_, i64>(8)? != 0,
+                created_at: row.get(9)?,
+            },
+        ))
+    }).map_err(|e| format!("Query batch recurrence: {}", e))?;
+
+    for r in rows {
+        let (todo_id, rule) = r.map_err(|e| format!("Row batch recurrence: {}", e))?;
+        map.insert(todo_id, rule);
+    }
+    Ok(map)
+}
+
+/// Batch-query reminders for multiple todo IDs.
+/// Returns HashMap<todo_id, Vec<Reminder>>.
+fn batch_query_reminders(
+    conn: &rusqlite::Connection,
+    id_list: &str,
+) -> Result<std::collections::HashMap<i64, Vec<Reminder>>, String> {
+    let sql = format!(
+        "SELECT todo_id, id, todo_id, type, offset_minutes, absolute_at, label, notify_in_app, notify_system, enabled \
+         FROM reminders WHERE todo_id IN ({})",
+        id_list
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| format!("Prepare batch reminders: {}", e))?;
+    let mut map: std::collections::HashMap<i64, Vec<Reminder>> = std::collections::HashMap::new();
+    let rows = stmt.query_map([], |row| {
+        Ok((
+            row.get::<_, i64>(0)?,
+            Reminder {
+                id: row.get(1)?,
+                todo_id: row.get(2)?,
+                r#type: row.get(3)?,
+                offset_minutes: row.get(4)?,
+                absolute_at: row.get(5)?,
+                label: row.get(6)?,
+                notify_in_app: row.get::<_, i64>(7)? != 0,
+                notify_system: row.get::<_, i64>(8)? != 0,
+                enabled: row.get::<_, i64>(9)? != 0,
+            },
+        ))
+    }).map_err(|e| format!("Query batch reminders: {}", e))?;
+
+    for r in rows {
+        let (todo_id, reminder) = r.map_err(|e| format!("Row batch reminders: {}", e))?;
+        map.entry(todo_id).or_default().push(reminder);
+    }
     Ok(map)
 }
 

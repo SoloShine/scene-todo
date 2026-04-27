@@ -365,4 +365,114 @@ mod tests {
         assert!(ids.contains(&r1.id));
         assert!(ids.contains(&r2.id));
     }
+
+    #[test]
+    fn test_reminder_with_recurrence() {
+        use crate::services::recurrence_repo::generate_next_instance;
+
+        let db = setup_db();
+
+        // Use dates near 2000-01-01 to keep next_occurrence fast
+        let dtstart = "2000-01-01".to_string();
+        let due_day2 = "2000-01-02".to_string();
+
+        // Create a todo with a due_date
+        let todo = todo_repo::create_todo(
+            &db,
+            CreateTodo {
+                title: "Recurring with reminder".to_string(),
+                description: None,
+                priority: Some("high".to_string()),
+                group_id: None,
+                parent_id: None,
+                due_date: Some(format!("{}T10:00:00", dtstart)),
+            },
+        )
+        .unwrap();
+
+        // Create a relative reminder (60 min before)
+        let reminder = create_reminder(
+            &db,
+            CreateReminder {
+                todo_id: todo.id,
+                r#type: "relative".to_string(),
+                offset_minutes: Some(60),
+                absolute_at: None,
+                label: Some("1 hour before".to_string()),
+                notify_in_app: Some(true),
+                notify_system: Some(true),
+            },
+        )
+        .unwrap();
+        assert_eq!(reminder.r#type, "relative");
+        assert_eq!(reminder.offset_minutes, Some(60));
+
+        // Insert recurrence rule with known next_due (FREQ=DAILY, max_count=2)
+        let conn = db.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO recurrence_rules (rrule, dtstart, next_due, end_date, max_count, completed_count, expired)
+             VALUES ('FREQ=DAILY', ?1, ?2, NULL, 2, 0, 0)",
+            params![format!("{}T10:00:00", dtstart), format!("{}T10:00:00", due_day2)],
+        ).unwrap();
+        let rule_id = conn.last_insert_rowid();
+        conn.execute(
+            "UPDATE todos SET recurrence_rule_id = ?1 WHERE id = ?2",
+            params![rule_id, todo.id],
+        ).unwrap();
+        conn.execute(
+            "UPDATE todos SET status = 'completed', completed_at = datetime('now') WHERE id = ?1",
+            params![todo.id],
+        ).unwrap();
+        drop(conn);
+
+        // Generate next instance
+        let new_todo_id = generate_next_instance(&db, todo.id, rule_id).unwrap();
+        assert!(new_todo_id > 0);
+
+        // Verify the new todo has the correct due date (next_occurrence returns date-only)
+        let new_todo = todo_repo::get_todo(&db, new_todo_id).unwrap();
+        assert!(new_todo.due_date.is_some(), "New instance should have a due_date");
+        // The due_date comes from rrule_service::next_occurrence which may return date-only format
+        let new_due = new_todo.due_date.unwrap();
+        assert!(new_due.starts_with("2000-01-03"), "Expected due_date on 2000-01-03, got {}", new_due);
+
+        // Verify the new todo has a reminder_queue entry with correct trigger_at
+        let conn = db.conn.lock().unwrap();
+        let queue_entries: Vec<(i64, String, String)> = {
+            let mut stmt = conn.prepare(
+                "SELECT rq.id, rq.trigger_at, rq.status
+                 FROM reminder_queue rq
+                 JOIN reminders r ON rq.reminder_id = r.id
+                 WHERE r.todo_id = ?1"
+            ).unwrap();
+            let rows = stmt.query_map(params![new_todo_id], |row| {
+                Ok((
+                    row.get::<_, i64>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            }).unwrap();
+            rows.filter_map(|r| r.ok()).collect()
+        };
+        drop(conn);
+
+        // Should have one queue entry for the new instance's reminder
+        assert_eq!(queue_entries.len(), 1, "Expected exactly 1 reminder queue entry for new instance");
+        // trigger_at is computed from the new due_date minus offset_minutes (60)
+        // Since due_date may be date-only "2000-01-03", trigger_at = midnight - 60min = "2000-01-02T23:00:00"
+        // If due_date has time "2000-01-03T10:00:00", trigger_at = "2000-01-03T09:00:00"
+        let trigger_at = &queue_entries[0].1;
+        assert!(
+            trigger_at == "2000-01-02T23:00:00" || trigger_at == "2000-01-03T09:00:00",
+            "Unexpected trigger_at: {}",
+            trigger_at
+        );
+        assert_eq!(queue_entries[0].2, "pending");
+
+        // Also verify the new todo has a copied reminder
+        let new_reminders = list_reminders_by_todo(&db, new_todo_id).unwrap();
+        assert_eq!(new_reminders.len(), 1, "Expected 1 reminder on new instance");
+        assert_eq!(new_reminders[0].r#type, "relative");
+        assert_eq!(new_reminders[0].offset_minutes, Some(60));
+    }
 }
