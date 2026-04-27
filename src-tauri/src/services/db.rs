@@ -54,6 +54,7 @@ impl Database {
             (2, "002_scene_tracking", include_str!("../../migrations/002_scene_tracking.sql")),
             (3, "003_show_widget", include_str!("../../migrations/003_show_widget.sql")),
             (4, "004_current_session", include_str!("../../migrations/004_current_session.sql")),
+            (5, "005_recurrence_reminders", include_str!("../../migrations/005_recurrence_reminders.sql")),
         ];
 
         for (id, name, sql) in &migrations {
