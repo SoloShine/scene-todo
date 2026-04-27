@@ -25,7 +25,7 @@ pub fn create_todo(db: &Database, input: CreateTodo) -> Result<Todo, String> {
 
     let id = conn.last_insert_rowid();
     let mut stmt = conn.prepare(
-        "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at FROM todos WHERE id = ?1"
+        "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at, recurrence_rule_id FROM todos WHERE id = ?1"
     ).map_err(|e| format!("Prepare: {}", e))?;
     stmt.query_row(params![id], row_to_todo).map_err(|e| format!("Fetch: {}", e))
 }
@@ -33,7 +33,7 @@ pub fn create_todo(db: &Database, input: CreateTodo) -> Result<Todo, String> {
 pub fn list_todos(db: &Database, filters: TodoFilters) -> Result<Vec<Todo>, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let mut sql = String::from(
-        "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at FROM todos WHERE 1=1"
+        "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at, recurrence_rule_id FROM todos WHERE 1=1"
     );
     let mut param_values: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
 
@@ -75,7 +75,7 @@ pub fn list_todos(db: &Database, filters: TodoFilters) -> Result<Vec<Todo>, Stri
 pub fn get_todo(db: &Database, id: i64) -> Result<Todo, String> {
     let conn = db.conn.lock().map_err(|e| e.to_string())?;
     let mut stmt = conn.prepare(
-        "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at FROM todos WHERE id = ?1"
+        "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at, recurrence_rule_id FROM todos WHERE id = ?1"
     ).map_err(|e| format!("Prepare: {}", e))?;
     stmt.query_row(params![id], row_to_todo).map_err(|e| format!("Not found: {}", e))
 }
@@ -139,7 +139,7 @@ pub fn get_todo_with_details(db: &Database, id: i64) -> Result<TodoWithDetails, 
     })).map_err(|e| format!("Query tags: {}", e))?.filter_map(|r| r.ok()).collect();
 
     let mut stmt = conn.prepare(
-        "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at FROM todos WHERE parent_id = ?1 ORDER BY sort_order"
+        "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at, recurrence_rule_id FROM todos WHERE parent_id = ?1 ORDER BY sort_order"
     ).map_err(|e| format!("Prepare subtasks: {}", e))?;
     let sub_tasks = stmt.query_map(params![id], row_to_todo)
         .map_err(|e| format!("Query subtasks: {}", e))?.filter_map(|r| r.ok()).collect();
@@ -166,7 +166,7 @@ pub fn get_todo_with_details(db: &Database, id: i64) -> Result<TodoWithDetails, 
         bound_scene_ids
     };
 
-    Ok(TodoWithDetails { todo, tags, sub_tasks, bound_scene_ids })
+    Ok(TodoWithDetails { todo, tags, sub_tasks, bound_scene_ids, recurrence_rule: None, reminders: vec![] })
 }
 
 pub fn list_todos_by_app(db: &Database, app_id: i64) -> Result<Vec<TodoWithDetails>, String> {
@@ -241,6 +241,8 @@ pub fn list_todos_by_app(db: &Database, app_id: i64) -> Result<Vec<TodoWithDetai
             tags: todo_tags,
             sub_tasks: todo_subtasks,
             bound_scene_ids: todo_scenes,
+            recurrence_rule: None,
+            reminders: vec![],
         }
     }).collect())
 }
@@ -270,6 +272,8 @@ pub fn list_todos_with_details(db: &Database, filters: TodoFilters) -> Result<Ve
             tags: todo_tags,
             sub_tasks: todo_subtasks,
             bound_scene_ids: todo_scenes,
+            recurrence_rule: None,
+            reminders: vec![],
         }
     }).collect())
 }
@@ -313,6 +317,8 @@ pub fn get_todos_with_details_by_ids(db: &Database, ids: &[i64]) -> Result<Vec<T
             tags: todo_tags,
             sub_tasks: todo_subtasks,
             bound_scene_ids: todo_scenes,
+            recurrence_rule: None,
+            reminders: vec![],
         }
     }).collect())
 }
@@ -352,6 +358,7 @@ fn row_to_todo(row: &Row) -> Result<Todo, rusqlite::Error> {
         parent_id: row.get(6)?,
         sort_order: row.get(7)?,
         due_date: row.get(8)?,
+        recurrence_rule_id: row.get(11)?,
         created_at: row.get(9)?,
         completed_at: row.get(10)?,
     })
@@ -386,7 +393,7 @@ fn batch_query_tags(conn: &rusqlite::Connection, id_list: &str) -> Result<std::c
 /// Batch-query subtasks for multiple parent todo IDs. Returns HashMap<parent_id, Vec<Todo>>.
 fn batch_query_subtasks(conn: &rusqlite::Connection, id_list: &str) -> Result<std::collections::HashMap<i64, Vec<Todo>>, String> {
     let sql = format!(
-        "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at \
+        "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at, recurrence_rule_id \
          FROM todos WHERE parent_id IN ({}) ORDER BY sort_order",
         id_list
     );
@@ -484,7 +491,7 @@ mod tests {
         let updated = update_todo(&db, UpdateTodo {
             id: todo.id, title: None, description: None,
             status: Some("completed".into()), priority: None,
-            group_id: None, due_date: None,
+            group_id: None, due_date: None, recurrence_rule_id: None,
         }).unwrap();
         assert_eq!(updated.status, "completed");
         assert!(updated.completed_at.is_some());
@@ -504,7 +511,7 @@ mod tests {
         update_todo(&db, UpdateTodo {
             id: todo2.id, title: None, description: None,
             status: Some("completed".into()), priority: None,
-            group_id: None, due_date: None,
+            group_id: None, due_date: None, recurrence_rule_id: None,
         }).unwrap();
 
         let pending = list_todos(&db, TodoFilters {
