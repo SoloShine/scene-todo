@@ -13,7 +13,8 @@
     "test:tag": "wdio run wdio.conf.ts --spec ./specs/tag.spec.ts",
     "test:scene": "wdio run wdio.conf.ts --spec ./specs/scene.spec.ts",
     "test:smart-views": "wdio run wdio.conf.ts --spec ./specs/smart-views.spec.ts",
-    "test:settings": "wdio run wdio.conf.ts --spec ./specs/settings.spec.ts"
+    "test:settings": "wdio run wdio.conf.ts --spec ./specs/settings.spec.ts",
+    "test:recurrence-reminders": "wdio run wdio.conf.ts --spec ./specs/recurrence-reminders.spec.ts"
   },
   "dependencies": {
     "@types/node": "^25.6.0",
