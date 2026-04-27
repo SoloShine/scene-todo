@@ -37,7 +37,7 @@ pub struct UpdateReminder {
     pub enabled: Option<bool>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Ord, PartialOrd)]
 pub struct ReminderQueueItem {
     pub id: i64,
     pub todo_id: i64,

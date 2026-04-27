@@ -14,3 +14,4 @@ pub mod import_validator;
 pub mod rrule_service;
 pub mod recurrence_repo;
 pub mod reminder_repo;
+pub mod reminder_scheduler;

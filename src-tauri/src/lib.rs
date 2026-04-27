@@ -198,6 +198,7 @@ pub fn run() {
         ))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_notification::init())
         .setup(|app| {
             let db_arc = setup_database(app)?;
 
@@ -210,12 +211,25 @@ pub fn run() {
             let passthrough_state = PassthroughState::new();
             app.manage(passthrough_state);
 
-            let monitor = WindowMonitor::new(app.handle().clone(), db_arc, time_tracker);
+            let monitor = WindowMonitor::new(app.handle().clone(), db_arc.clone(), time_tracker);
             app.manage(monitor);
 
             setup_event_listeners(app);
             setup_tray(app)?;
             setup_window_handlers(app)?;
+
+            // Reminder scheduler
+            let scheduler = Arc::new(services::reminder_scheduler::ReminderScheduler::new(
+                db_arc.clone(),
+                app.handle().clone(),
+            ));
+            app.manage(scheduler.clone());
+
+            let sched = scheduler.clone();
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Runtime::new().expect("tokio runtime");
+                rt.block_on(async { sched.start().await; });
+            });
 
             Ok(())
         })
@@ -230,6 +244,7 @@ pub fn run() {
             commands::todo_cmd::list_todos_by_app,
             commands::todo_cmd::add_tag_to_todo,
             commands::todo_cmd::remove_tag_from_todo,
+            commands::todo_cmd::complete_todo,
             commands::group_cmd::create_group,
             commands::group_cmd::list_groups,
             commands::group_cmd::update_group,
@@ -279,6 +294,18 @@ pub fn run() {
             commands::scene_cmd::get_active_scene,
             commands::scene_cmd::set_active_scene,
             commands::scene_cmd::cleanup_old_sessions,
+            commands::recurrence_cmd::create_recurrence_rule,
+            commands::recurrence_cmd::get_recurrence_rule,
+            commands::recurrence_cmd::delete_recurrence_rule,
+            commands::recurrence_cmd::describe_rrule,
+            commands::recurrence_cmd::simplified_to_rrule,
+            commands::recurrence_cmd::set_todo_recurrence,
+            commands::reminder_cmd::create_reminder,
+            commands::reminder_cmd::list_reminders_by_todo,
+            commands::reminder_cmd::update_reminder,
+            commands::reminder_cmd::delete_reminder,
+            commands::reminder_cmd::snooze_reminder,
+            commands::reminder_cmd::dismiss_reminder,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -109,6 +109,14 @@ pub fn update_todo(db: &Database, input: UpdateTodo) -> Result<Todo, String> {
             param_values.push(Box::new(v.clone()));
         }
     }
+    if let Some(v) = input.recurrence_rule_id {
+        if v == 0 {
+            sets.push("recurrence_rule_id = NULL".into());
+        } else {
+            sets.push(format!("recurrence_rule_id = ?{}", param_values.len() + 1));
+            param_values.push(Box::new(v));
+        }
+    }
 
     if sets.is_empty() { return get_todo(db, input.id); }
 
@@ -213,7 +221,7 @@ pub fn list_todos_by_app(db: &Database, app_id: i64) -> Result<Vec<TodoWithDetai
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let id_list = ids.iter().map(|id| id.to_string()).collect::<Vec<_>>().join(",");
         let sql = format!(
-            "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at \
+            "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at, recurrence_rule_id \
              FROM todos WHERE id IN ({}) ORDER BY sort_order",
             id_list
         );
@@ -290,7 +298,7 @@ pub fn get_todos_with_details_by_ids(db: &Database, ids: &[i64]) -> Result<Vec<T
     let todos: Vec<Todo> = {
         let conn = db.conn.lock().map_err(|e| e.to_string())?;
         let sql = format!(
-            "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at \
+            "SELECT id, title, description, status, priority, group_id, parent_id, sort_order, due_date, created_at, completed_at, recurrence_rule_id \
              FROM todos WHERE id IN ({}) ORDER BY sort_order",
             id_list
         );

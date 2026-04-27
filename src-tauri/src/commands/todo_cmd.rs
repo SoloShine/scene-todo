@@ -3,6 +3,7 @@ use tauri::State;
 use crate::models::*;
 use crate::services::db::Database;
 use crate::services::todo_repo::{self, TodoFilters};
+use crate::services::recurrence_repo;
 
 #[tauri::command]
 pub fn create_todo(db: State<'_, Arc<Database>>, input: CreateTodo) -> Result<Todo, String> {
@@ -52,4 +53,26 @@ pub fn add_tag_to_todo(db: State<'_, Arc<Database>>, todo_id: i64, tag_id: i64) 
 #[tauri::command]
 pub fn remove_tag_from_todo(db: State<'_, Arc<Database>>, todo_id: i64, tag_id: i64) -> Result<(), String> {
     todo_repo::remove_tag_from_todo(&db, todo_id, tag_id)
+}
+
+#[tauri::command]
+pub fn complete_todo(db: State<'_, Arc<Database>>, id: i64, status: String) -> Result<Todo, String> {
+    let todo = todo_repo::update_todo(&db, UpdateTodo {
+        id,
+        title: None,
+        description: None,
+        status: Some(status.clone()),
+        priority: None,
+        group_id: None,
+        due_date: None,
+        recurrence_rule_id: None,
+    })?;
+
+    if status == "completed" || status == "abandoned" {
+        if let Some(rule_id) = todo.recurrence_rule_id {
+            let _new_id = recurrence_repo::generate_next_instance(&db, id, rule_id)?;
+        }
+    }
+
+    Ok(todo)
 }
