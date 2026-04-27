@@ -17,6 +17,7 @@ tauri = { version = "2", features = ["tray-icon", "image-ico", "image-png"] }
 tauri-plugin-autostart = "2"
 tauri-plugin-dialog = "2"
 tauri-plugin-fs = "2"
+tauri-plugin-notification = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 rusqlite = { version = "0.31", features = ["bundled"] }
@@ -25,6 +26,8 @@ chrono = { version = "0.4", features = ["serde", "clock"] }
 thiserror = "1"
 base64 = "0.22"
 percent-encoding = "2"
+rrule = "0.13"
+tokio = { version = "1", features = ["time", "sync"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 windows = { version = "0.58", features = [

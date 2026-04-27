@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::models::Tag;
+use crate::models::{Tag, RecurrenceRule, Reminder};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Todo {
@@ -12,6 +12,7 @@ pub struct Todo {
     pub parent_id: Option<i64>,
     pub sort_order: i64,
     pub due_date: Option<String>,
+    pub recurrence_rule_id: Option<i64>,
     pub created_at: String,
     pub completed_at: Option<String>,
 }
@@ -35,6 +36,7 @@ pub struct UpdateTodo {
     pub priority: Option<String>,
     pub group_id: Option<i64>,
     pub due_date: Option<String>,
+    pub recurrence_rule_id: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,4 +46,6 @@ pub struct TodoWithDetails {
     pub tags: Vec<Tag>,
     pub sub_tasks: Vec<Todo>,
     pub bound_scene_ids: Vec<i64>,
+    pub recurrence_rule: Option<RecurrenceRule>,
+    pub reminders: Vec<Reminder>,
 }
