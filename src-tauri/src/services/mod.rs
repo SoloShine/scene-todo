@@ -12,3 +12,4 @@ pub mod icon_extractor;
 pub mod data_port;
 pub mod import_validator;
 pub mod rrule_service;
+pub mod recurrence_repo;
