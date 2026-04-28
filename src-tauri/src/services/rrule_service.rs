@@ -9,8 +9,16 @@ use crate::models::{RruleDescribeResult, SimplifiedRecurrenceInput};
 
 /// Parse a date string (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS) into a DateTime<Tz>.
 fn parse_dt(dt_str: &str) -> Result<DateTime<Tz>, String> {
-    // Try full datetime first
+    // Try full datetime with seconds first
     if let Ok(ndt) = NaiveDateTime::parse_from_str(dt_str, "%Y-%m-%dT%H:%M:%S") {
+        return Local
+            .from_local_datetime(&ndt)
+            .single()
+            .map(|dt| dt.with_timezone(&Tz::Asia__Shanghai))
+            .ok_or_else(|| format!("Parse: ambiguous datetime '{}'", dt_str));
+    }
+    // Try datetime without seconds (HH:MM)
+    if let Ok(ndt) = NaiveDateTime::parse_from_str(dt_str, "%Y-%m-%dT%H:%M") {
         return Local
             .from_local_datetime(&ndt)
             .single()
@@ -351,6 +359,13 @@ mod tests {
         assert!(validate_rrule("", "2025-01-01").is_err());
         // Invalid date
         assert!(validate_rrule("FREQ=DAILY", "not-a-date").is_err());
+    }
+
+    #[test]
+    fn test_validate_rrule_with_datetime_no_seconds() {
+        // Frontend passes due_date as "2026-04-28T23:59"
+        assert!(validate_rrule("FREQ=DAILY", "2026-04-28T23:59").is_ok());
+        assert!(validate_rrule("FREQ=WEEKLY;BYDAY=MO", "2026-04-28T23:59").is_ok());
     }
 
     #[test]

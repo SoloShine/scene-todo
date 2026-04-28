@@ -66,11 +66,9 @@ pub fn set_todo_recurrence(
             },
         )
     } else {
-        // Clear recurrence: delete the existing rule and clear the field
+        // Clear recurrence: first clear the FK, then delete the rule
         let todo = todo_repo::get_todo(&db, todo_id)?;
-        if let Some(rule_id) = todo.recurrence_rule_id {
-            recurrence_repo::delete_recurrence_rule(&db, rule_id)?;
-        }
+        let rule_id = todo.recurrence_rule_id;
         todo_repo::update_todo(
             &db,
             UpdateTodo {
@@ -81,8 +79,12 @@ pub fn set_todo_recurrence(
                 priority: None,
                 group_id: None,
                 due_date: None,
-                recurrence_rule_id: Some(0), // Setting to 0 will be stored as 0
+                recurrence_rule_id: Some(0),
             },
-        )
+        )?;
+        if let Some(rid) = rule_id {
+            recurrence_repo::delete_recurrence_rule(&db, rid)?;
+        }
+        todo_repo::get_todo(&db, todo_id)
     }
 }
